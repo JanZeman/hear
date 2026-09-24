@@ -10,7 +10,7 @@ affiliated with any employer's product line.
 
 ## Repository layout
 
-- `Hear/UnityProject/` — the Unity project (Unity 6, Universal Render Pipeline).
+- `Hear/` — the Unity project (Unity 6, Universal Render Pipeline).
 
 ## Scope of this repository
 
