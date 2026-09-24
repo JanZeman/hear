@@ -110,6 +110,14 @@ namespace Hear.Editor
                         NamedBuildTarget.Android,
                         ScriptingImplementation.IL2CPP);
                     PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+                    // Per human direction 2026-09-25: the design keeps the OS status bar visible
+                    // (unlike the OS nav bar). The previous "start in fullscreen" setting hides
+                    // both natively before any of our own C# runs, and a runtime override
+                    // (GameFlowController.ApplyAndroidStatusBarVisibleNavHidden) was not enough to
+                    // keep it un-hidden - disabling native fullscreen here so our runtime code is
+                    // the only thing controlling bar visibility, instead of fighting Unity's own
+                    // startup behavior.
+                    PlayerSettings.Android.startInFullscreen = false;
                     break;
 
                 case BuildTarget.iOS:

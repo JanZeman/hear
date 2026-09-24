@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using HearApp.Core.HearingEngine;
 using HearApp.Core.Worlds;
 using UnityEngine;
@@ -45,12 +46,26 @@ namespace HearApp.Core.Shell.UI
         private VisualElement _nextCard;
         private float _swipeStartX;
         private bool _swipeTracking;
+        private bool _swipeCaptured;
         private const float SwipeThresholdPx = 40f;
+        private const float SwipeCaptureThresholdPx = 12f;
+        private readonly List<VisualElement> _worldDots = new();
+        // Measured against sources/HEAR-App-UI-Home.png (852x1846): dot diameter ~19.5px vs.
+        // Play button width ~344px there (see UpdateCarouselForCurrentSize's dot sizing).
+        private const float DotToPlayWidthRatio = 0.0567f;
+        private Coroutine _carouselEntranceAnim;
         private VisualElement _companion;
         private VisualElement _companionShadow;
         private Button _playButton;
-        private VisualElement _playGlowOuter;
-        private VisualElement _playGlowInner;
+        // Soft multi-layer glow (human feedback 2026-09-25: the original 2-ring attempt read as
+        // "brutal"/naive; a real soft glow needs many layers, each barely visible on its own).
+        // Second pass (human feedback 2026-09-25): still "much too wide" at up to +26px - measured
+        // against the reference mockup, its own glow (where visible at all) is only a few px past
+        // the element's own edge, not a wide halo. Padding (px beyond the button's own rect) and
+        // peak opacity per layer, outermost last.
+        private static readonly float[] PlayGlowPadding = { 1.5f, 3f, 5f, 8f };
+        private static readonly float[] PlayGlowAlpha = { 0.05f, 0.03f, 0.018f, 0.008f };
+        private VisualElement[] _playGlowLayers;
         private VisualElement _playRow;
         private VisualElement _navLogo;
         private WorldArt.HomeBgAspect _lastHomeAspect = (WorldArt.HomeBgAspect)(-1);
@@ -322,6 +337,19 @@ namespace HearApp.Core.Shell.UI
         {
             _swipeStartX = evt.position.x;
             _swipeTracking = true;
+            _swipeCaptured = false;
+            // Deliberately NOT capturing the pointer here (human feedback 2026-09-25: capturing
+            // unconditionally broke tap-to-select on the peek cards, since a captured pointer's
+            // up/click events go to _carousel instead of whichever card the finger is actually
+            // over). Capture is deferred to OnCarouselPointerMove, only once real drag distance is
+            // seen, so a plain tap is left alone and reaches the card's own ClickEvent normally.
+        }
+
+        private void OnCarouselPointerMove(PointerMoveEvent evt)
+        {
+            if (!_swipeTracking || _swipeCaptured) return;
+            if (Mathf.Abs(evt.position.x - _swipeStartX) < SwipeCaptureThresholdPx) return;
+            _swipeCaptured = true;
             _carousel.CapturePointer(evt.pointerId);
         }
 
@@ -329,7 +357,11 @@ namespace HearApp.Core.Shell.UI
         {
             if (!_swipeTracking) return;
             _swipeTracking = false;
-            _carousel.ReleasePointer(evt.pointerId);
+            if (_swipeCaptured)
+            {
+                _carousel.ReleasePointer(evt.pointerId);
+                _swipeCaptured = false;
+            }
 
             float deltaX = evt.position.x - _swipeStartX;
             if (Mathf.Abs(deltaX) < SwipeThresholdPx) return;
@@ -343,6 +375,7 @@ namespace HearApp.Core.Shell.UI
         private void OnCarouselPointerCancel(PointerCancelEvent evt)
         {
             _swipeTracking = false;
+            _swipeCaptured = false;
         }
 
         private static VisualElement MakeIcon(string name, float size, Color tint)
@@ -375,6 +408,7 @@ namespace HearApp.Core.Shell.UI
             _screenLayer.Clear();
             _lastHomeAspect = (WorldArt.HomeBgAspect)(-1);
             _lastHomeWorldId = null;
+            _worldDots.Clear();
 
             BuildAmbientBackground();
 
@@ -415,6 +449,7 @@ namespace HearApp.Core.Shell.UI
             // ---- Carousel: one active card, two peeking neighbors (no separate thumbnail row) ----
             _carousel = new VisualElement { style = { flexGrow = 1, position = Position.Relative, marginTop = VisualTokens.Spacing.S } };
             _carousel.RegisterCallback<PointerDownEvent>(OnCarouselPointerDown);
+            _carousel.RegisterCallback<PointerMoveEvent>(OnCarouselPointerMove);
             _carousel.RegisterCallback<PointerUpEvent>(OnCarouselPointerUp);
             _carousel.RegisterCallback<PointerCancelEvent>(OnCarouselPointerCancel);
             content.Add(_carousel);
@@ -431,8 +466,21 @@ namespace HearApp.Core.Shell.UI
             _carousel.Add(_nextCard);
             _carousel.Add(_activeCard);
 
-            // ---- Dots (world counter) - enlarged from the original 7px: too small to read as a
-            // counter at all on a real device screenshot, per human feedback 2026-09-25. ----
+            // The whole screen is rebuilt from scratch on every world change (simplest correct
+            // approach given the shared engine/shell architecture), which otherwise made
+            // selecting a world instantly "jump" with no transition - human feedback 2026-09-25
+            // ("nepusobi profesionalne"). A short fade + gentle rise on the new card set gives it
+            // real motion without needing to keep the old cards alive during the swap.
+            if (_carouselEntranceAnim != null) StopCoroutine(_carouselEntranceAnim);
+            _carouselEntranceAnim = StartCoroutine(AnimateCarouselEntrance(_prevCard, _activeCard, _nextCard));
+
+            // ---- Dots (world counter) ----
+            // Measured directly against sources/HEAR-App-UI-Home.png (852x1846) per human
+            // request 2026-09-25 ("stale neměříš přesně"): dot diameter there is ~19.5px and the
+            // Play button is ~344px wide - a 5.67% ratio - and, contrary to the previous guess,
+            // ALL THREE dots are the SAME size; only color/opacity marks the active one, it is
+            // NOT a wider pill. `DotDiameter` below is that ratio applied to our own Play button
+            // width (see UpdateCarouselForCurrentSize) rather than a flat guessed constant.
             var dotsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center, marginTop = VisualTokens.Spacing.M } };
             for (int i = 0; i < count; i++)
             {
@@ -441,33 +489,33 @@ namespace HearApp.Core.Shell.UI
                 {
                     style =
                     {
-                        width = isActive ? 26 : 10, height = 10,
-                        borderTopLeftRadius = 5, borderTopRightRadius = 5, borderBottomLeftRadius = 5, borderBottomRightRadius = 5,
-                        backgroundColor = isActive ? Color.white : new Color(1f, 1f, 1f, 0.55f),
+                        backgroundColor = isActive ? Color.white : new Color(1f, 1f, 1f, 0.5f),
                         marginLeft = 5, marginRight = 5
                     }
                 };
+                _worldDots.Add(dot);
                 dotsRow.Add(dot);
             }
             content.Add(dotsRow);
 
             // ---- Single Play pill (not attached to the card), with a soft glow halo ----
+            // marginTop reserves enough room for the glow's largest layer (see PlayGlowPadding)
+            // so it can never reach up into dotsRow above it - the two must never visually overlap.
             var playRow = new VisualElement
             {
-                style = { alignItems = Align.Center, marginTop = VisualTokens.Spacing.M, marginBottom = VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical() }
+                style = { alignItems = Align.Center, marginTop = VisualTokens.Spacing.XXL, marginBottom = VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical() }
             };
-            _playGlowOuter = new VisualElement
+            _playGlowLayers = new VisualElement[PlayGlowPadding.Length];
+            for (int i = 0; i < _playGlowLayers.Length; i++)
             {
-                style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, 0.20f) },
-                pickingMode = PickingMode.Ignore
-            };
-            _playGlowInner = new VisualElement
-            {
-                style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, 0.32f) },
-                pickingMode = PickingMode.Ignore
-            };
-            playRow.Add(_playGlowOuter);
-            playRow.Add(_playGlowInner);
+                var layer = new VisualElement
+                {
+                    style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, PlayGlowAlpha[i]) },
+                    pickingMode = PickingMode.Ignore
+                };
+                _playGlowLayers[i] = layer;
+                playRow.Add(layer);
+            }
             var playButton = new Button(() => _flow.RequestPlaySelectedWorld()) { text = "Play   \u2192" };
             playButton.style.backgroundColor = Color.white;
             playButton.style.color = VisualTokens.Colors.Ink900;
@@ -512,21 +560,33 @@ namespace HearApp.Core.Shell.UI
             // sky/mountains/river/figure all visible top-to-bottom - instead of a squarer crop that
             // truncates the top of the scene.
             var cardTexture = tex.Portrait916 != null ? tex.Portrait916 : (tex.Square11 != null ? tex.Square11 : tex.Wide169);
+            // Active vs. peek cards read as distinctly different shapes (human feedback
+            // 2026-09-25: peek tiles "must have a completely different shape"): peek tiles get a
+            // smaller corner radius, while the active card gets a slightly more present frame.
+            // The first attempt at a thicker active border (3px/0.6 alpha) measured "too thick" on
+            // a real device (human feedback 2026-09-25, asked to measure rather than guess again);
+            // this is a smaller correction, not another guess at a much bigger number. Peek tiles
+            // also get their own thin border now (per human suggestion) rather than "near
+            // invisible" - the reference mockup has none, a deliberate addition here.
+            float radius = isActive ? VisualTokens.Radius.XL : VisualTokens.Radius.M;
+            float borderWidth = isActive ? 1.5f : 1f;
+            float borderAlpha = isActive ? 0.35f : 0.16f;
             var card = new VisualElement
             {
                 style =
                 {
                     position = Position.Absolute, top = 0,
-                    borderTopLeftRadius = VisualTokens.Radius.XL, borderTopRightRadius = VisualTokens.Radius.XL,
-                    borderBottomLeftRadius = VisualTokens.Radius.XL, borderBottomRightRadius = VisualTokens.Radius.XL,
+                    borderTopLeftRadius = radius, borderTopRightRadius = radius,
+                    borderBottomLeftRadius = radius, borderBottomRightRadius = radius,
                     overflow = Overflow.Hidden,
                     backgroundImage = cardTexture,
                     unityBackgroundScaleMode = ScaleMode.ScaleAndCrop,
-                    borderTopWidth = 1, borderBottomWidth = 1, borderLeftWidth = 1, borderRightWidth = 1,
-                    borderTopColor = new Color(1f, 1f, 1f, isActive ? 0.45f : 0.12f),
-                    borderBottomColor = new Color(1f, 1f, 1f, isActive ? 0.45f : 0.12f),
-                    borderLeftColor = new Color(1f, 1f, 1f, isActive ? 0.45f : 0.12f),
-                    borderRightColor = new Color(1f, 1f, 1f, isActive ? 0.45f : 0.12f)
+                    opacity = isActive ? 1f : 0.88f,
+                    borderTopWidth = borderWidth, borderBottomWidth = borderWidth, borderLeftWidth = borderWidth, borderRightWidth = borderWidth,
+                    borderTopColor = new Color(1f, 1f, 1f, borderAlpha),
+                    borderBottomColor = new Color(1f, 1f, 1f, borderAlpha),
+                    borderLeftColor = new Color(1f, 1f, 1f, borderAlpha),
+                    borderRightColor = new Color(1f, 1f, 1f, borderAlpha)
                 }
             };
 
@@ -594,7 +654,13 @@ namespace HearApp.Core.Shell.UI
             // Fractions from metadata/home-layout.json's "compact" carousel block - used across all
             // breakpoints for this first pass rather than a second Wide-specific tuning table.
             float activeW = screenW * 0.71f;
-            float activeH = screenH * 0.49f;
+            // The card's box must NEVER exceed the carousel's own resolved height - a flat
+            // screenH-based fraction could spill the card past its box into the dots/Play rows
+            // below (confirmed on-device: carousel, world-counter dots and the Play button visibly
+            // overlapped). Clamping to carouselH with a small margin makes that structurally
+            // impossible regardless of breakpoint or safe-area insets.
+            float carouselH = _carousel.resolvedStyle.height;
+            float activeH = Mathf.Min(screenH * 0.49f, Mathf.Max(40f, carouselH - 8f));
             // Widened from 0.285/0.42 - the previous, narrower peek sliver left so little logical
             // width for the neighbor-card label that even short words ("TIDE", "GARDEN") broke
             // mid-word into unreadable single-glyph lines.
@@ -602,13 +668,12 @@ namespace HearApp.Core.Shell.UI
             const float peekVisibleFraction = CarouselPeekVisibleFraction;
 
             float activeLeft = (screenW - activeW) * 0.5f;
-            float carouselH = _carousel.resolvedStyle.height;
             float activeTop = Mathf.Max(0f, (carouselH - activeH) * 0.5f);
 
-            // Coverflow shape (human direction, 2026-09-25): side-peek cards are also slightly
-            // shorter than the active card, not just narrower, so the active card visibly "pops
-            // forward" instead of all three sharing one flat top/bottom edge.
-            const float peekScale = 0.88f;
+            // Peek tiles are a deliberately different shape from the active card (human feedback
+            // 2026-09-25), not just a narrower crop at the same height: noticeably smaller and
+            // recessed, reinforcing "this is a thumbnail, not the featured card".
+            const float peekScale = 0.74f;
             float neighborH = activeH * peekScale;
             float neighborTop = activeTop + (activeH - neighborH) * 0.5f;
 
@@ -644,10 +709,19 @@ namespace HearApp.Core.Shell.UI
                 _playButton.style.borderTopLeftRadius = playH * 0.5f; _playButton.style.borderTopRightRadius = playH * 0.5f;
                 _playButton.style.borderBottomLeftRadius = playH * 0.5f; _playButton.style.borderBottomRightRadius = playH * 0.5f;
 
-                if (_playGlowOuter != null && _playGlowInner != null)
+                if (_playGlowLayers != null)
                 {
-                    SizeGlowPill(_playGlowOuter, playW + 28f, playH + 28f);
-                    SizeGlowPill(_playGlowInner, playW + 12f, playH + 12f);
+                    for (int i = 0; i < _playGlowLayers.Length; i++)
+                        SizeGlowPill(_playGlowLayers[i], playW + PlayGlowPadding[i] * 2f, playH + PlayGlowPadding[i] * 2f);
+                }
+
+                float dotDiameter = playW * DotToPlayWidthRatio;
+                foreach (var dot in _worldDots)
+                {
+                    dot.style.width = dotDiameter;
+                    dot.style.height = dotDiameter;
+                    dot.style.borderTopLeftRadius = dotDiameter * 0.5f; dot.style.borderTopRightRadius = dotDiameter * 0.5f;
+                    dot.style.borderBottomLeftRadius = dotDiameter * 0.5f; dot.style.borderBottomRightRadius = dotDiameter * 0.5f;
                 }
             }
 
@@ -789,6 +863,44 @@ namespace HearApp.Core.Shell.UI
             }
             _ambientBack.style.backgroundImage = newTex;
             _ambientFront.style.opacity = 0f;
+        }
+
+        private IEnumerator AnimateCarouselEntrance(VisualElement prev, VisualElement active, VisualElement next)
+        {
+            var cards = new[] { prev, active, next };
+            const float riseStartPx = 14f;
+            foreach (var c in cards)
+            {
+                if (c == null) continue;
+                c.style.opacity = 0f;
+                c.style.translate = new Translate(0, riseStartPx, 0);
+            }
+            // One frame so UpdateCarouselForCurrentSize (driven from Update()) lays the cards out
+            // at their real rect first - translate then animates relative to that correct position
+            // instead of a stale/zeroed one.
+            yield return null;
+
+            float duration = VisualTokens.MotionMs.Normal / 1000f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float eased = 1f - (1f - t) * (1f - t) * (1f - t); // ease-out cubic
+                foreach (var c in cards)
+                {
+                    if (c == null) continue;
+                    c.style.opacity = eased;
+                    c.style.translate = new Translate(0, riseStartPx * (1f - eased), 0);
+                }
+                yield return null;
+            }
+            foreach (var c in cards)
+            {
+                if (c == null) continue;
+                c.style.opacity = 1f;
+                c.style.translate = new Translate(0, 0, 0);
+            }
         }
 
         // Approximate Screen.safeArea (physical px) -> our ConstantPhysicalSize logical units,

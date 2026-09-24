@@ -23,6 +23,23 @@ build -> install -> screenshot -> compare -> adjust `ShellUIController.cs` / `Wo
 
 ## Notes
 
+- 2026-09-25: Second on-device feedback round, fixed and verified: (1) **Overlap bug** - the
+  carousel/dots/Play button could visually overlap (card height was a flat `screenH * 0.49`
+  fraction that could exceed the carousel's own resolved box and spill into the rows below);
+  `activeH` is now clamped to the carousel's actual resolved height, structurally impossible to
+  overlap regardless of breakpoint. (2) Glow (Play button + nav icons) redone as 4-5 layers at
+  0.015-0.14 opacity instead of 2 layers at 0.16-0.32 - the original read as "naive"/"brutal".
+  (3) Active card border widened 1px -> 3px with higher opacity; peek cards now use a smaller
+  corner radius, 74% height scale (was 88%) and slightly reduced opacity, reading as a distinctly
+  different/receded shape rather than a same-shape crop - human called the previous peek shape
+  "completely wrong", this is a best-effort second pass, not yet re-confirmed. (4) World-switch
+  transition (swipe or tap) now fades + rises in (~360ms, ease-out) instead of snapping instantly
+  - confirmed via an on-device `adb screenrecord` (a mid-transition frame shows the old and new
+  card cross-dissolving), not just by reading the code.
+- 2026-09-25: Confirmed on-device (this Galaxy Z Fold, gesture nav): no Android status bar or
+  navigation bar visible in any screenshot - `androidStartInFullscreen`/`androidFullscreenMode`
+  already do their job here. iOS equivalent is unverified (no iOS build produced this session).
+  Tracked as its own item: [005](005-immersive-os-chrome.md).
 - 2026-09-25: Human-directed deviations from the handoff spec/checklist, superseding the
   corresponding checklist items above: peek (side) carousel cards carry no world-name label at
   all (only the active card is titled); the carousel uses a coverflow shape (peek cards scaled to

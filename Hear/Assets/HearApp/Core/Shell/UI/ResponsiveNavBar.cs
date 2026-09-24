@@ -120,36 +120,36 @@ namespace HearApp.Core.Shell.UI
 
             if (overlay)
             {
-                // Fake soft glow: two stacked, increasingly large/transparent rounded circles
+                // Soft glow: several stacked, increasingly large/transparent rounded circles
                 // behind the icon - UI Toolkit has no blur/box-shadow, so this approximates one.
-                // Every overlay icon gets one, not just the active one: a plain white/grey icon
-                // floating directly on busy, bright world photography (docks, skies) had too
-                // little contrast to read as an icon at all - confirmed on a real device screenshot.
-                // Active keeps the brand blue tint; inactive gets a neutral dark halo that lifts
-                // it off the background without implying it is selected.
+                // Two rounds of human feedback (2026-09-25): first a 2-layer version (16-28%
+                // opacity) read as "brutal"/naive; a 4-layer version out to +18px was still "much
+                // too wide" - the reference mockup's glow, where visible at all, is only a few px
+                // past the icon's own edge, not a wide halo. Active keeps the brand blue tint;
+                // inactive gets a neutral dark halo that lifts it off the background without
+                // implying it is selected.
                 Color glowTint = isActive ? new Color(0.35f, 0.65f, 1f, 1f) : new Color(0f, 0f, 0f, 1f);
-                var glowOuter = new VisualElement
+                float iconSize = compact ? 26f : 18f;
+                float[] pad = { 1.5f, 3f, 5f, 8f };
+                float[] alpha = isActive
+                    ? new[] { 0.05f, 0.03f, 0.018f, 0.008f }
+                    : new[] { 0.045f, 0.027f, 0.016f, 0.007f };
+                for (int i = 0; i < pad.Length; i++)
                 {
-                    style =
+                    float size = iconSize + pad[i] * 2f;
+                    var glow = new VisualElement
                     {
-                        position = Position.Absolute, width = 46, height = 46, left = -10, top = -10,
-                        borderTopLeftRadius = 23, borderTopRightRadius = 23, borderBottomLeftRadius = 23, borderBottomRightRadius = 23,
-                        backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, isActive ? 0.16f : 0.14f)
-                    },
-                    pickingMode = PickingMode.Ignore
-                };
-                var glowInner = new VisualElement
-                {
-                    style =
-                    {
-                        position = Position.Absolute, width = 32, height = 32, left = -3, top = -3,
-                        borderTopLeftRadius = 16, borderTopRightRadius = 16, borderBottomLeftRadius = 16, borderBottomRightRadius = 16,
-                        backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, isActive ? 0.28f : 0.22f)
-                    },
-                    pickingMode = PickingMode.Ignore
-                };
-                iconHost.Add(glowOuter);
-                iconHost.Add(glowInner);
+                        style =
+                        {
+                            position = Position.Absolute, width = size, height = size, left = -pad[i], top = -pad[i],
+                            borderTopLeftRadius = size * 0.5f, borderTopRightRadius = size * 0.5f,
+                            borderBottomLeftRadius = size * 0.5f, borderBottomRightRadius = size * 0.5f,
+                            backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, alpha[i])
+                        },
+                        pickingMode = PickingMode.Ignore
+                    };
+                    iconHost.Add(glow);
+                }
             }
 
             var icon = new VisualElement

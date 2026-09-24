@@ -52,6 +52,10 @@ namespace HearApp.Core.Shell
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+            ApplyAndroidStatusBarVisibleNavHidden();
+#endif
+
             Engine = gameObject.AddComponent<TrialEngine>();
 
             // Cold-start: randomize the initially active carousel item without reordering the
@@ -142,6 +146,63 @@ namespace HearApp.Core.Shell
                 SceneManager.UnloadSceneAsync(_loadedWorldScene);
             SetState(ShellState.WorldSelector);
         }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            // The deprecated-but-still-functional systemUiVisibility flags get cleared by Android
+            // whenever the app loses focus (e.g. a swipe near the edge, an interruption) and must
+            // be reapplied on refocus, or the OS nav bar reappears permanently.
+            if (hasFocus) ApplyAndroidStatusBarVisibleNavHidden();
+        }
+
+        /// <summary>
+        /// Per human direction 2026-09-25: the reference design keeps the OS status bar visible
+        /// (its icons "left lit"), matching this device's normal behavior - only the bottom OS
+        /// navigation bar should be immersive-hidden, not both (PlayerSettings' androidFullscreenMode
+        /// hides both, which is wrong here). Uses the older View.setSystemUiVisibility flags rather
+        /// than WindowInsetsController - functional through current Android versions and avoids
+        /// adding an AndroidX Core Gradle dependency for this one call.
+        /// </summary>
+        private void ApplyAndroidStatusBarVisibleNavHidden()
+        {
+            try
+            {
+                // `using` here would dispose these the instant this method returns - but
+                // runOnUiThread only *posts* the runnable, it does not block until it runs, so the
+                // captured `activity` was already invalid by the time the runnable actually
+                // executed (confirmed via a NullReferenceException inside the runnable in logcat).
+                // Not disposed here; the JNI global refs are cleaned up by the finalizer, which is
+                // fine for a call made only once per focus event.
+                var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+                var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity");
+                activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
+                {
+                    using var window = activity.Call<AndroidJavaObject>("getWindow");
+
+                    const int WindowFlagFullscreen = 0x00000400; // WindowManager.LayoutParams.FLAG_FULLSCREEN - would hide the status bar; must stay cleared.
+                    const int WindowFlagDrawsSystemBarBackgrounds = unchecked((int)0x80000000);
+                    window.Call("clearFlags", WindowFlagFullscreen);
+                    window.Call("addFlags", WindowFlagDrawsSystemBarBackgrounds);
+                    window.Call("setStatusBarColor", 0); // transparent, so our own art shows through behind it
+
+                    using var decorView = window.Call<AndroidJavaObject>("getDecorView");
+                    const int SystemUiFlagLayoutStable = 0x00000100;
+                    const int SystemUiFlagLayoutFullscreen = 0x00000400; // content draws under the (still-visible) status bar - not the hide-it flag (SYSTEM_UI_FLAG_FULLSCREEN, 0x00000004).
+                    const int SystemUiFlagLayoutHideNavigation = 0x00000200;
+                    const int SystemUiFlagHideNavigation = 0x00000002;
+                    const int SystemUiFlagImmersiveSticky = 0x00001000;
+                    int flags = SystemUiFlagLayoutStable | SystemUiFlagLayoutFullscreen
+                        | SystemUiFlagLayoutHideNavigation | SystemUiFlagHideNavigation | SystemUiFlagImmersiveSticky;
+                    decorView.Call("setSystemUiVisibility", flags);
+                }));
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[GameFlowController] Could not apply Android status-bar-visible/nav-hidden window flags: {e}");
+            }
+        }
+#endif
 
         private static WorldPresentationBase FindWorldPresentation(Scene scene)
         {
