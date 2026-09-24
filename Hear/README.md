@@ -140,3 +140,14 @@ measurement:
 ## 11. Current status
 
 - Fresh, empty Unity project. No gameplay has been implemented yet — this is the starting point.
+
+## Development builds
+
+Use the Unity Editor menu `Hear > Build Development` to create deterministic local builds without
+choosing an output path manually:
+
+- Android: `Builds/Android/Hear.apk` (ARM64, IL2CPP, minimum Android API 26)
+- iOS: `Builds/iOS/` (Xcode project)
+- macOS: `Builds/macOS/Hear.app`
+
+The Android and macOS menus also provide an `and Run` variant. Build outputs are ignored by Git.
