@@ -5,6 +5,16 @@ loudness; the player reacts whenever they notice one. Under the hood, this is a 
 screening, and the player knows it going in; it simply never feels clinical or like a medical
 test, for players of any age.
 
+## Status
+
+This is a prototype: the shared architecture is being proven out, the art is placeholder, and the
+audiometric protocol is a simplified stand-in for the real one. Nothing here is a finished,
+production-ready product yet.
+
+The app must always make it unmistakably clear to the player that Hear is not a medical
+application or device, and the player must acknowledge that they understand this before any
+hearing-related result is shown.
+
 ## Why
 
 Hearing fades gradually and unnoticed, and almost nobody checks it: a "hearing test" sounds
@@ -16,6 +26,8 @@ test, just a fun one: they spend a few enjoyable minutes inside a small, pleasan
 a real result about their hearing at the end, whether that is simply "your ear age" today or
 richer results later, with no medical framing, no pressure, and no personal data demanded up
 front.
+
+See [AGENTS.md](AGENTS.md) for the agent behavior contract.
 
 ## Repository layout
 

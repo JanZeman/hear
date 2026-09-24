@@ -7,6 +7,11 @@
 - Tone: light, playful, non-corporate, highly professional; not child-only and not medical-looking.
 - Audience: broad age range. Some worlds may be calm and adult, others playful or action-oriented.
 - The app should feel like a game first.
+- The app must always make it unmistakably clear to the player that Hear is not a medical
+  application or device, and the player must acknowledge that they understand this before any
+  hearing-related result is shown.
+- Current status: prototype. The architecture, protocol, and art are all still being proven out;
+  nothing is a finished, production-ready product yet.
 
 ## Brand
 

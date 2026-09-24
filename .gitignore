@@ -303,3 +303,10 @@ zsdoc/data
 ### Merge conflict resolution backup files ###
 **/*.orig
 nvz
+__pycache__/
+
+.agents/.agent-base-last-run
+
+.agents/.venture-wiki-last-check
+
+.agents/.venture-review-last-check

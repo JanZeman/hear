@@ -1,0 +1,69 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/agent-base-guard.sh\" ]] && AGENT_BASE_VENDOR=codex bash \"$ROOT/agent-base-guard.sh\" || true'"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^ab-low-helper$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; ROUTE=\"$ROOT/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"$ROOT/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" codex-hook || true'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^ab-low-helper$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; ROUTE=\"$ROOT/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"$ROOT/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" codex-hook || true'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-pending-migrations-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-pending-migrations-codex.sh\" || true'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-safe-001-reminder-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-safe-001-reminder-codex.sh\" || true'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-git-commit-format-reminder-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-git-commit-format-reminder-codex.sh\" || true'"
+          },
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-staffing-recovery-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-staffing-recovery-codex.sh\" || true'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-credential-repo-boundary-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-credential-repo-boundary-codex.sh\" || true'"
+          }
+        ]
+      }
+    ]
+  }
+}

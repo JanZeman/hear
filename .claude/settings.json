@@ -1,0 +1,111 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/agent-base-guard.sh\""
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^ab-low-helper$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROUTE=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" claude-hook || true"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^ab-low-helper$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ROUTE=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" claude-hook || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "STRIP=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/permission-auto-strip.sh\"; [[ -f \"$STRIP\" ]] && bash \"$STRIP\" || true"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-pending-migrations.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+          },
+          {
+            "type": "command",
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-safe-001-reminder.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+          },
+          {
+            "type": "command",
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-git-commit-format-reminder.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+          },
+          {
+            "type": "command",
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-staffing-recovery.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-credential-repo-boundary-claude.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git -C _sub/agent-base fetch:*)",
+      "Bash(git -C _sub/agent-base checkout:*)",
+      "Bash(git -C _sub/agent-base branch -f:*)",
+      "Bash(bash agent-base-guard.sh)",
+      "Bash(bash scripts/markdown-lint.sh:*)",
+      "Bash(python3 scripts/human-interruptions.py status)",
+      "Bash(python3 scripts/human-interruptions.py report:*)",
+      "Bash(python3 scripts/human-interruptions.py recommend:*)",
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Skill(permission-promote)",
+      "Skill(permission-promote:*)"
+    ],
+    "deny": [
+      "Bash(git checkout:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git commit:*)",
+      "Bash(git merge:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)",
+      "Bash(git rebase:*)",
+      "Bash(git reset:*)",
+      "Bash(git revert:*)",
+      "Bash(git switch:*)",
+      "Bash(git tag -d:*)",
+      "Bash(git tag --delete:*)",
+      "Bash(git tag -f:*)",
+      "Bash(git tag --force:*)"
+    ]
+  }
+}
