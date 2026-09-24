@@ -1,8 +1,7 @@
 # Hear
 
-**Hear** is a standalone hearing game for players of any age. It is a personal project by
-Jan Zeman, developed independently in free time. The full product and design decisions live in
-`docs/`; this README describes the resulting code architecture.
+**Hear** is a standalone hearing game for players of any age. The full product and design
+decisions live in `docs/`; this README describes the resulting code architecture.
 
 The current milestone is a technical vertical slice proving one shared hearing/session
 architecture can drive three radically different presentation worlds. It is not yet a validated
