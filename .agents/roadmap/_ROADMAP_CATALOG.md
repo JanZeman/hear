@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last updated**: <!-- TODO: Set the date -->
+**Last updated**: 2026-09-25
 
 This file holds current and planned work only. Finished and abandoned items keep their permanent
 rows in [`_ROADMAP_HISTORY.md`](_ROADMAP_HISTORY.md), which is not loaded at ordinary task start.
@@ -87,24 +87,19 @@ actually applies, and writing that word - never an invented synonym.
 
 ## In Progress
 
-<!-- TODO: Move items here when work begins. Example:
-
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
-| 001 | [Step name](001-step-name.md) | M1 | Brief status note |
--->
+| 001 | [Home screen 1:1 visual parity](001-home-screen-visual-parity.md) | Vertical slice | Building/screenshotting on connected Galaxy Z Fold |
 
 ---
 
 ## Open
 
-<!-- TODO: Add items as they are committed to. Example:
-
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
-| 001 | [Step name](001-step-name.md) | M1 | Depends on: - |
-| 002 | [Another step](002-another-step.md) | M1 | Depends on: 001 |
--->
+| 002 | [Shell navigation functional end-to-end](002-shell-navigation-functional.md) | Vertical slice | Depends on: - |
+| 003 | [All three worlds playable end-to-end](003-worlds-playable-end-to-end.md) | Vertical slice | Depends on: - |
+| 004 | [Secondary screens visual polish](004-secondary-screens-visual-polish.md) | Vertical slice | Depends on: -; lower priority than 001-003 |
 
 ---
 
