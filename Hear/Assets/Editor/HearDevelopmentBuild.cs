@@ -105,12 +105,17 @@ namespace Hear.Editor
                     PlayerSettings.SetApplicationIdentifier(
                         NamedBuildTarget.iOS,
                         "com.janzeman.hear");
+                    PlayerSettings.iOS.targetOSVersionString = "15.0";
                     break;
 
                 case BuildTarget.StandaloneOSX:
                     PlayerSettings.SetApplicationIdentifier(
                         NamedBuildTarget.Standalone,
                         "com.janzeman.hear");
+                    PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
+                    PlayerSettings.defaultScreenWidth = 1280;
+                    PlayerSettings.defaultScreenHeight = 800;
+                    PlayerSettings.resizableWindow = true;
                     break;
 
                 default:

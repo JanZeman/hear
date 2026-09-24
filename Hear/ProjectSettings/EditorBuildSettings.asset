@@ -6,7 +6,16 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/HearApp/Scenes/Bootstrap.unity
+    guid: 504538a106ed54529b131f770919d83e
+  - enabled: 1
+    path: Assets/HearApp/Scenes/TideTroublesWorld.unity
+    guid: ab467b3f88f634ce8a8da28b738a055a
+  - enabled: 1
+    path: Assets/HearApp/Scenes/PaperGardenWorld.unity
+    guid: 8a34b2e7f542e4b218ec3953cce9e726
+  - enabled: 1
+    path: Assets/HearApp/Scenes/RiverJourneyWorld.unity
+    guid: 95c58f1cc60e14495a649ccba72cb5b6
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

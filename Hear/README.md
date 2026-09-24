@@ -1,153 +1,190 @@
-# Hear — Game Description
+# Hear
 
-This document describes **what the game is and how it should feel and behave**, for anyone
-(human or AI agent) picking up design or implementation work on it.
+**Hear** is a standalone hearing game for players of any age. It is a personal project by
+Jan Zeman, developed independently in free time. The full product and design decisions live in
+`docs/`; this README describes the resulting code architecture.
 
-## 1. One-line pitch
+The current milestone is a technical vertical slice proving one shared hearing/session
+architecture can drive three radically different presentation worlds. It is not yet a validated
+audiometric protocol.
 
-A short, genuinely fun mobile game that produces sounds of varying pitch and loudness; the
-player reacts whenever they notice one. Under the hood, this is a hearing screening — but the
-player experiences it purely as a game, never as a medical test.
+The Unity project uses Unity 6 (`6000.6.2f1`) and the Universal Render Pipeline (URP). Its
+application identifier is `com.janzeman.hear`.
 
-## 2. Why this exists
+## Project layout
 
-Existing hearing-test apps are clinically fine but boring (barriers, forms, payment, dry pure-
-tone lists). Existing "fun" apps either test the wrong thing (sound *recognition* or *pitch
-discrimination*, not *audibility*) or are gated behind a professional access code. The gap this
-project fills: a **real, audiologically-valid go/no-go detection test, wrapped in an actual game**
-that a 6-year-old and a 60-year-old would both enjoy playing, with zero setup friction.
+```text
+Assets/HearApp/
+  Core/HearingEngine/   - measurement truth, owns nothing visual
+  Core/Shell/            - navigation/state machine + UI Toolkit chrome
+  Core/Worlds/           - the IWorldPresentation contract + shared helpers
+  Worlds/TideTroubles/   - 2D world
+  Worlds/PaperGarden/    - 2.5D world
+  Worlds/RiverJourney/   - 3D world
+  Dev/                   - development-only tooling (compiled out of release builds)
+  Editor/                - scene/build scripts
+  Scenes/                - Bootstrap.unity (persistent) + one additive scene per world
+```
 
-## 3. Audience and tone
+## What's shared across all three worlds
 
-- **All ages**, not children-only. This is a deliberate choice: it avoids child-data privacy
-  rules (COPPA/GDPR Art. 8) entirely, and the real-world problem it screens for (age-related
-  high-frequency hearing loss) affects a much larger population than pediatric hearing loss.
-- The game must never feel like a medical device or a form to fill out. No accounts, no sign-up,
-  no payment, no clinical language, ever.
+- **`TrialEngine`** (`Core/HearingEngine/TrialEngine.cs`) is the single source of truth: it
+  schedules tone/catch trials, synthesizes and pans the stimulus (`TonePlayer`), captures
+  taps, classifies the outcome, and updates `SessionResult`/progress. Its `ProcessTrial`
+  method is called by both the real scheduling loop and the development mock driver, so
+  "same sequence in -> same stored result out" holds by construction rather than convention.
+- **`IWorldPresentation`** (`Core/Worlds/IWorldPresentation.cs`) is the only channel a world
+  has into the engine. Worlds receive `OutcomePresentationContext` (classified outcome, ear
+  channel, session progress) — never a stimulus-onset callback.
+- **`CoreSafeSquareFit`** (`Core/Worlds/CoreSafeSquareFit.cs`) implements the Core Safe Square
+  responsive rule for both orthographic (2D/2.5D) and perspective (3D) cameras by holding the
+  matching dimension fixed and letting the other reveal more — one component, reused by all
+  three world cameras, with no non-uniform stretching anywhere.
+- **`GameFlowController`** (`Core/Shell/GameFlowController.cs`) owns the whole navigation state
+  machine (splash → world selector → headphone/speaker choice → micro-instruction → play →
+  results) and additively loads/unloads whichever world scene is selected.
+- **`ShellUIController`** (`Core/Shell/UI/`) is the UI Toolkit shell: brand mark, world
+  selector carousel (stable order, cold-start-randomized active index), headphone/speaker
+  choice, minimal-chrome gameplay HUD, results, settings stub, and the
+  Wide-sidebar/Medium-icon-rail/Compact-bottom-nav responsive navigation.
 
-## 4. Playable instantly, no barriers
+## What deliberately remains world-specific
 
-- Playable instantly. No account, no permissions beyond audio, no age check, no barriers.
-- The player just plays one of the game's "worlds" (see Section 6). Under the hood it's running a
-  hearing screening; the player never needs to know that.
-- Ends at a friendly, non-alarming result screen (see Section 7).
-- Nothing beyond audio playback and touch input is ever requested before the result screen — no
-  permissions, no forms, no waiting.
+Each world under `Worlds/` owns its own scene, camera, ambient visuals, and Success Event —
+none of this logic lives in the engine or shell:
 
-## 5. The core mechanic (do not change this without a very good reason)
+- **Tide Troubles** (2D): ambient creatures on independent timers; a `CorrectDetection`
+  triggers an autonomous capture gag, never requiring the tap to land on anything.
+- **The Paper Garden** (2.5D): flat placeholder layers at distinct Z depths; a
+  `CorrectDetection` advances one step through an ordered list of stage actions.
+- **River Journey** (3D): a primitive canoe drifts along a hand-rolled waypoint path purely
+  from `SetSessionProgress`; a `CorrectDetection` only adds a cosmetic paddle bump plus a
+  short, decaying forward-distance impulse on top.
 
-The single interaction, underneath every visual theme, is:
+All three deliberately implement the same `PresentOutcome`/`SetSessionProgress` contract with
+no special-casing in the shared code — if a future world needs an engine/shell exception, that
+should trigger revisiting the abstraction rather than adding another `if`.
 
-> **A sound-linked visual cue appears. If the player taps anywhere on the screen while it is
-> active, that's a "hit." If they don't, it fades away as a "miss." Sometimes, at random, nothing
-> plays at all (a "catch trial") — a tap during one of these is a false positive.**
+## Responsive behavior
 
-This is a **go/no-go detection** task — the standard, clinically valid technique used by real
-audiologists for young children ("conditioned play audiometry"). It is deliberately **not**:
+- Shell navigation swaps Sidebar → Icon rail → Bottom nav at width breakpoints (900px / 600px
+  placeholders — exact values are an open question per `docs/13`).
+- World cameras use `CoreSafeSquareFit` so landscape reveals more horizontally and portrait
+  reveals more vertically, without ever stretching art non-uniformly.
+- The macOS build defaults to a resizable **windowed** 1280×800 window (not fullscreen).
 
-- **Recognition** ("what animal made that sound?") — tests general knowledge/cognition, not
-  hearing.
-- **Pitch or tone discrimination** ("which of these two is higher?", "match this pitch") — tests
-  musical aptitude, not hearing sensitivity. People with completely normal hearing can fail this
-  (a real, documented condition called congenital amusia); it measures a different skill entirely.
+## Development tooling
 
-**Critical rule for every theme's visual design:** the player's tap does **not** need to land on
-the visual cue itself, wherever it appears on screen. A tap anywhere during the active window
-counts as a hit. Visual position/movement is purely a "juice"/engagement layer (it looks like
-you're aiming or reacting to something specific), never a precision/aim requirement. Turning this
-into an aiming or reflex-timing challenge would silently corrupt the hearing measurement — it
-would start measuring reaction time and hand-eye coordination instead of hearing.
+With `DevOverlay` (press `` ` `` to toggle, Editor/Development builds only):
 
-Missing an active cue or a catch trial is never punished harshly or shown as a "fail" — this is a
-game, not an exam.
+- Inject `CorrectDetection` / `Miss` / `FalsePositive` / `CorrectRejection` ×
+  `Left`/`Right`/`Combined` directly into a running session, bypassing real audio timing.
+- Quick-start any world without replaying the full shell flow.
+- Run the **Integration Proof**: loads each world scene in isolation, runs the identical
+  `MockSequenceDriver` sequence through a fresh `TrialEngine`, and logs whether the resulting
+  `SessionResult` is identical across all three worlds.
 
-## 6. The audiometric "protocol" behind the game loop
+The same proof is available via `HearApp/Editor/HearAppIntegrationProofCli.cs`
+(`Hear > Run Integration Proof`), though see "Known limitations" below.
 
-This is the concrete recipe that makes the game loop above into an actual screening:
+## Building
 
-- **Frequencies tested:** roughly 1, 2, 4, 8, 12, and 16 kHz. The higher frequencies (8–16 kHz)
-  are where the fun "ear age" signal actually lives — high-frequency hearing sensitivity declines
-  gradually across the entire lifespan, starting as early as someone's teens/twenties, long
-  before it affects everyday speech understanding. The 1–2 kHz anchor exists to catch any
-  speech-range issue too.
-- **Per frequency:** a simple descending staircase — start at a clearly audible level and step
-  down until the player first misses it — rather than a full clinical bracketing procedure. This
-  keeps a full session to roughly 2–3 minutes.
-- **~10–15 active rounds per session**, with roughly 15–20% additional silent catch trials mixed
-  in at random.
-- **Stereo per-ear testing** when headphones are detected/likely in use; a single combined test
-  when relying on the device's built-in speaker.
-- **Output:** the highest frequency the player reliably detected is converted into a friendly
-  "ear age" number via a population-norm reference curve — never shown as raw decibels or a
-  clinical audiogram by default (see Section 7).
-- Headphones are **recommended but never required**. The game must always be playable with zero
-  setup, even if that means slightly reduced accuracy on a phone's built-in speaker.
-- Ambient-noise gating via the microphone is deliberately **not** part of the design — it would
-  require an extra permission prompt, which conflicts with the zero-friction principle.
+- `Hear > Build All Scenes` — (re)builds Bootstrap + the 3 world scenes and registers them
+  in Build Settings.
+- `Hear > Build Development > Android` — builds `Builds/Android/Hear.apk` as ARM64/IL2CPP.
+- `Hear > Build Development > iOS` — generates the Xcode project in `Builds/iOS/`.
+- `Hear > Build Development > macOS` — builds `Builds/macOS/Hear.app`.
+- Android and macOS also provide an `and Run` command.
 
-## 7. The game "worlds"
+## What can be tested now
 
-The detection engine and protocol above are completely shared and identical underneath. What
-changes between "worlds" is purely the presentation layer: art style, music/sound design,
-narration tone, and the specific animation played on a hit/miss. Building one theme should never
-require touching the detection logic. Candidate worlds (not yet finalized which ship first):
+- Full shell flow (splash → selector → headphone choice → micro-instruction → play → results)
+  in the Editor or the macOS build.
+- All four `TrialOutcome` values and all three `EarChannel` values, via `DevOverlay`.
+- Responsive behavior by resizing the Editor Game view or the macOS window.
+- The Integration Proof, via the `DevOverlay` button (interactive) inside a running session.
 
-1. **Energetic** — fast-paced, physical, impact-driven, "Angry Birds"-style hit feedback: pop
-   animation, particle burst, screen shake, combo counter. Bright, saturated, high-energy palette.
+## v0.3 UI asset upgrade
 
-2. **Calm / "fireflies by the lake"** — a quiet, atmospheric, nighttime lakeside scene. A firefly
-   glows and drifts; catching it feels gentle and magical rather than explosive. Painterly,
-   atmospheric visuals, with a real mirrored reflection of the scene in the water. A gentle
-   in-fiction narrator voice guides the player.
+The Home/World Selector screen was rebuilt using the real assets shipped in
+`hear-ui-assets-v0.3.zip` (archived in `docs/v0.3-ui-assets/` and
+`Art/Reference/v0.3/`), replacing the earlier abstract-shape placeholder shell:
 
-3. **Third world — not yet finalized.** Candidates: a sonar/deep-space "signal hunter" theme; a
-   jungle/wildlife safari theme; a noir-detective theme. The goal is for the worlds together to
-   cover a real range of moods/ages, not three variations on the same feeling.
+- **Brand**: `BrandMarkView` now displays the actual supplied `hear-logo-light-1024.png` (full
+  lockup, splash screen) and `hear-mark-light-1024.png` (symbol-only, quiet nav header) instead of
+  procedurally-drawn ellipses.
+- **Companion**: `companion-neutral-512.png` is placed as a real sprite inside the active world's
+  hero, at a per-world normalized anchor/scale (`WorldArt.GetCompanionPlacement`) rather than a
+  fixed UI-coordinate mascot.
+- **World art**: the World Selector is now a dominant hero (using `world-16x9`/`world-1x1`/
+  `world-9x16` depending on the hero's live aspect ratio) with a scrim, title, tagline and Play
+  button, plus a row of `world-4x3` thumbnails below - not an equal-weight card grid.
+- **Ambient background**: `ambient-bg-16x9.jpg` per world crossfades behind the content
+  (Motion-Scene ~550ms) when the selected world changes, replacing the earlier flat color wash.
+- **Navigation**: `ResponsiveNavBar` uses the real icon set (rasterized from the supplied SVGs via
+  `rsvg-convert`, tinted through `unityBackgroundImageTintColor`) and is deliberately slim
+  (168px wide / 60px rail) so it stays subordinate to the world, per the v0.3 brief. No
+  Profile/avatar/greeting was added - none exists in the current nav, matching the explicit
+  instruction not to invent personalization.
+- **Headphone screen**: now shows the real headphones icon above the (unchanged) copy.
 
-## 8. Presenting the result
+### Known compromises in this pass
 
-- Never lead with a raw number, a decibel value, or an audiogram chart. The primary result is a
-  simple, friendly, plain-language summary — an **"ear age"** framing (e.g. "your hearing tested
-  like a typical 34-year-old's") is the validated pattern to use, since it's fun, universally
-  understood, and non-alarming regardless of the actual result.
-- A more detailed chart/breakdown can exist as an optional, secondary "for the curious" layer —
-  never the first thing shown.
-- The tone of the result screen should stay light and game-like ("nice job!", a shareable score),
-  not clinical, even though it's genuinely derived from a real measurement.
+- Companion placement is an approximate manual per-world anchor (`WorldArt.cs`), not a
+  pixel-accurate physical integration - the supplied world art has no reserved landing surface for
+  it, unlike the original concept board composite.
+- `IStyle.unityBackgroundScaleMode` is used for the cover-crop behavior; Unity 6 flags it as
+  obsolete in favor of newer `background-*` USS properties, but those are not yet used elsewhere
+  in the project and the deprecated API is still fully functional.
+- Verification here was build + Player.log inspection + AppleScript-driven window resizes across
+  wide/medium/narrow (no crashes/exceptions at any size). Screenshots could not be captured in
+  this environment (`screencapture` lacks Screen Recording permission for this terminal) - visual
+  confirmation still needs a human looking at the running app.
+- Secondary screens (Micro-instruction, Results, Settings, Playing HUD) were intentionally left
+  as-is per the requested priority order (home screen first).
+- Windows behavior could not be tested (macOS-only environment); the UI Toolkit code is
+  platform-agnostic, but this is unverified on that platform.
 
-## 9. Hard design rules — do not violate these
+## Known limitations / placeholders
 
-These aren't style suggestions; each one exists to keep the app as a game/entertainment product
-rather than sliding into medical-device territory, or to protect the validity of the underlying
-measurement:
+- World-selection art and shell assets are supplied prototype exports. The actual playable world
+  scenes still use procedural placeholder geometry.
+- The audiometric protocol (`TrialPlan`) is a simplified one-trial-per-frequency stand-in, not
+  the planned descending-staircase protocol.
+- The results screen uses placeholder "ear age" framing text; the real norm curve does not
+  exist yet.
+- Headphone vs Speaker is only ever user-selected, never auto-detected (deliberately — see
+  `docs/13-open-questions.md`).
+- The brand mark is reconstructed procedurally in UI Toolkit (four ellipses) rather than
+  importing the reference SVGs, to avoid adding the Vector Graphics package for this slice.
+  Colors now come from `Core/Shell/VisualTokens.cs`, which mirrors
+  `docs/14-visual-bible.md` / `Art/Reference/brand/hear-visual-tokens.json` (v0.2
+  handoff): Pearl/Ink neutrals, the Aurora accent palette, the 8-based spacing scale, radius
+  tokens, semantic type sizes, motion-duration tokens, and the compact(<600)/medium(600-999)/
+  wide(>=1000) breakpoints. All shell screens (splash, world selector, headphone choice,
+  micro-instruction, HUD, results, settings) and the responsive nav now consume these tokens
+  instead of ad hoc colors/sizes. The world selector also crossfades a soft per-world accent
+  tint behind the carousel (bible section 10.5) - still just a color wash, not invented art.
+- UI Toolkit logs a harmless "No Theme Style Sheet" warning at runtime (no default theme asset
+  was created) — layout works, but built-in control chrome (e.g. `Button` borders) is unstyled.
+- The headless CLI integration-proof runner (`HearAppIntegrationProofCli`) reliably builds and
+  starts, but `EditorApplication.EnterPlaymode()` did not reliably pump the Play-mode update
+  loop under `-batchmode -nographics` in this environment (a known rough edge without the
+  Unity Test Framework's PlayMode test runner) — two attempts (60s and 180s timeouts) both hung
+  during a benign engine-internal search-indexing step and never reached our code. The
+  interactive path was verified instead: the built macOS app boots cleanly to the World
+  Selector with no runtime exceptions, and the Integration Proof logic itself is exercised by
+  the exact same `TrialEngine.ProcessTrial` method used by the real session loop, so correctness
+  rests on that shared code path rather than on this CLI convenience wrapper.
 
-1. A tap anywhere on screen during an active cue counts as a hit — never require the tap to land
-   on the visual cue itself.
-2. The game never collects or stores anything identifying a player, especially not for anyone
-   who indicates they're under 18. No accounts, no persistent profiles.
-3. Nothing beyond audio playback and touch input is ever requested before the result screen — no
-   permissions, no forms, no waiting.
-4. Missing a cue, or tapping during a catch trial, is always shown gently (if at all) — this is a
-   game people should want to keep playing, not a test they can fail.
+## Recommended next steps
 
-## 10. Project setup
-
-- Unity 6 (`6000.6.2f1`), Universal Render Pipeline (URP), created from Unity's official "3D
-  URP" project template so no later render-pipeline conversion is ever needed.
-- Application identifier: `com.janzeman.hear`.
-- This is a personal project, developed independently in free time.
-
-## 11. Current status
-
-- Fresh, empty Unity project. No gameplay has been implemented yet — this is the starting point.
-
-## Development builds
-
-Use the Unity Editor menu `Hear > Build Development` to create deterministic local builds without
-choosing an output path manually:
-
-- Android: `Builds/Android/Hear.apk` (ARM64, IL2CPP, minimum Android API 26)
-- iOS: `Builds/iOS/` (Xcode project)
-- macOS: `Builds/macOS/Hear.app`
-
-The Android and macOS menus also provide an `and Run` variant. Build outputs are ignored by Git.
+1. Add the Unity Test Framework package and convert `HearAppIntegrationProofCli` into a real
+   PlayMode test for CI, instead of a manual/CLI command.
+2. Validate Android, iOS and macOS behavior on real target devices.
+3. Replace `TrialPlan`'s simplified schedule with the real descending-staircase protocol.
+4. Begin the real art pipeline (Phase E) only after this architecture is reviewed/approved —
+   replace placeholders incrementally, world by world.
+5. Resolve the open product questions in `docs/13-open-questions.md` (typography, exact
+   breakpoints, Companion design, cultural direction for Paper Garden/River Journey) before
+   investing in production art for those worlds.

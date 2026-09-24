@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" role="img" aria-label="HEAR logo lockup reference">
+  <defs>
+    <linearGradient id="gE" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9E7FF"/><stop offset="1" stop-color="#C9D9FF"/></linearGradient>
+    <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#BFD9FF"/><stop offset="1" stop-color="#78B4FF"/></linearGradient>
+    <linearGradient id="gR" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7CC8FF"/><stop offset="0.58" stop-color="#6EA5FF"/><stop offset="1" stop-color="#9A67F6"/></linearGradient>
+  </defs>
+  <g transform="translate(0,20)">
+    <circle cx="90" cy="105" r="11" fill="#10263A"/>
+    <ellipse cx="230" cy="105" rx="22" ry="34" fill="url(#gE)"/>
+    <ellipse cx="370" cy="105" rx="34" ry="53" fill="url(#gA)"/>
+    <ellipse cx="510" cy="105" rx="47" ry="74" fill="url(#gR)"/>
+    <g fill="#10263A" font-family="Inter, SF Pro Display, Segoe UI, Arial, sans-serif" font-size="64" font-weight="300" text-anchor="middle">
+      <text x="90" y="230">H</text><text x="230" y="230">E</text><text x="370" y="230">A</text><text x="510" y="230">R</text>
+    </g>
+    <text x="300" y="300" fill="#66758B" font-family="Inter, SF Pro Display, Segoe UI, Arial, sans-serif" font-size="27" font-weight="300" text-anchor="middle" letter-spacing="1">Sound opens worlds.</text>
+  </g>
+</svg>

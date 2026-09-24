@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HEAR shell — closer to designer concept</title>
+<style>
+  :root {
+    --pearl0:#FCFCFF; --pearl50:#F5F6FB; --mist100:#ECEEF5; --slate400:#8B93A7;
+    --ink700:#33405B; --ink900:#17223C;
+    --auroraPearl:#E9F3FF; --auroraSky:#A8D9F2; --auroraBlue:#6DA8E8; --auroraIris:#8C79E8; --auroraViolet:#6957D8;
+  }
+  body { font-family:-apple-system,"Inter","Helvetica Neue",sans-serif; background:#cfd4e2; margin:0; padding:32px; }
+  h2 { font-size:14px; color:#444; margin:0 0 10px 2px; }
+  .note { max-width:900px; font-size:12px; color:#555; line-height:1.5; margin:14px 2px 28px; background:#fff; padding:12px 16px; border-radius:10px; }
+  .frame { width:900px; border-radius:14px; overflow:hidden; box-shadow:0 16px 40px rgba(0,0,0,0.22); border:1px solid #0002; margin-bottom:36px; }
+  .titlebar { height:30px; background:#fff; display:flex; align-items:center; padding:0 12px; gap:6px; border-bottom:1px solid var(--mist100); }
+  .dot { width:11px; height:11px; border-radius:50%; }
+  .app { display:flex; height:560px; background:var(--pearl0); }
+
+  .sidebar { width:180px; flex-shrink:0; background:var(--pearl50); border-right:1px solid var(--mist100);
+    padding:20px 14px; box-sizing:border-box; display:flex; flex-direction:column; }
+  .logo { display:flex; align-items:flex-end; gap:5px; margin-bottom:2px; }
+  .logo .dotmark { width:6px; height:6px; border-radius:50%; background:var(--ink900); }
+  .logo .e { width:10px; height:15px; border-radius:50%; background:var(--auroraPearl); }
+  .logo .a { width:15px; height:23px; border-radius:50%; background:var(--auroraSky); }
+  .logo .r { width:21px; height:34px; border-radius:50%; background:linear-gradient(180deg,var(--auroraIris),var(--auroraViolet)); }
+  .wordmark { font-weight:700; font-size:15px; color:var(--ink900); margin-left:4px; }
+  .claim { font-size:9px; color:var(--slate400); margin:2px 0 22px 4px; }
+
+  .nav-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:10px;
+    font-size:14px; font-weight:600; color:var(--slate400); margin-bottom:2px; }
+  .nav-item.active { background:var(--auroraPearl); color:var(--auroraBlue); }
+  .nav-icon { width:16px; height:16px; border-radius:5px; background:currentColor; opacity:.85; flex-shrink:0; }
+  .nav-icon.round { border-radius:50%; }
+  .nav-icon.diamond { transform:rotate(45deg); border-radius:3px; }
+
+  .main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  .topbar { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:14px 20px 0; }
+  .greeting { font-size:12px; color:var(--ink700); }
+  .avatar { width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--auroraIris),var(--auroraBlue)); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; }
+
+  .hero { margin:14px 20px 0; border-radius:20px; overflow:hidden; position:relative; height:220px;
+    background-size:cover; background-position:center; }
+  .hero .scrim { position:absolute; inset:0; background:linear-gradient(0deg, rgba(10,14,30,0.55) 0%, rgba(10,14,30,0.05) 55%, rgba(10,14,30,0.0) 100%); }
+  .hero .info { position:absolute; left:18px; bottom:16px; color:#fff; }
+  .hero .eyebrow { font-size:10px; letter-spacing:.08em; text-transform:uppercase; opacity:.85; margin-bottom:4px; }
+  .hero .title { font-size:24px; font-weight:700; margin-bottom:4px; text-shadow:0 2px 8px rgba(0,0,0,.35); }
+  .hero .tagline { font-size:12px; opacity:.9; margin-bottom:12px; }
+  .hero .play { background:#fff; color:var(--ink900); border:none; padding:8px 18px; border-radius:999px; font-weight:700; font-size:12px; }
+
+  .thumbs { display:flex; gap:12px; margin:14px 20px 20px; }
+  .thumb { flex:1; border-radius:16px; overflow:hidden; background-size:cover; background-position:center;
+    height:110px; position:relative; box-shadow:0 4px 14px rgba(23,34,60,0.15); }
+  .thumb.active { outline:2px solid var(--auroraBlue); outline-offset:2px; }
+  .thumb .scrim2 { position:absolute; inset:0; background:linear-gradient(0deg, rgba(10,14,30,0.75) 0%, rgba(10,14,30,0.0) 65%); }
+  .thumb .label { position:absolute; left:10px; bottom:8px; color:#fff; }
+  .thumb .label b { display:block; font-size:12px; }
+  .thumb .label span { font-size:10px; opacity:.85; }
+
+  figcaption { text-align:center; font-size:12px; color:#555; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<h2>Closer to the designer's desktop-responsive-concept.png — using the real reference mood-board images as full backgrounds (not sliced)</h2>
+
+<div class="frame">
+  <div class="titlebar">
+    <div class="dot" style="background:#FF5F57"></div><div class="dot" style="background:#FEBC2E"></div><div class="dot" style="background:#28C840"></div>
+  </div>
+  <div class="app">
+    <div class="sidebar">
+      <div class="logo"><div class="dotmark"></div><div class="e"></div><div class="a"></div><div class="r"></div><span class="wordmark">HEAR</span></div>
+      <div class="claim">Sound opens worlds.</div>
+      <div class="nav-item active"><div class="nav-icon round"></div>Home</div>
+      <div class="nav-item"><div class="nav-icon round"></div>Worlds</div>
+      <div class="nav-item"><div class="nav-icon round"></div>Profile</div>
+      <div class="nav-item"><div class="nav-icon diamond"></div>Settings</div>
+    </div>
+    <div class="main">
+      <div class="topbar"><span class="greeting">Good morning, Jan</span><div class="avatar">JZ</div></div>
+
+      <div class="hero" style="background-image:url('../worlds/river-journey-style-frame.png')">
+        <div class="scrim"></div>
+        <div class="info">
+          <div class="eyebrow">Featured world</div>
+          <div class="title">River Journey</div>
+          <div class="tagline">A peaceful ride. Listen. Explore. Progress.</div>
+          <button class="play">&#9654;&nbsp; Play</button>
+        </div>
+      </div>
+
+      <div class="thumbs">
+        <div class="thumb active" style="background-image:url('../worlds/river-journey-style-frame.png')">
+          <div class="scrim2"></div><div class="label"><b>River Journey</b><span>Explore</span></div>
+        </div>
+        <div class="thumb" style="background-image:url('../worlds/paper-garden-style-frame.png')">
+          <div class="scrim2"></div><div class="label"><b>The Paper Garden</b><span>Be curious</span></div>
+        </div>
+        <div class="thumb" style="background-image:url('../worlds/tide-troubles-style-frame.png')">
+          <div class="scrim2"></div><div class="label"><b>Tide Troubles</b><span>Solve &amp; Play</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+  <b>Honesty check, per the handoff's own README:</b> "Everything in <code>assets/reference/</code> is
+  concept/reference art, not production-ready game art... do not slice arbitrary UI controls or
+  final sprites out of the concept boards." The composite you showed me
+  (<code>desktop-responsive-concept.png</code>) already has a specific Companion pose, lighting and
+  exact thumbnail crops baked into one flattened image — I can't cleanly extract just "the
+  Companion" or "just that thumbnail" from it without slicing a concept board, which is exactly
+  what we're told not to do.<br><br>
+  What I <i>can</i> do honestly is what's above: use the three whole
+  <code>worlds/*-style-frame.png</code> mood-boards as full hero/thumbnail backgrounds (matching the
+  concept's layout, hierarchy and greeting/sidebar structure) — this is much closer to the intended
+  direction than my abstract shapes, but the Companion character and the exact painterly polish you
+  see in the composite don't exist as standalone assets yet. Getting pixel-close to that composite
+  needs either the designer exporting the Companion/thumbnails as separate transparent assets, or
+  real image generation tooling to make new production art - neither of which I can fabricate here.
+</div>
+
+</body>
+</html>

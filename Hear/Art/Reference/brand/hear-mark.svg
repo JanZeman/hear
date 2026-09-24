@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" role="img" aria-label="HEAR four-element mark">
+  <defs>
+    <linearGradient id="gE" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E9E7FF"/>
+      <stop offset="1" stop-color="#C9D9FF"/>
+    </linearGradient>
+    <linearGradient id="gA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#BFD9FF"/>
+      <stop offset="1" stop-color="#78B4FF"/>
+    </linearGradient>
+    <linearGradient id="gR" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#7CC8FF"/>
+      <stop offset="0.58" stop-color="#6EA5FF"/>
+      <stop offset="1" stop-color="#9A67F6"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="80" r="11" fill="#10263A"/>
+  <ellipse cx="150" cy="80" rx="20" ry="31" fill="url(#gE)"/>
+  <ellipse cx="250" cy="80" rx="31" ry="49" fill="url(#gA)"/>
+  <ellipse cx="350" cy="80" rx="43" ry="68" fill="url(#gR)"/>
+</svg>

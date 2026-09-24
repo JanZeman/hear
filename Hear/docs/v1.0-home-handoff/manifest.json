@@ -1,0 +1,22 @@
+{
+  "package": "HEAR Home Screen Handoff",
+  "version": "1.0",
+  "scope": "Home / World Carousel only",
+  "authoritative_visual_reference": "references/00-GOLDEN-home-concept-board.png",
+  "authoritative_runtime_assets": {
+    "brand": "assets/brand",
+    "companion": "assets/companion",
+    "worlds": "assets/worlds",
+    "icons": "assets/icons"
+  },
+  "authoritative_metadata": [
+    "metadata/home-layout.json",
+    "metadata/companion.json"
+  ],
+  "notes": [
+    "Do not use v0.4 as visual authority.",
+    "Do not crop production sprites from flattened concept boards.",
+    "Use locked logo assets, locked companion assets, and clean world art.",
+    "The coding agent should start from agent-prompt-home-screen-v1.0.md"
+  ]
+}

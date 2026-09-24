@@ -1,0 +1,22 @@
+{
+  "package": "hear-ui-assets-v0.3",
+  "date": "2026-09-23",
+  "status": {
+    "logo": "approved prototype geometry",
+    "companion": "approved prototype extraction from design board",
+    "world_art": "approved prototype home/thumbnail art; not final gameplay art",
+    "references": "reference only"
+  },
+  "brand": {
+    "name": "HEAR",
+    "claim": "Sound opens worlds.",
+    "font": "Inter Display/Inter",
+    "logo_rule": "4 elements aligned above H E A R; dark dot over H then 3 growing ellipses"
+  },
+  "worlds": [
+    "river-journey",
+    "paper-garden",
+    "tide-troubles"
+  ],
+  "critical_rule": "Use supplied assets. Do not crop UI or mascot from moodboards at runtime or during implementation."
+}

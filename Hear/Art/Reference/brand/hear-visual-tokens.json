@@ -1,0 +1,60 @@
+{
+  "schema": "hear.visual-tokens.v0.1",
+  "status": "prototype-baseline",
+  "colors": {
+    "pearl0": "#FCFCFF",
+    "pearl50": "#F5F6FB",
+    "mist100": "#ECEEF5",
+    "slate400": "#8B93A7",
+    "ink700": "#33405B",
+    "ink900": "#17223C",
+    "auroraPearl": "#E9F3FF",
+    "auroraSky": "#A8D9F2",
+    "auroraBlue": "#6DA8E8",
+    "auroraIris": "#8C79E8",
+    "auroraViolet": "#6957D8"
+  },
+  "gradient": {
+    "brandDefault": ["#E9F3FF", "#A8D9F2", "#8C79E8"]
+  },
+  "spacing": [4, 8, 12, 16, 24, 32, 48, 64],
+  "radius": {
+    "s": 10,
+    "m": 16,
+    "l": 24,
+    "xl": 32,
+    "pill": 999
+  },
+  "type": {
+    "preferredFamily": "Inter",
+    "display": {"size": 36, "weight": 600},
+    "title": {"size": 28, "weight": 600},
+    "headline": {"size": 20, "weight": 600},
+    "body": {"size": 16, "weight": 400},
+    "bodyStrong": {"size": 16, "weight": 600},
+    "caption": {"size": 13, "weight": 400},
+    "label": {"size": 15, "weight": 600}
+  },
+  "motionMs": {
+    "instantMin": 90,
+    "instantMax": 140,
+    "fastMin": 180,
+    "fastMax": 240,
+    "normalMin": 300,
+    "normalMax": 420,
+    "sceneMin": 450,
+    "sceneMax": 650
+  },
+  "responsive": {
+    "compactMaxLogicalWidthExclusive": 600,
+    "mediumMinLogicalWidth": 600,
+    "mediumMaxLogicalWidthInclusive": 999,
+    "wideMinLogicalWidth": 1000,
+    "coreSafeAspect": "1:1"
+  },
+  "notes": [
+    "Values are provisional implementation tokens and may be optically tuned later.",
+    "Use semantic tokens rather than hardcoding these values throughout UI code.",
+    "Do not fetch or bundle font files solely from this package."
+  ]
+}

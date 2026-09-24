@@ -1,0 +1,56 @@
+{
+  "version": "0.5",
+  "authority": "references/CANONICAL-HEAR-App-UI-Concept-Board.png is the GOLDEN visual source. If any derived reference conflicts with it, GOLDEN wins.",
+  "screen": "Home / World Carousel",
+  "breakpointsLogicalPx": {
+    "compactMaxWidth": 599,
+    "mediumMaxWidth": 959,
+    "wideMinWidth": 960
+  },
+  "brand": {
+    "logo": "Use supplied deterministic SVG/PNG only. Do not recreate in Unity shapes.",
+    "claim": "Render 'Sound opens worlds.' as live text, minimum 17 logical px compact, target 18 px.",
+    "onDark": "Use hear-mark-wordmark-on-dark.*"
+  },
+  "compact": {
+    "nav": "bottom",
+    "carousel": {
+      "activeWidth": 0.71,
+      "activeHeight": 0.49,
+      "neighborWidth": 0.285,
+      "neighborPeek": "~42% visible"
+    },
+    "background": "sharp active-world background; never generic blur",
+    "companion": {
+      "separateSprite": true,
+      "anchor": "lower-right between carousel and Play",
+      "targetWidth": 0.22
+    },
+    "primaryAction": {
+      "width": 0.61,
+      "heightLogicalPx": 59
+    },
+    "claimMinLogicalPx": 17
+  },
+  "worldOrder": [
+    "Tide Troubles",
+    "The Paper Garden",
+    "River Journey"
+  ],
+  "coldStart": "random active index, stable order",
+  "forbidden": [
+    "FEATURED WORLD label",
+    "separate thumbnail row below hero",
+    "generic beige dashboard background",
+    "Profile/avatar/greeting filler",
+    "truncated world titles",
+    "oversized white nav slab",
+    "blurred active-world background",
+    "redrawn logo",
+    "Companion baked into background"
+  ],
+  "safeArea": {
+    "ios": "Respect Screen.safeArea / Dynamic Island/notch. OS chrome is not artwork.",
+    "android": "Respect cutout/system/gesture insets. OS chrome is not artwork."
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "package": "HEAR Companion Production Assets",
+  "version": "1.0",
+  "frozenRules": {
+    "feetOrLegs": false,
+    "bakedShadow": false,
+    "body": "one smooth continuous pearl/aurora silhouette",
+    "eyes": "two minimal luminous ovals",
+    "redrawInUnity": false,
+    "mirrorAllowed": "Use supplied left/right files rather than runtime improvisation where possible"
+  },
+  "themes": {
+    "on-dark": "Brighter aurora rim for dark/cinematic world backgrounds.",
+    "on-light": "Slightly stronger cool edge definition for white/light UI backgrounds."
+  },
+  "poses": {
+    "neutral-left": "Default Home placement when Companion sits on right side and looks inward.",
+    "neutral-right": "Mirrored default when placed on left side.",
+    "upright-left": "Narrower/upright placement on dock, stone or compact vertical space.",
+    "upright-right": "Mirrored upright placement.",
+    "listening-left": "Subtle leaning/listening state.",
+    "listening-right": "Mirrored listening state.",
+    "curious-left": "Small Easter-egg or inquisitive placement.",
+    "curious-right": "Mirrored curious placement."
+  },
+  "homePlacement": {
+    "portrait": {
+      "preferredPose": "neutral-left",
+      "anchor": "bottom-right",
+      "normalizedCenter": [
+        0.8,
+        0.73
+      ],
+      "widthFraction": 0.19,
+      "note": "Position so body rests on a real rock/dock/ground surface. Use separate shadow."
+    },
+    "squareFold": {
+      "preferredPose": "upright-left",
+      "anchor": "bottom-right",
+      "normalizedCenter": [
+        0.83,
+        0.72
+      ],
+      "widthFraction": 0.15
+    },
+    "landscape": {
+      "preferredPose": "neutral-left",
+      "anchor": "lower-right",
+      "normalizedCenter": [
+        0.88,
+        0.74
+      ],
+      "widthFraction": 0.1
+    },
+    "leftSideAlternative": {
+      "preferredPose": "neutral-right",
+      "rule": "If placed left of the composition, use a right-facing/mirrored supplied sprite so it looks inward."
+    }
+  },
+  "composition": {
+    "separateShadowRequiredWhenGrounded": true,
+    "doNotBakeIntoBackground": true,
+    "doNotPlaceOverMainWorldCardSubject": true,
+    "keepInsideSafeArea": true
+  }
+}
