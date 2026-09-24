@@ -11,6 +11,8 @@ affiliated with any employer's product line.
 ## Repository layout
 
 - `Hear/` — the Unity project (Unity 6, Universal Render Pipeline).
+- `spikes/` — archived personal visual and interaction experiments.
+- `sources/` — retained reference images used during the design work.
 
 ## Scope of this repository
 

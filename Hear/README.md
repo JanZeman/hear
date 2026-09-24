@@ -155,16 +155,13 @@ The Home/World Selector screen was rebuilt using the real assets shipped in
   exist yet.
 - Headphone vs Speaker is only ever user-selected, never auto-detected (deliberately — see
   `docs/13-open-questions.md`).
-- The brand mark is reconstructed procedurally in UI Toolkit (four ellipses) rather than
-  importing the reference SVGs, to avoid adding the Vector Graphics package for this slice.
-  Colors now come from `Core/Shell/VisualTokens.cs`, which mirrors
+- Colors come from `Core/Shell/VisualTokens.cs`, which mirrors
   `docs/14-visual-bible.md` / `Art/Reference/brand/hear-visual-tokens.json` (v0.2
   handoff): Pearl/Ink neutrals, the Aurora accent palette, the 8-based spacing scale, radius
   tokens, semantic type sizes, motion-duration tokens, and the compact(<600)/medium(600-999)/
   wide(>=1000) breakpoints. All shell screens (splash, world selector, headphone choice,
   micro-instruction, HUD, results, settings) and the responsive nav now consume these tokens
-  instead of ad hoc colors/sizes. The world selector also crossfades a soft per-world accent
-  tint behind the carousel (bible section 10.5) - still just a color wash, not invented art.
+  instead of ad hoc colors/sizes.
 - UI Toolkit logs a harmless "No Theme Style Sheet" warning at runtime (no default theme asset
   was created) — layout works, but built-in control chrome (e.g. `Button` borders) is unstyled.
 - The headless CLI integration-proof runner (`HearAppIntegrationProofCli`) reliably builds and
