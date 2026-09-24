@@ -86,6 +86,12 @@ the section later under `DOC-002` and `AB-RULE-SYNTAX-001`.
 
 Full detail: [`.agents/standards/architecture.md`](.agents/standards/architecture.md).
 
+### Device QA
+
+- `QA-001` [`P1`]: Before deploying a new build to a physical or emulated device for visual or
+  functional verification, state which changes this deploy targets and what outcome is expected
+  to differ from the previous deploy.
+
 <!-- AGENT-BASE-RULES:START -->
 ### Agent-base Rules
 

@@ -14,6 +14,8 @@ namespace Hear.Editor
         private const string IosOutput = "Builds/iOS";
         private const string MacOsOutput = "Builds/macOS/Hear.app";
 
+        private const string AndroidReleaseOutput = "Builds/Android/HearRelease.apk";
+
         [MenuItem("Hear/Build Development/Android")]
         public static void BuildAndroid()
         {
@@ -24,6 +26,14 @@ namespace Hear.Editor
         public static void BuildAndRunAndroid()
         {
             Build(BuildTarget.Android, AndroidOutput, BuildOptions.AutoRunPlayer);
+        }
+
+        // Non-development Android build: excludes DevOverlay (#if DEVELOPMENT_BUILD) and the
+        // "Development Build" watermark, for visual QA that must match what actually ships.
+        [MenuItem("Hear/Build Release/Android")]
+        public static void BuildAndroidRelease()
+        {
+            Build(BuildTarget.Android, AndroidReleaseOutput, BuildOptions.None, development: false);
         }
 
         [MenuItem("Hear/Build Development/iOS")]
@@ -47,7 +57,8 @@ namespace Hear.Editor
         private static void Build(
             BuildTarget target,
             string relativeOutputPath,
-            BuildOptions additionalOptions = BuildOptions.None)
+            BuildOptions additionalOptions = BuildOptions.None,
+            bool development = true)
         {
             ConfigurePlayerSettings(target);
 
@@ -72,7 +83,7 @@ namespace Hear.Editor
                 scenes = scenes,
                 locationPathName = outputPath,
                 target = target,
-                options = BuildOptions.Development | additionalOptions
+                options = (development ? BuildOptions.Development : BuildOptions.None) | additionalOptions
             });
 
             if (report.summary.result != BuildResult.Succeeded)

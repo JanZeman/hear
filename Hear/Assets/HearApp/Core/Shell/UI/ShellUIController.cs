@@ -39,15 +39,18 @@ namespace HearApp.Core.Shell.UI
         // card, two peeking neighbors) rather than a hero panel + separate thumbnail row.
         private VisualElement _carousel;
         private VisualElement _activeCard;
-        // Fraction of a neighbor card's own width that peeks out past the active card on top of it
-        // (shared by layout math in UpdateCarouselForCurrentSize and label placement in
-        // BuildCarouselCard so the world-name label bar stays inside the visible sliver).
+        // Fraction of a neighbor card's own width that peeks out past the active card on top of it.
         private const float CarouselPeekVisibleFraction = 0.5f;
         private VisualElement _prevCard;
         private VisualElement _nextCard;
+        private float _swipeStartX;
+        private bool _swipeTracking;
+        private const float SwipeThresholdPx = 40f;
         private VisualElement _companion;
         private VisualElement _companionShadow;
         private Button _playButton;
+        private VisualElement _playGlowOuter;
+        private VisualElement _playGlowInner;
         private VisualElement _playRow;
         private VisualElement _navLogo;
         private WorldArt.HomeBgAspect _lastHomeAspect = (WorldArt.HomeBgAspect)(-1);
@@ -300,6 +303,48 @@ namespace HearApp.Core.Shell.UI
             button.style.minHeight = 40;
         }
 
+        // Centers a glow layer over its (also-centered) sibling in `playRow` regardless of the
+        // row's own resolved size - see the Play pill glow call site in UpdateCarouselForCurrentSize.
+        private static void SizeGlowPill(VisualElement glow, float width, float height)
+        {
+            glow.style.width = width;
+            glow.style.height = height;
+            glow.style.left = new Length(50f, LengthUnit.Percent);
+            glow.style.top = new Length(50f, LengthUnit.Percent);
+            glow.style.marginLeft = -width * 0.5f;
+            glow.style.marginTop = -height * 0.5f;
+            float radius = height * 0.5f;
+            glow.style.borderTopLeftRadius = radius; glow.style.borderTopRightRadius = radius;
+            glow.style.borderBottomLeftRadius = radius; glow.style.borderBottomRightRadius = radius;
+        }
+
+        private void OnCarouselPointerDown(PointerDownEvent evt)
+        {
+            _swipeStartX = evt.position.x;
+            _swipeTracking = true;
+            _carousel.CapturePointer(evt.pointerId);
+        }
+
+        private void OnCarouselPointerUp(PointerUpEvent evt)
+        {
+            if (!_swipeTracking) return;
+            _swipeTracking = false;
+            _carousel.ReleasePointer(evt.pointerId);
+
+            float deltaX = evt.position.x - _swipeStartX;
+            if (Mathf.Abs(deltaX) < SwipeThresholdPx) return;
+
+            int count = WorldRegistry.Worlds.Count;
+            int direction = deltaX < 0 ? 1 : -1; // swipe left -> next world, swipe right -> previous
+            int newIndex = (_flow.SelectedWorldIndex + direction + count) % count;
+            _flow.SelectWorld(newIndex);
+        }
+
+        private void OnCarouselPointerCancel(PointerCancelEvent evt)
+        {
+            _swipeTracking = false;
+        }
+
         private static VisualElement MakeIcon(string name, float size, Color tint)
         {
             return new VisualElement
@@ -369,6 +414,9 @@ namespace HearApp.Core.Shell.UI
 
             // ---- Carousel: one active card, two peeking neighbors (no separate thumbnail row) ----
             _carousel = new VisualElement { style = { flexGrow = 1, position = Position.Relative, marginTop = VisualTokens.Spacing.S } };
+            _carousel.RegisterCallback<PointerDownEvent>(OnCarouselPointerDown);
+            _carousel.RegisterCallback<PointerUpEvent>(OnCarouselPointerUp);
+            _carousel.RegisterCallback<PointerCancelEvent>(OnCarouselPointerCancel);
             content.Add(_carousel);
 
             int count = WorldRegistry.Worlds.Count;
@@ -383,8 +431,9 @@ namespace HearApp.Core.Shell.UI
             _carousel.Add(_nextCard);
             _carousel.Add(_activeCard);
 
-            // ---- Dots ----
-            var dotsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center, marginTop = VisualTokens.Spacing.S } };
+            // ---- Dots (world counter) - enlarged from the original 7px: too small to read as a
+            // counter at all on a real device screenshot, per human feedback 2026-09-25. ----
+            var dotsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center, marginTop = VisualTokens.Spacing.M } };
             for (int i = 0; i < count; i++)
             {
                 bool isActive = i == activeIndex;
@@ -392,21 +441,33 @@ namespace HearApp.Core.Shell.UI
                 {
                     style =
                     {
-                        width = isActive ? 18 : 7, height = 7,
-                        borderTopLeftRadius = 4, borderTopRightRadius = 4, borderBottomLeftRadius = 4, borderBottomRightRadius = 4,
-                        backgroundColor = isActive ? Color.white : new Color(1f, 1f, 1f, 0.4f),
-                        marginLeft = 4, marginRight = 4
+                        width = isActive ? 26 : 10, height = 10,
+                        borderTopLeftRadius = 5, borderTopRightRadius = 5, borderBottomLeftRadius = 5, borderBottomRightRadius = 5,
+                        backgroundColor = isActive ? Color.white : new Color(1f, 1f, 1f, 0.55f),
+                        marginLeft = 5, marginRight = 5
                     }
                 };
                 dotsRow.Add(dot);
             }
             content.Add(dotsRow);
 
-            // ---- Single Play pill (not attached to the card) ----
+            // ---- Single Play pill (not attached to the card), with a soft glow halo ----
             var playRow = new VisualElement
             {
                 style = { alignItems = Align.Center, marginTop = VisualTokens.Spacing.M, marginBottom = VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical() }
             };
+            _playGlowOuter = new VisualElement
+            {
+                style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, 0.20f) },
+                pickingMode = PickingMode.Ignore
+            };
+            _playGlowInner = new VisualElement
+            {
+                style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, 0.32f) },
+                pickingMode = PickingMode.Ignore
+            };
+            playRow.Add(_playGlowOuter);
+            playRow.Add(_playGlowInner);
             var playButton = new Button(() => _flow.RequestPlaySelectedWorld()) { text = "Play   \u2192" };
             playButton.style.backgroundColor = Color.white;
             playButton.style.color = VisualTokens.Colors.Ink900;
@@ -505,37 +566,10 @@ namespace HearApp.Core.Shell.UI
             }
             else
             {
-                // GOLDEN board: side-peek cards stay fully vivid (no flat dim over the whole
-                // image) - only a solid label bar at the bottom carries the world name, matching
-                // "TIDE TROUBLES" / "THE PAPER GARDEN" in the reference. The active card sits on
-                // top and hides most of the neighbor, so the label bar is anchored to the visible
-                // outer edge instead of spanning the whole card width - otherwise its centered text
-                // gets sliced into unreadable fragments behind the active card. Width is set in
-                // pixels from UpdateCarouselForCurrentSize (matching the real peek math) rather
-                // than Length.Percent, which resolved unreliably against this absolutely
-                // positioned parent and caused the label to wrap one letter per line.
-                var labelBar = new VisualElement
-                {
-                    name = "peekLabelBar",
-                    style =
-                    {
-                        position = Position.Absolute, bottom = 0,
-                        left = peekSide < 0 ? 0 : new StyleLength(StyleKeyword.Auto),
-                        right = peekSide < 0 ? new StyleLength(StyleKeyword.Auto) : 0,
-                        paddingTop = 4, paddingBottom = 4,
-                        paddingLeft = 2, paddingRight = 2,
-                        backgroundColor = new Color(0.04f, 0.06f, 0.12f, 0.78f)
-                    },
-                    pickingMode = PickingMode.Ignore
-                };
-                card.Add(labelBar);
-                // Small, tight font (no letter-spacing) - the visible peek sliver is only ~35
-                // logical units wide, far narrower than the active card's own title area, so the
-                // Caption style (13px + spacing) still broke individual words mid-letter.
-                var sideLabel = MakeLabel(entry.DisplayName.ToUpperInvariant(), new VisualTokens.TypeStyle(9, 600), Color.white);
-                sideLabel.style.whiteSpace = WhiteSpace.Normal;
-                sideLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                labelBar.Add(sideLabel);
+                // Deliberate deviation from the GOLDEN board/handoff spec (human direction,
+                // 2026-09-25): side-peek cards carry no name label at all - only the active card
+                // is titled. Side-peek cards stay fully vivid (no flat dim over the whole image)
+                // and remain tappable to select that world.
                 card.RegisterCallback<ClickEvent>(_ => _flow.SelectWorld(worldIndex));
             }
             return card;
@@ -571,17 +605,16 @@ namespace HearApp.Core.Shell.UI
             float carouselH = _carousel.resolvedStyle.height;
             float activeTop = Mathf.Max(0f, (carouselH - activeH) * 0.5f);
 
-            ApplyCardRect(_activeCard, activeLeft, activeTop, activeW, activeH);
-            ApplyCardRect(_prevCard, activeLeft - neighborW * peekVisibleFraction, activeTop, neighborW, activeH);
-            ApplyCardRect(_nextCard, activeLeft + activeW - neighborW * peekVisibleFraction, activeTop, neighborW, activeH);
+            // Coverflow shape (human direction, 2026-09-25): side-peek cards are also slightly
+            // shorter than the active card, not just narrower, so the active card visibly "pops
+            // forward" instead of all three sharing one flat top/bottom edge.
+            const float peekScale = 0.88f;
+            float neighborH = activeH * peekScale;
+            float neighborTop = activeTop + (activeH - neighborH) * 0.5f;
 
-            // Peek label bars: sized in pixels (not Length.Percent, which resolved unreliably
-            // against these absolutely positioned cards and made the label wrap one letter per
-            // line) - matching the same visible-sliver math used for the card rects above.
-            var prevLabelBar = _prevCard?.Q<VisualElement>("peekLabelBar");
-            if (prevLabelBar != null) prevLabelBar.style.width = neighborW * peekVisibleFraction;
-            var nextLabelBar = _nextCard?.Q<VisualElement>("peekLabelBar");
-            if (nextLabelBar != null) nextLabelBar.style.width = neighborW * (1f - peekVisibleFraction);
+            ApplyCardRect(_activeCard, activeLeft, activeTop, activeW, activeH);
+            ApplyCardRect(_prevCard, activeLeft - neighborW * peekVisibleFraction, neighborTop, neighborW, neighborH);
+            ApplyCardRect(_nextCard, activeLeft + activeW - neighborW * peekVisibleFraction, neighborTop, neighborW, neighborH);
 
             // The active card's title previously used a fixed 36px Display style and severely
             // word-wrapped (even mid-word) on a narrow real phone screen - size it from the card's
@@ -598,15 +631,24 @@ namespace HearApp.Core.Shell.UI
             // Play pill: computed as an explicit pixel size (not Percent+maxWidth) because at
             // runtime under PanelScaleMode.ConstantPhysicalSize the Percent(61)+maxWidth(340)
             // combination on the Button silently failed to clamp on real Android hardware and
-            // rendered as a screen-spanning ellipse instead of a compact pill.
+            // rendered as a screen-spanning ellipse instead of a compact pill. Height is now
+            // proportional to width (a fixed 59px looked "insanely tall" - human feedback
+            // 2026-09-25 - on the narrower widths a real device produces), clamped to a minimum
+            // that still meets a comfortable touch-target size.
             if (_playButton != null)
             {
                 float playW = Mathf.Min(screenW * 0.61f, 340f);
-                const float playH = 59f;
+                float playH = Mathf.Clamp(playW * 0.19f, 44f, 64f);
                 _playButton.style.width = playW;
                 _playButton.style.height = playH;
                 _playButton.style.borderTopLeftRadius = playH * 0.5f; _playButton.style.borderTopRightRadius = playH * 0.5f;
                 _playButton.style.borderBottomLeftRadius = playH * 0.5f; _playButton.style.borderBottomRightRadius = playH * 0.5f;
+
+                if (_playGlowOuter != null && _playGlowInner != null)
+                {
+                    SizeGlowPill(_playGlowOuter, playW + 28f, playH + 28f);
+                    SizeGlowPill(_playGlowInner, playW + 12f, playH + 12f);
+                }
             }
 
             // Compact Home floats the bottom nav as an absolute-positioned overlay (see
@@ -621,24 +663,26 @@ namespace HearApp.Core.Shell.UI
 
             RefreshHomeBackground();
 
-            // Companion + shadow: per the GOLDEN board, the Companion sits beside/below the
-            // carousel card's bottom-right corner - not pasted on top of the card art - so its
-            // anchor is derived from the active card's own resolved rect (right edge / bottom
-            // edge) rather than a fixed screen-fraction that happened to land inside the card.
+            // Companion + shadow: positioned from companion.json's homePlacement normalized
+            // screen center (see GetHomeCompanionPlacement), not the active card's rect - anchoring
+            // to the card's corner placed the Companion far too high (tucked against the card)
+            // compared to the GOLDEN board, confirmed on a real Galaxy Z Fold screenshot.
             var companionTex = WorldArt.CompanionOnDarkNeutralLeft;
             if (companionTex != null && _companion != null)
             {
-                float companionWidth = screenW * 0.22f;
+                var placement = GetHomeCompanionPlacement(ClassifyHomeAspect(screenW, screenH));
+                float companionWidth = screenW * placement.WidthFraction;
                 float companionHeight = companionWidth * companionTex.height / companionTex.width;
-                // activeTop/activeH are in _carousel's local space, but the Companion is a sibling
-                // of `content` anchored directly under _screenLayer - so its bottom edge must be
-                // converted into _screenLayer space via worldBound (brand/logo height above the
-                // carousel otherwise gets silently dropped, placing the Companion far too high).
+                float centerX = screenW * placement.NormX;
+
+                // The spec's normalized Y lands inside the card's own bottom edge on an unusually
+                // tall/narrow screen (confirmed on a real Galaxy Z Fold cover display) - clamp
+                // below the card's actual resolved bottom so "doNotPlaceOverMainWorldCardSubject"
+                // (companion.json) holds regardless of aspect ratio.
                 float carouselTopInScreenLayer = _carousel.worldBound.yMin - _screenLayer.worldBound.yMin;
-                float cardRight = activeLeft + activeW;
                 float cardBottom = carouselTopInScreenLayer + activeTop + activeH;
-                float centerX = cardRight + companionWidth * 0.12f;
-                float centerY = cardBottom + companionHeight * 0.18f;
+                float minCenterY = cardBottom + companionHeight * 0.5f + VisualTokens.Spacing.S;
+                float centerY = Mathf.Max(screenH * placement.NormY, minCenterY);
                 _companion.style.width = companionWidth;
                 _companion.style.height = companionHeight;
                 _companion.style.left = centerX - companionWidth * 0.5f;
@@ -655,6 +699,29 @@ namespace HearApp.Core.Shell.UI
                     _companionShadow.style.top = centerY + companionHeight * 0.34f;
                 }
             }
+        }
+
+        private static WorldArt.HomeBgAspect ClassifyHomeAspect(float screenW, float screenH)
+        {
+            float aspect = screenW / screenH;
+            return aspect >= 1.8f ? WorldArt.HomeBgAspect.Ultrawide
+                : aspect >= 1.15f ? WorldArt.HomeBgAspect.Landscape
+                : aspect <= 0.85f ? WorldArt.HomeBgAspect.Portrait
+                : WorldArt.HomeBgAspect.Square;
+        }
+
+        // Home-screen Companion placement per docs/v1.0-home-handoff/companion.json's
+        // `homePlacement` block: normalized center is relative to the full screen, not the
+        // carousel card - matching the GOLDEN board's "sits beside/below in the foreground"
+        // composition instead of being tucked against the card's corner.
+        private static (float NormX, float NormY, float WidthFraction) GetHomeCompanionPlacement(WorldArt.HomeBgAspect aspect)
+        {
+            return aspect switch
+            {
+                WorldArt.HomeBgAspect.Square => (0.83f, 0.72f, 0.15f),
+                WorldArt.HomeBgAspect.Landscape or WorldArt.HomeBgAspect.Ultrawide => (0.88f, 0.74f, 0.10f),
+                _ => (0.8f, 0.73f, 0.19f),
+            };
         }
 
         private void BuildAmbientBackground()
@@ -683,19 +750,9 @@ namespace HearApp.Core.Shell.UI
         {
             float screenW = _screenLayer.resolvedStyle.width;
             float screenH = _screenLayer.resolvedStyle.height;
-            WorldArt.HomeBgAspect aspectClass;
-            if (screenW <= 0 || screenH <= 0)
-            {
-                aspectClass = WorldArt.HomeBgAspect.Portrait;
-            }
-            else
-            {
-                float aspect = screenW / screenH;
-                aspectClass = aspect >= 1.8f ? WorldArt.HomeBgAspect.Ultrawide
-                    : aspect >= 1.15f ? WorldArt.HomeBgAspect.Landscape
-                    : aspect <= 0.85f ? WorldArt.HomeBgAspect.Portrait
-                    : WorldArt.HomeBgAspect.Square;
-            }
+            WorldArt.HomeBgAspect aspectClass = screenW > 0 && screenH > 0
+                ? ClassifyHomeAspect(screenW, screenH)
+                : WorldArt.HomeBgAspect.Portrait;
 
             string worldId = WorldRegistry.Worlds[_flow.SelectedWorldIndex].Id;
             if (!force && aspectClass == _lastHomeAspect && worldId == _lastHomeWorldId) return;

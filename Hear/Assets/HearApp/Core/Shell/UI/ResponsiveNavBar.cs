@@ -89,7 +89,7 @@ namespace HearApp.Core.Shell.UI
         private void AddItem(NavDestination destination, string label, string iconName, bool showLabel, bool compact, bool overlay)
         {
             bool isActive = destination == _active;
-            Color inactiveTint = overlay ? new Color(1f, 1f, 1f, 0.85f) : VisualTokens.Colors.Slate400;
+            Color inactiveTint = overlay ? Color.white : VisualTokens.Colors.Slate400;
             Color activeTint = overlay ? new Color(0.42f, 0.72f, 1f, 1f) : VisualTokens.Colors.AuroraBlue;
 
             var button = new VisualElement
@@ -118,17 +118,23 @@ namespace HearApp.Core.Shell.UI
                 style = { width = compact ? 26 : 18, height = compact ? 26 : 18, alignItems = Align.Center, justifyContent = Justify.Center }
             };
 
-            if (isActive && overlay)
+            if (overlay)
             {
                 // Fake soft glow: two stacked, increasingly large/transparent rounded circles
                 // behind the icon - UI Toolkit has no blur/box-shadow, so this approximates one.
+                // Every overlay icon gets one, not just the active one: a plain white/grey icon
+                // floating directly on busy, bright world photography (docks, skies) had too
+                // little contrast to read as an icon at all - confirmed on a real device screenshot.
+                // Active keeps the brand blue tint; inactive gets a neutral dark halo that lifts
+                // it off the background without implying it is selected.
+                Color glowTint = isActive ? new Color(0.35f, 0.65f, 1f, 1f) : new Color(0f, 0f, 0f, 1f);
                 var glowOuter = new VisualElement
                 {
                     style =
                     {
                         position = Position.Absolute, width = 46, height = 46, left = -10, top = -10,
                         borderTopLeftRadius = 23, borderTopRightRadius = 23, borderBottomLeftRadius = 23, borderBottomRightRadius = 23,
-                        backgroundColor = new Color(0.35f, 0.65f, 1f, 0.16f)
+                        backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, isActive ? 0.16f : 0.14f)
                     },
                     pickingMode = PickingMode.Ignore
                 };
@@ -138,7 +144,7 @@ namespace HearApp.Core.Shell.UI
                     {
                         position = Position.Absolute, width = 32, height = 32, left = -3, top = -3,
                         borderTopLeftRadius = 16, borderTopRightRadius = 16, borderBottomLeftRadius = 16, borderBottomRightRadius = 16,
-                        backgroundColor = new Color(0.35f, 0.65f, 1f, 0.28f)
+                        backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, isActive ? 0.28f : 0.22f)
                     },
                     pickingMode = PickingMode.Ignore
                 };
