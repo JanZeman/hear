@@ -11,17 +11,61 @@ namespace HearApp.Worlds.TideTroubles
     /// timing, scheduling, or classification.
     /// It only reacts to <see cref="PresentOutcome"/> calls the engine makes after the fact.
     ///
-    /// Ambient gulls/fish/balloon run on their own independent random timers (see AmbientLoop) so
-    /// their motion is never correlated with stimulus onset. A CorrectDetection triggers an
-    /// autonomous comic capture regardless of where the player actually tapped, per the
-    /// no-aiming-required hard rule.
+    /// Uses the production concept art from hear-tide-troubles-handoff-v1.0 (sliced at runtime -
+    /// see <see cref="TideTroublesArt"/>) instead of the earlier colored-quad greybox. Layering is
+    /// controlled entirely via SpriteRenderer.sortingOrder rather than Z/camera transparency-sort
+    /// settings, so it is correct regardless of project graphics settings: Background(-100) &lt;
+    /// FloatingProps(-10) &lt; Seagulls(-5) &lt; FishTargets(0) &lt; Net/Launcher(5) &lt;
+    /// Splash/Effects(9-10) &lt; DogCompanion(15) &lt; DockFrame(20, frontmost).
+    ///
+    /// Ambient gulls/fish/floating props run on their own independent timers (see Update and
+    /// FishAmbientLoop) so their motion is never correlated with stimulus onset. A
+    /// CorrectDetection triggers an autonomous comic capture regardless of where the player
+    /// actually tapped, per the no-aiming-required hard rule. Only fish are valid capture targets
+    /// (per the handoff's asset-role split); seagulls and floating props are pure ambience.
     /// </summary>
     public sealed class TideTroublesPresentation : WorldPresentationBase
     {
+        private const int FishTargetCount = 6;
+        private const int SeagullCount = 3;
+        private const int FloatingPropCount = 5;
+
+        private const int IdleDogPoseIndex = 0;
+        private const int HappyDogPoseIndex = 5;
+        private const int IdleCompanionPoseIndex = 0;
+        private const int HappyCompanionPoseIndex = 2;
+
+        private sealed class FishInstance
+        {
+            public Transform Transform;
+            public SpriteRenderer Renderer;
+            public int Species;
+            public Vector3 RestPosition;
+        }
+
+        private sealed class SeagullInstance
+        {
+            public Transform Transform;
+            public SpriteRenderer Renderer;
+            public float Speed;
+            public float FlapClock;
+        }
+
+        private sealed class FloatingPropInstance
+        {
+            public Transform Transform;
+            public Vector3 RestPosition;
+            public float Speed;
+            public float Amplitude;
+            public float Phase;
+        }
+
         private Camera _camera;
-        private readonly List<Transform> _ambientCreatures = new();
-        // Creatures mid-gag are excluded from AmbientLoop's random bobbing (see AmbientLoop) -
-        // both coroutines animating the same transform's position/scale at once looked glitchy.
+        private readonly List<FishInstance> _fishTargets = new();
+        private readonly List<SeagullInstance> _seagulls = new();
+        private readonly List<FloatingPropInstance> _floatingProps = new();
+        // Fish mid-gag are excluded from FishAmbientLoop's random pop (see FishAmbientLoop) -
+        // both coroutines animating the same transform's position/sprite at once looked glitchy.
         private readonly HashSet<Transform> _capturedNow = new();
         private ParticleSystem _captureParticles;
         private AudioSource _audioSource;
@@ -29,6 +73,10 @@ namespace HearApp.Worlds.TideTroubles
         private GameObject _net;
         private GameObject _launcherLeft;
         private GameObject _launcherRight;
+        private Transform _dog;
+        private SpriteRenderer _dogRenderer;
+        private Transform _companion;
+        private SpriteRenderer _companionRenderer;
 
         private float _sessionProgress;
 
@@ -43,9 +91,12 @@ namespace HearApp.Worlds.TideTroubles
             camObj.AddComponent<AudioListener>();
             camObj.AddComponent<CoreSafeSquareFit>();
 
-            BuildHarborDock(_camera);
-            SpawnAmbientCreatures(_camera);
+            BuildBackdrop(_camera);
+            SpawnFishTargets(_camera);
+            SpawnSeagulls(_camera);
+            SpawnFloatingProps(_camera);
             BuildCaptureGagRig(_camera);
+            BuildReactionCast(_camera);
 
             _captureParticles = BuildParticles();
             _audioSource = gameObject.AddComponent<AudioSource>();
@@ -54,7 +105,13 @@ namespace HearApp.Worlds.TideTroubles
 
         private void Start()
         {
-            StartCoroutine(AmbientLoop());
+            StartCoroutine(FishAmbientLoop());
+        }
+
+        private void Update()
+        {
+            UpdateSeagulls();
+            UpdateFloatingProps();
         }
 
         public override void Initialize(WorldContext context)
@@ -86,19 +143,18 @@ namespace HearApp.Worlds.TideTroubles
         // "tap accepted -> launch net -> auto-select target -> gag animation", choreographed as
         // five beats (design discussion 2026-09-25): anticipation -> launch -> hit-stop ->
         // exaggerated reaction -> release. ~0.75s total, well inside TrialEngine's 3s
-        // listening-safe timeout. All placeholder-shape "greybox" motion (squash/stretch,
-        // position lerp, camera shake) - no final art yet, only timing/choreography.
+        // listening-safe timeout.
         private IEnumerator CaptureGag(EarChannel channel)
         {
-            Transform target = PickTarget(channel);
-            if (target == null)
+            FishInstance fish = PickTarget(channel);
+            if (fish == null)
             {
                 RaiseListeningSafe();
                 yield break;
             }
 
-            _capturedNow.Add(target);
-            Vector3 targetPos = target.position;
+            _capturedNow.Add(fish.Transform);
+            Vector3 targetPos = fish.Transform.position;
             Transform launcher = GetLauncher(channel, targetPos);
 
             // 1. Anticipation: the launcher squashes down before firing - a comic "wind-up" read.
@@ -113,67 +169,153 @@ namespace HearApp.Worlds.TideTroubles
             // 3. Hit-stop: a beat of held stillness sells the impact - classic comic timing.
             yield return new WaitForSeconds(0.06f);
 
-            // 4. Exaggerated reaction + the actual reward feedback (particles/chime/shake).
+            // 4. Exaggerated reaction + the actual reward feedback (splash/glow/particles/chime/
+            // shake/dog+companion cheer).
+            fish.Renderer.sprite = TideTroublesArt.FishCaught(fish.Species);
+            SpawnTransientEffect(TideTroublesArt.Splash(Random.Range(0, 3)), targetPos, 0.4f, sortingOrder: 10);
+            SpawnTransientEffect(TideTroublesArt.TargetRingGold, targetPos, 0.45f, sortingOrder: 9);
+            SpawnTransientEffect(TideTroublesArt.Ripple(Random.Range(0, 2)), targetPos + Vector3.down * 0.15f, 0.5f, sortingOrder: 8);
             _captureParticles.transform.position = targetPos;
             _captureParticles.Emit(24);
             _audioSource.PlayOneShot(_gagChimeClip);
             var shake = StartCoroutine(CameraShake(0.15f, 0.12f));
-            yield return SquashStretchPop(target, 0.25f);
+            var react = StartCoroutine(ReactionPop());
+            yield return SquashStretchPop(fish.Transform, 0.25f);
             yield return shake;
+            yield return react;
 
             // 5. Release: net retracts, everything settles back to ambient.
             _net.SetActive(false);
-            _capturedNow.Remove(target);
+            fish.Renderer.sprite = TideTroublesArt.FishIdle(fish.Species);
+            _capturedNow.Remove(fish.Transform);
             yield return new WaitForSeconds(0.15f);
 
             RaiseListeningSafe();
         }
 
         /// <summary>Left/Right channel launches from the matching side - reinforcing the
-        /// ear-aware lateralization <see cref="PickTarget"/> already applies to which creature
-        /// gets caught. Combined has no channel bias, so it launches from whichever side is
-        /// closer to the auto-selected target instead.</summary>
+        /// ear-aware lateralization <see cref="PickTarget"/> already applies to which fish gets
+        /// caught. Combined has no channel bias, so it launches from whichever side is closer to
+        /// the auto-selected target instead.</summary>
         private Transform GetLauncher(EarChannel channel, Vector3 targetPos)
         {
             bool useLeft = channel == EarChannel.Left || (channel == EarChannel.Combined && targetPos.x < 0f);
             return (useLeft ? _launcherLeft : _launcherRight).transform;
         }
 
-        private Transform PickTarget(EarChannel channel)
+        private FishInstance PickTarget(EarChannel channel)
         {
-            if (_ambientCreatures.Count == 0) return null;
-            IEnumerable<Transform> candidates = _ambientCreatures;
+            if (_fishTargets.Count == 0) return null;
+            IEnumerable<FishInstance> candidates = _fishTargets;
             if (channel != EarChannel.Combined)
             {
-                var side = new List<Transform>();
-                foreach (var c in _ambientCreatures)
+                var side = new List<FishInstance>();
+                foreach (var f in _fishTargets)
                 {
-                    bool onLeft = c.position.x < 0f;
+                    bool onLeft = f.Transform.position.x < 0f;
                     if ((channel == EarChannel.Left && onLeft) || (channel == EarChannel.Right && !onLeft))
-                        side.Add(c);
+                        side.Add(f);
                 }
                 if (side.Count > 0) candidates = side;
             }
-            var list = new List<Transform>(candidates);
+            var list = new List<FishInstance>(candidates);
             return list[Random.Range(0, list.Count)];
         }
 
-        private IEnumerator AmbientLoop()
+        private IEnumerator FishAmbientLoop()
         {
             while (true)
             {
                 yield return new WaitForSeconds(Random.Range(0.6f, 1.8f));
-                if (_ambientCreatures.Count == 0) continue;
-                // Skip creatures currently mid-gag: their transform is already being animated by
-                // CaptureGag, and layering the idle bob on top of that looked glitchy.
-                var idle = _ambientCreatures.FindAll(c => !_capturedNow.Contains(c));
+                if (_fishTargets.Count == 0) continue;
+                var idle = _fishTargets.FindAll(f => !_capturedNow.Contains(f.Transform));
                 if (idle.Count == 0) continue;
-                var creature = idle[Random.Range(0, idle.Count)];
-                StartCoroutine(BobCreature(creature));
+                var fish = idle[Random.Range(0, idle.Count)];
+                StartCoroutine(FishPop(fish));
             }
         }
 
-        // --- Capture gag choreography helpers (greybox motion, no final art) ---
+        private void UpdateSeagulls()
+        {
+            float halfWidth = _camera.orthographicSize * _camera.aspect;
+            foreach (var g in _seagulls)
+            {
+                g.Transform.position += Vector3.right * g.Speed * Time.deltaTime;
+                g.FlapClock += Time.deltaTime * 6f;
+                g.Renderer.sprite = TideTroublesArt.SeagullPose(Mathf.FloorToInt(g.FlapClock));
+
+                float x = g.Transform.position.x;
+                if (g.Speed > 0f && x > halfWidth + 1.5f)
+                {
+                    var p = g.Transform.position;
+                    p.x = -halfWidth - 1.5f;
+                    g.Transform.position = p;
+                }
+                else if (g.Speed < 0f && x < -halfWidth - 1.5f)
+                {
+                    var p = g.Transform.position;
+                    p.x = halfWidth + 1.5f;
+                    g.Transform.position = p;
+                }
+            }
+        }
+
+        private void UpdateFloatingProps()
+        {
+            foreach (var prop in _floatingProps)
+            {
+                float y = prop.RestPosition.y + Mathf.Sin(Time.time * prop.Speed + prop.Phase) * prop.Amplitude;
+                prop.Transform.position = new Vector3(prop.RestPosition.x, y, prop.RestPosition.z);
+            }
+        }
+
+        // --- Capture gag choreography helpers ---
+
+        private IEnumerator FishPop(FishInstance fish)
+        {
+            Vector3 start = fish.RestPosition;
+            float duration = Random.Range(0.4f, 0.8f);
+            float height = Random.Range(0.3f, 0.6f);
+            fish.Renderer.sprite = TideTroublesArt.FishJump(fish.Species);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = elapsed / duration;
+                fish.Transform.position = start + Vector3.up * Mathf.Sin(p * Mathf.PI) * height;
+                yield return null;
+            }
+            fish.Transform.position = start;
+            if (!_capturedNow.Contains(fish.Transform))
+                fish.Renderer.sprite = TideTroublesArt.FishIdle(fish.Species);
+        }
+
+        private IEnumerator ReactionPop()
+        {
+            _dogRenderer.sprite = TideTroublesArt.DogPose(HappyDogPoseIndex);
+            _companionRenderer.sprite = TideTroublesArt.CompanionPose(HappyCompanionPoseIndex);
+            SpawnTransientEffect(TideTroublesArt.CelebrationBurst, _companion.position + Vector3.up * 0.3f, 0.5f, sortingOrder: 14);
+            StartCoroutine(Pop(_dog, 0.3f));
+            yield return Pop(_companion, 0.3f);
+            yield return new WaitForSeconds(0.2f);
+            _dogRenderer.sprite = TideTroublesArt.DogPose(IdleDogPoseIndex);
+            _companionRenderer.sprite = TideTroublesArt.CompanionPose(IdleCompanionPoseIndex);
+        }
+
+        private static IEnumerator Pop(Transform t, float duration)
+        {
+            Vector3 baseScale = t.localScale;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = elapsed / duration;
+                float bounce = Mathf.Sin(p * Mathf.PI) * 0.35f * (1f - p * 0.4f);
+                t.localScale = baseScale * (1f + bounce);
+                yield return null;
+            }
+            t.localScale = baseScale;
+        }
 
         private static IEnumerator Squash(Transform t, float duration)
         {
@@ -241,85 +383,185 @@ namespace HearApp.Worlds.TideTroubles
             _camera.transform.position = basePos;
         }
 
-        private static IEnumerator BobCreature(Transform t)
+        private void SpawnTransientEffect(Sprite sprite, Vector3 position, float duration, int sortingOrder)
         {
-            Vector3 start = t.position;
-            float duration = Random.Range(0.4f, 0.8f);
-            float height = Random.Range(0.3f, 0.7f);
+            if (sprite == null) return;
+            var obj = new GameObject("Effect");
+            var sr = obj.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.sortingOrder = sortingOrder;
+            obj.transform.position = position;
+            StartCoroutine(FadeAndDestroy(obj, sr, duration));
+        }
+
+        private static IEnumerator FadeAndDestroy(GameObject obj, SpriteRenderer sr, float duration)
+        {
+            Vector3 baseScale = obj.transform.localScale;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float p = elapsed / duration;
-                t.position = start + Vector3.up * Mathf.Sin(p * Mathf.PI) * height;
+                Color c = sr.color;
+                c.a = 1f - p;
+                sr.color = c;
+                obj.transform.localScale = baseScale * (1f + p * 0.4f); // slight expand as it fades, sells impact
                 yield return null;
             }
-            t.position = start;
+            Destroy(obj);
         }
 
-        // --- Placeholder procedural scene construction ---
+        // --- Scene construction from real handoff art (see TideTroublesArt) ---
 
-        private static void BuildHarborDock(Camera cam)
+        private static void BuildBackdrop(Camera cam)
         {
-            float halfHeight = cam.orthographicSize > 0 ? cam.orthographicSize : 5f;
-            float halfWidth = halfHeight * (cam.aspect > 0 ? cam.aspect : 1.6f);
-            var dock = CreateColorQuad("Dock", new Color(0.55f, 0.4f, 0.28f), halfWidth * 2.2f, 1.4f);
-            dock.transform.position = new Vector3(0f, -halfHeight + 0.7f, 0f);
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            float worldW = halfWidth * 2f;
+            float worldH = halfHeight * 2f;
+
+            AddCoverSprite("HarborBackground", TideTroublesArt.Background, worldW, worldH, sortingOrder: -100);
+            // Dock frame is a foreground overlay (transparent center, wooden posts/rope border) -
+            // per the handoff README, it sits in front of the play area.
+            AddCoverSprite("DockFrame", TideTroublesArt.DockFrame, worldW, worldH, sortingOrder: 20);
         }
 
-        private void SpawnAmbientCreatures(Camera cam)
+        /// <summary>Scales a sprite uniformly so it fully covers the given world-space rect
+        /// (CSS background-size:cover) without distortion - used for the full-bleed
+        /// background/dock frame across the Core Safe Square's variable aspect ratio.</summary>
+        private static void AddCoverSprite(string name, Sprite sprite, float worldW, float worldH, int sortingOrder)
         {
-            float halfHeight = 5f;
-            float halfWidth = halfHeight * (cam.aspect > 0 ? cam.aspect : 1.6f);
-            Color[] palette =
-            {
-                new(0.95f, 0.85f, 0.2f), // gull
-                new(0.3f, 0.55f, 0.85f), // fish
-                new(0.9f, 0.3f, 0.25f)   // crab/balloon
-            };
-            for (int i = 0; i < 6; i++)
-            {
-                var obj = CreateColorQuad($"AmbientCreature_{i}", palette[i % palette.Length], 0.6f, 0.6f);
-                obj.transform.position = new Vector3(
-                    Random.Range(-halfWidth * 0.7f, halfWidth * 0.7f),
-                    Random.Range(-halfHeight * 0.2f, halfHeight * 0.6f),
-                    0f);
-                _ambientCreatures.Add(obj.transform);
-            }
-        }
-
-        /// <summary>Placeholder rig for the capture gag: two dockside "launchers" (left/right, for
-        /// ear-aware lateralization) and one reusable "net" that flies between them and whichever
-        /// creature gets caught. No real net/launcher/creature art yet - once this choreography is
-        /// validated on-device, it needs a designer handoff for real assets (see .agents/roadmap).</summary>
-        private void BuildCaptureGagRig(Camera cam)
-        {
-            float halfHeight = 5f;
-            float halfWidth = halfHeight * (cam.aspect > 0 ? cam.aspect : 1.6f);
-            float dockY = -halfHeight + 0.9f;
-
-            _launcherLeft = CreateColorQuad("LauncherLeft", new Color(0.45f, 0.32f, 0.2f), 0.5f, 0.5f);
-            _launcherLeft.transform.position = new Vector3(-halfWidth * 0.85f, dockY, 0f);
-
-            _launcherRight = CreateColorQuad("LauncherRight", new Color(0.45f, 0.32f, 0.2f), 0.5f, 0.5f);
-            _launcherRight.transform.position = new Vector3(halfWidth * 0.85f, dockY, 0f);
-
-            _net = CreateColorQuad("Net", new Color(0.95f, 0.95f, 0.9f), 0.4f, 0.4f);
-            _net.SetActive(false);
-        }
-
-        private static GameObject CreateColorQuad(string name, Color color, float width, float height)
-        {
-            var tex = new Texture2D(2, 2);
-            var pixels = new[] { color, color, color, color };
-            tex.SetPixels(pixels);
-            tex.Apply();
-            var sprite = Sprite.Create(tex, new Rect(0, 0, 2, 2), new Vector2(0.5f, 0.5f), 2f);
-
             var obj = new GameObject(name);
             var sr = obj.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
-            obj.transform.localScale = new Vector3(width, height, 1f);
+            sr.sortingOrder = sortingOrder;
+            if (sprite == null) return;
+            float spriteW = sprite.rect.width / sprite.pixelsPerUnit;
+            float spriteH = sprite.rect.height / sprite.pixelsPerUnit;
+            float scale = Mathf.Max(worldW / spriteW, worldH / spriteH);
+            obj.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        private void SpawnFishTargets(Camera cam)
+        {
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            for (int i = 0; i < FishTargetCount; i++)
+            {
+                int species = i % TideTroublesArt.FishSpeciesCount;
+                var obj = CreateSprite($"Fish_{i}", TideTroublesArt.FishIdle(species), sortingOrder: 0, scale: 0.9f);
+                Vector3 pos = new(
+                    Random.Range(-halfWidth * 0.65f, halfWidth * 0.65f),
+                    Random.Range(-halfHeight * 0.1f, halfHeight * 0.4f),
+                    0f);
+                obj.transform.position = pos;
+                if (Random.value < 0.5f)
+                    obj.transform.localScale = new Vector3(-obj.transform.localScale.x, obj.transform.localScale.y, 1f);
+
+                _fishTargets.Add(new FishInstance
+                {
+                    Transform = obj.transform,
+                    Renderer = obj.GetComponent<SpriteRenderer>(),
+                    Species = species,
+                    RestPosition = pos,
+                });
+            }
+        }
+
+        private void SpawnSeagulls(Camera cam)
+        {
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            for (int i = 0; i < SeagullCount; i++)
+            {
+                var obj = CreateSprite($"Seagull_{i}", TideTroublesArt.SeagullPose(0), sortingOrder: -5, scale: 0.7f);
+                float y = Random.Range(halfHeight * 0.45f, halfHeight * 0.85f);
+                float x = Random.Range(-halfWidth, halfWidth);
+                obj.transform.position = new Vector3(x, y, 0f);
+
+                float speed = Random.Range(1.2f, 2.4f) * (Random.value < 0.5f ? 1f : -1f);
+                var sr = obj.GetComponent<SpriteRenderer>();
+                sr.flipX = speed < 0f;
+                _seagulls.Add(new SeagullInstance
+                {
+                    Transform = obj.transform,
+                    Renderer = sr,
+                    Speed = speed,
+                    FlapClock = Random.Range(0f, 8f),
+                });
+            }
+        }
+
+        private void SpawnFloatingProps(Camera cam)
+        {
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            for (int i = 0; i < FloatingPropCount; i++)
+            {
+                var obj = CreateSprite($"FloatingProp_{i}", TideTroublesArt.FloatingProp(i), sortingOrder: -10, scale: Random.Range(0.7f, 1f));
+                bool leftSide = i % 2 == 0;
+                float x = leftSide
+                    ? Random.Range(-halfWidth * 0.9f, -halfWidth * 0.45f)
+                    : Random.Range(halfWidth * 0.45f, halfWidth * 0.9f);
+                float y = Random.Range(-halfHeight * 0.05f, halfHeight * 0.2f);
+                Vector3 pos = new(x, y, 0f);
+                obj.transform.position = pos;
+
+                _floatingProps.Add(new FloatingPropInstance
+                {
+                    Transform = obj.transform,
+                    RestPosition = pos,
+                    Speed = Random.Range(0.8f, 1.6f),
+                    Amplitude = Random.Range(0.08f, 0.18f),
+                    Phase = Random.Range(0f, Mathf.PI * 2f),
+                });
+            }
+        }
+
+        /// <summary>Placeholder-free rig for the capture gag: two dockside net-cannon launchers
+        /// (left/right, for ear-aware lateralization) and one reusable net that flies between
+        /// them and whichever fish gets caught. The idle-left/idle-right sheet poses already aim
+        /// inward toward center on their respective sides, so no mirroring is needed.</summary>
+        private void BuildCaptureGagRig(Camera cam)
+        {
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            float dockY = -halfHeight + 1.1f;
+
+            _launcherLeft = CreateSprite("LauncherLeft", TideTroublesArt.LauncherIdleLeft, sortingOrder: 5, scale: 0.5f);
+            _launcherLeft.transform.position = new Vector3(-halfWidth * 0.8f, dockY, 0f);
+
+            _launcherRight = CreateSprite("LauncherRight", TideTroublesArt.LauncherIdleRight, sortingOrder: 5, scale: 0.5f);
+            _launcherRight.transform.position = new Vector3(halfWidth * 0.8f, dockY, 0f);
+
+            _net = CreateSprite("Net", TideTroublesArt.NetLoose, sortingOrder: 8, scale: 0.5f);
+            _net.SetActive(false);
+        }
+
+        private void BuildReactionCast(Camera cam)
+        {
+            float halfHeight = cam.orthographicSize;
+            float halfWidth = halfHeight * cam.aspect;
+            float dockY = -halfHeight + 1.0f;
+
+            var dogObj = CreateSprite("DogReaction", TideTroublesArt.DogPose(IdleDogPoseIndex), sortingOrder: 15, scale: 0.7f);
+            dogObj.transform.position = new Vector3(halfWidth * 0.5f, dockY - 0.15f, 0f);
+            _dog = dogObj.transform;
+            _dogRenderer = dogObj.GetComponent<SpriteRenderer>();
+
+            var companionObj = CreateSprite("CompanionReaction", TideTroublesArt.CompanionPose(IdleCompanionPoseIndex), sortingOrder: 15, scale: 0.8f);
+            companionObj.transform.position = new Vector3(-halfWidth * 0.5f, dockY + 0.35f, 0f);
+            _companion = companionObj.transform;
+            _companionRenderer = companionObj.GetComponent<SpriteRenderer>();
+        }
+
+        private static GameObject CreateSprite(string name, Sprite sprite, int sortingOrder, float scale = 1f)
+        {
+            var obj = new GameObject(name);
+            var sr = obj.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.sortingOrder = sortingOrder;
+            obj.transform.localScale = Vector3.one * scale;
             return obj;
         }
 
@@ -341,6 +583,7 @@ namespace HearApp.Worlds.TideTroubles
             if (shader == null)
                 throw new System.InvalidOperationException("The URP particle shader is unavailable.");
             renderer.material = new Material(shader);
+            renderer.sortingOrder = 12;
             ps.Play();
             return ps;
         }
