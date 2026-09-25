@@ -18,6 +18,9 @@ its numbered file.
 
 ## Done
 
+- 007 [Reduce brand art visual weight](007-brand-art-visual-weight.md): Done 2026-09-25 after
+  integrating the canonical `hear-logo-handoff-v3.1` package.
+
 <!-- TODO: Move an item's row here when its Status becomes Done. Example:
 
 - 001 [Step name](001-step-name.md): Done 2026-Q2 after the release pipeline was proven

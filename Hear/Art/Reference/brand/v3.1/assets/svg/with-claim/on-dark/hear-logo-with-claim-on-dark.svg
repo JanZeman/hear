@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="700" viewBox="0 0 820 700">
+
+<defs>
+  <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#EAF5FF"/>
+    <stop offset="0.60" stop-color="#D2E7FA"/>
+    <stop offset="1" stop-color="#B4D3F6"/>
+  </linearGradient>
+  <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#BFEAFF"/>
+    <stop offset="0.55" stop-color="#73BAF4"/>
+    <stop offset="1" stop-color="#4E9DF0"/>
+  </linearGradient>
+  <linearGradient id="g3" x1="0.08" y1="0.98" x2="0.92" y2="0.02">
+    <stop offset="0" stop-color="#47E2E0"/>
+    <stop offset="0.50" stop-color="#68A8F0"/>
+    <stop offset="1" stop-color="#9D74F4"/>
+  </linearGradient>
+</defs>
+
+<circle cx="165" cy="269" r="16" fill="#FFFFFF"/>
+<ellipse cx="315" cy="221" rx="28" ry="64" fill="url(#g1)"/>
+<ellipse cx="465" cy="195" rx="39" ry="90" fill="url(#g2)"/>
+<ellipse cx="620" cy="163" rx="51" ry="122" fill="url(#g3)"/>
+<text x="165" y="449.00" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="112" font-weight="300" fill="#F7F9FD">H</text>
+<text x="315" y="449.00" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="112" font-weight="300" fill="#F7F9FD">E</text>
+<text x="465" y="449.00" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="112" font-weight="300" fill="#F7F9FD">A</text>
+<text x="620" y="449.00" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="112" font-weight="300" fill="#F7F9FD">R</text>
+<text x="123.50" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">S</text>
+<text x="156.68" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">o</text>
+<text x="188.85" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">u</text>
+<text x="221.03" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">n</text>
+<text x="253.21" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">d</text>
+<text x="307.56" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">o</text>
+<text x="339.74" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">p</text>
+<text x="371.91" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">e</text>
+<text x="404.09" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">n</text>
+<text x="436.26" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">s</text>
+<text x="488.62" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">w</text>
+<text x="528.79" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">o</text>
+<text x="560.97" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">r</text>
+<text x="585.15" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">l</text>
+<text x="605.32" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">d</text>
+<text x="637.50" y="523.00" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="300" fill="#E0E7F2" fill-opacity="0.92">s</text>
+</svg>

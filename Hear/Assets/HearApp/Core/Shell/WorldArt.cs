@@ -82,11 +82,16 @@ namespace HearApp.Core.Shell
         public static Texture2D CompanionCurious => Resources.Load<Texture2D>("Companion/companion-curious-512");
         public static Texture2D CompanionHappy => Resources.Load<Texture2D>("Companion/companion-happy-512");
 
-        public static Texture2D LogoWithClaim => Resources.Load<Texture2D>("Brand/hear-logo-light-1024");
-        public static Texture2D MarkOnly => Resources.Load<Texture2D>("Brand/hear-mark-light-1024");
+        // hear-logo-handoff-v3.1 (canonical, supersedes v2.2/v3.0/all earlier) - see
+        // Art/Reference/brand/v3.1/. Do not redraw/reinterpret; only the raster export path may
+        // change (e.g. a resolution swap), per that handoff's explicit rules. Splash uses the
+        // with-claim variant; Home uses no-claim (it draws "Sound opens worlds" itself as live
+        // text - see ShellUIController); mark-only is for compact/quiet contexts (nav rail).
+        public static Texture2D LogoWithClaim => Resources.Load<Texture2D>("Brand/hear-logo-with-claim-on-light-1024");
+        public static Texture2D MarkOnly => Resources.Load<Texture2D>("Brand/hear-mark-only-on-light-512");
+        public static Texture2D LogoOnDark => Resources.Load<Texture2D>("Brand/hear-logo-no-claim-on-dark-1024");
 
-        // --- v1.0 Home handoff: locked on-dark logo, production Companion + separate shadow ---
-        public static Texture2D LogoOnDark => Resources.Load<Texture2D>("Brand/hear-logo-on-dark-1024");
+        // --- v1.0 Home handoff: production Companion + separate shadow (still current) ---
         public static Texture2D CompanionOnDarkNeutralLeft => Resources.Load<Texture2D>("Companion/OnDark/companion-neutral-left");
         public static Texture2D CompanionOnDarkNeutralRight => Resources.Load<Texture2D>("Companion/OnDark/companion-neutral-right");
         public static Texture2D CompanionShadow => Resources.Load<Texture2D>("Companion/Shadows/companion-shadow-512");

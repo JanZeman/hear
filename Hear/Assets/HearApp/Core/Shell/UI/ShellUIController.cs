@@ -523,10 +523,13 @@ namespace HearApp.Core.Shell.UI
                     paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L
                 }
             };
+            // hear-logo-handoff-v3.1: Home uses the no-claim logo variant and draws the claim
+            // itself as live text - exact copy "Sound opens worlds", deliberately no trailing
+            // period (design rule 7).
             var logoTex = WorldArt.LogoOnDark;
             var logoImage = new Image { scaleMode = ScaleMode.ScaleToFit, image = logoTex };
             brand.Add(logoImage);
-            var claim = MakeLabel("Sound opens worlds.", new VisualTokens.TypeStyle(18, 400), new Color(1f, 1f, 1f, 0.92f));
+            var claim = MakeLabel("Sound opens worlds", new VisualTokens.TypeStyle(18, 400), new Color(1f, 1f, 1f, 0.92f));
             brand.Add(claim);
             content.Add(brand);
             _brandBlock = brand;

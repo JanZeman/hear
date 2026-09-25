@@ -4,15 +4,17 @@ using UnityEngine.UIElements;
 namespace HearApp.Core.Shell.UI
 {
     /// <summary>
-    /// Displays the real HEAR brand mark supplied in hear-ui-assets-v0.3
-    /// (Assets/HearApp/Resources/Brand/). Per that package's explicit instruction, the logo is
-    /// never hand-recreated or reinterpreted - this view only sizes/places the approved raster
-    /// export. Use <see cref="CreateMark"/> for the full lockup (mark + wordmark + claim) and
-    /// <see cref="CreateMarkOnly"/> for the compact symbol-only version (e.g. a quiet nav header).
+    /// Displays the real HEAR brand mark supplied in hear-logo-handoff-v3.1
+    /// (Assets/HearApp/Resources/Brand/, archived in full at Art/Reference/brand/v3.1/). Per that
+    /// package's explicit instruction, the logo is never hand-recreated or reinterpreted - this
+    /// view only sizes/places the approved raster export. Use <see cref="CreateMark"/> for the
+    /// with-claim full lockup (Splash only - Home uses the no-claim variant directly, see
+    /// ShellUIController) and <see cref="CreateMarkOnly"/> for the compact symbol-only version
+    /// (e.g. a quiet nav header).
     /// </summary>
     public static class BrandMarkView
     {
-        /// <summary>Full lockup: four-element mark + HEAR wordmark + "Sound opens worlds." claim.</summary>
+        /// <summary>With-claim full lockup: four-element mark + HEAR wordmark + "Sound opens worlds" claim (no trailing period).</summary>
         public static VisualElement CreateMark(float widthPx)
         {
             var texture = WorldArt.LogoWithClaim;
