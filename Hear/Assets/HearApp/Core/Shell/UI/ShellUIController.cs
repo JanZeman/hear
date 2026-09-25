@@ -66,14 +66,15 @@ namespace HearApp.Core.Shell.UI
         // direction 2026-09-25 as a deliberate deviation, meant to read as subconscious/barely
         // there ("melo to byt jen takove 'podvedome'. Uzoulinky prouzek."). Same
         // smooth-exponential-falloff construction as the nav icon's glow (see
-        // ResponsiveNavBar.AddItem). Two overcorrections on the way here: max 6px/peak 0.05 was
-        // invisible on-device; max 10px/peak 0.12 was then "moc viditelne" (too visible, no
-        // longer subliminal). Landed narrower and fainter than either - a hairline sliver, not a
-        // halo.
+        // ResponsiveNavBar.AddItem). History: max 6px/peak 0.05 invisible; max 10px/peak 0.12 was
+        // then "moc viditelne"; max 7px/peak 0.07 (unchanged twice, +1px then +2px) was STILL
+        // reported invisible - three rounds of changing only the padding without result means
+        // padding was probably never the limiting factor here. This round raises alpha too, not
+        // just padding again, on that reasoning.
         private VisualElement[] _playGlowLayers;
         private const int PlayGlowLayerCount = 10;
-        private const float PlayGlowMaxPadding = 7f; // +1px then +2px more, per human direction 2026-09-25 ("stale nic nevidim")
-        private const float PlayGlowPeakAlpha = 0.07f;
+        private const float PlayGlowMaxPadding = 11f; // +4px per human direction 2026-09-25
+        private const float PlayGlowPeakAlpha = 0.10f; // was 0.07 - see history note above
         private const float PlayGlowFalloffRate = 3.0f;
         private VisualElement _playRow;
         private VisualElement _bottomSpacer;
@@ -148,7 +149,10 @@ namespace HearApp.Core.Shell.UI
 
             // Bottom nav: icon 51px wide, cell centre y=1693.
             public const float NavIconOfScreenW = 0.0599f;
-            public const float NavCenterOfScreenH = 0.9171f;
+            // NavCenterOfScreenH (0.9171) removed 2026-09-25: matching the GOLDEN board's nav
+            // position left a large dead gap below the panel on this device (human feedback,
+            // "kolik prazdneho prostoru tam v takove situaci je") - nav position now derives from
+            // the real safe-area inset instead (see ApplyBreakpointLayout).
         }
 
         private void Awake()
@@ -207,13 +211,16 @@ namespace HearApp.Core.Shell.UI
             _navHost.style.position = navOverlay ? Position.Absolute : Position.Relative;
             _navHost.style.left = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
             _navHost.style.right = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
-            // The GOLDEN board's nav row is centred at 0.917 of screen height, not flush to the
-            // bottom edge - sitting at bottom:0 put it 0.03 of screen height too low on-device.
-            float screenH = _root.resolvedStyle.height;
-            float navBottom = screenH > 0
-                ? Mathf.Max(GetBottomSafeAreaInsetLogical(),
-                            screenH * (1f - Golden.NavCenterOfScreenH) - ResponsiveNavBar.CompactBarHeight * 0.5f)
-                : GetBottomSafeAreaInsetLogical();
+            // Previously the GOLDEN board's nav row position (centred at 0.917 of screen height)
+            // was matched via `Mathf.Max(safeArea, goldenBoardOffset)` - on this device the
+            // Golden-board term won that max (~47 logical units) against the real safe-area inset,
+            // leaving a large dead gap below the panel that read as wasted/empty space regardless
+            // of the backdrop-extension's colour fix, per human feedback 2026-09-25 ("kolik
+            // prazdneho prostoru tam v takove situaci je"). Dropped the Golden-board term entirely:
+            // the panel now sits as close to the true bottom as the real OS safe area allows, plus
+            // a small fixed breathing margin, rather than an aesthetic offset tuned to a static
+            // reference mockup that this device's proportions don't match.
+            float navBottom = GetBottomSafeAreaInsetLogical() + 4f;
             _navHost.style.bottom = navOverlay ? navBottom : new StyleLength(StyleKeyword.Auto);
 
             // See _navBackdropExtension's declaration comment. Spills below _navHost's own box
@@ -856,8 +863,12 @@ namespace HearApp.Core.Shell.UI
             // stays the GOLDEN one) until the whole column fits. This is what previously
             // regressed, so it is enforced here rather than left to flex behaviour.
             bool compactNavOverlay = ResponsiveNavBar.BreakpointForWidth(screenW) == ShellBreakpoint.Compact;
+            // Matches ApplyBreakpointLayout's navBottom (safe-area inset + 4, not the old
+            // Golden-board offset - see that method's notes) plus the bar's own height, so the
+            // reserved space above the nav exactly matches where it actually sits, instead of
+            // leaving the same oversized dead gap this was paired with.
             float navReserve = compactNavOverlay
-                ? screenH * (1f - Golden.NavCenterOfScreenH) + ResponsiveNavBar.CompactBarHeight * 0.5f + VisualTokens.Spacing.S
+                ? GetBottomSafeAreaInsetLogical() + 4f + ResponsiveNavBar.CompactBarHeight + VisualTokens.Spacing.S
                 : VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical();
             float dotsGap = screenH * Golden.CardToDotsOfScreenH;
             float playGap = screenH * Golden.DotsToPlayOfScreenH;

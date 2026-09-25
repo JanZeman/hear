@@ -129,6 +129,24 @@ were written for, and keeps the 600/960 breakpoints meaning what `home-layout.js
 
 ## Notes
 
+- 2026-09-25: The "empty space" human feedback (with a screenshot showing a large dead area below
+  the nav panel and above the Play button) turned out not to be about the backdrop-extension's
+  colour at all - it was a real, oversized gap. Root cause found in code, not just guessed: BOTH
+  `ApplyBreakpointLayout`'s nav vertical position AND `UpdateCarouselForCurrentSize`'s `navReserve`
+  (space kept clear above the nav for the Play row) used the same `Golden.NavCenterOfScreenH`
+  (0.9171) term - a fraction tuned to match the static GOLDEN board mockup's proportions, not this
+  device's actual safe-area minimum. On this device that term evaluated to ~47 logical units,
+  dwarfing the real safe-area inset it was `Mathf.Max`'d against. Removed the Golden-board term
+  from both call sites entirely; nav position is now `GetBottomSafeAreaInsetLogical() + 4`, and
+  `navReserve` derives from that same value plus the bar's own height, so the two stay consistent
+  with each other. `Golden.NavCenterOfScreenH` deleted (no longer referenced anywhere); the
+  measurement stays in a comment. Confirmed on-device: dramatically smaller gap both above and
+  below the nav panel.
+- 2026-09-25: Play pill glow, round 4: three previous rounds changed only the padding (6->10->7,
+  alternately called too-visible and invisible) without landing anywhere; reasoned that padding
+  was probably never the limiting factor and raised alpha too this time (0.07 -> 0.10) alongside
+  +4px padding (7 -> 11). Confirmed on-device via a close-up crop: now a clearly visible, still
+  soft halo - the first round of this control that actually looked right on both axes at once.
 - 2026-09-25: On explicit human direction: compact bottom-nav icons/labels enlarged ~9%
   (`CompactIconSize` 26 -> 28.3, `RailIconSize` 18 -> 19.6, compact label font 11 -> 12); Play
   pill glow max padding 5 -> 7 (running total +3px across two rounds, still reported barely
