@@ -438,7 +438,11 @@ namespace HearApp.Worlds.TideTroubles
             if (sprite == null) return;
             float spriteW = sprite.rect.width / sprite.pixelsPerUnit;
             float spriteH = sprite.rect.height / sprite.pixelsPerUnit;
-            float scale = Mathf.Max(worldW / spriteW, worldH / spriteH);
+            // +3% overscan: a razor-tight cover fit left zero margin on the binding axis, so
+            // CameraShake's brief position offset exposed a sliver past the sprite edge (visible
+            // as a bright fringe on-device - reported 2026-09-25). The overscan guarantees
+            // coverage survives that shake, which is otherwise-unaffected static art.
+            float scale = Mathf.Max(worldW / spriteW, worldH / spriteH) * 1.03f;
             obj.transform.localScale = new Vector3(scale, scale, 1f);
         }
 
