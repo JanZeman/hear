@@ -115,12 +115,21 @@ namespace HearApp.Core.Shell.UI
             // not computed from the texture): wordmark came out at 0.322 with 0.457 here, and the
             // claim at 0.383 against the board's 0.358.
             public const float BrandLogoOfScreenW = 0.393f;
-            public const float ClaimFontOfScreenW = 0.0389f;
+            // Enlarged ("vetsi pismo, at je citelne") and re-anchored on human direction
+            // 2026-09-25. ClaimTopOfScreenH (an absolute position measured against the GOLDEN
+            // board's 852x1846/0.462 aspect) is gone: on this device's much taller 968x2376/0.407
+            // aspect, screenH * 0.1901 landed far below the logo instead of hugging it - the same
+            // aspect-mismatch bug already fixed once for the nav bar (see this file's notes). The
+            // claim now sits a fixed small gap under the logo, full stop, matching the sketch's
+            // "claim directly under the logo" placement regardless of device aspect.
+            // Dialed back on human direction 2026-09-25: 0.048 read as "moc velkymi pismeny".
+            public const float ClaimFontOfScreenW = 0.040f;
             public const float ClaimGapOfScreenH = 0.0141f;
-            public const float ClaimTopOfScreenH = 0.1901f;
 
-            // Active card: x=184..670, y=447..1185.
-            public const float CardTopOfScreenH = 0.2422f;
+            // Active card: x=184..670, y=447..1185. The board measured a card top at 0.2422 of
+            // screen height, but that absolute anchor broke on this device's much taller aspect
+            // (see UpdateCarouselForCurrentSize's cardTopBase) - removed 2026-09-25, kept only as
+            // this historical measurement.
             public const float CardWidthOfScreenW = 0.5716f;
             public const float CardHeightOverWidth = 1.517f;
             public const float CardRadiusOfCardW = 0.082f;
@@ -144,8 +153,9 @@ namespace HearApp.Core.Shell.UI
             public const float PeekGapOfScreenW = 0.0235f;
             public const float PeekCenterRiseOfActiveH = 0.028f;
 
-            // Play pill: x=245..606, y=1280..1375, fully rounded.
-            public const float PlayWidthOfScreenW = 0.4249f;
+            // Play pill: x=245..606, y=1280..1375, fully rounded. Enlarged ~15% on human
+            // direction 2026-09-25 ("Play tlacitko by melo byt vetsi"), aspect unchanged.
+            public const float PlayWidthOfScreenW = 0.49f;
             public const float PlayHeightOverWidth = 0.2652f;
             public const float PlayFontOfPlayW = 0.115f;
 
@@ -847,30 +857,40 @@ namespace HearApp.Core.Shell.UI
                     _brandLogo.style.height = logoH;
                 }
                 float claimFont = screenW * Golden.ClaimFontOfScreenW;
-                // The GOLDEN board pins the claim's own band at 0.190 of screen height. Anchor it
-                // there rather than hanging it off the logo, whose bitmap is proportionally
-                // shorter than the board's - otherwise the claim rides up with the logo and the
-                // whole brand block reads as compressed. The board's own logo-to-claim gap is the
-                // floor, so the claim can never collide with the wordmark on a short screen.
-                float claimGap = Mathf.Max(screenH * Golden.ClaimGapOfScreenH,
-                                           screenH * Golden.ClaimTopOfScreenH - (brandTop + logoH));
+                float claimGap = screenH * Golden.ClaimGapOfScreenH;
+                // hear-logo-no-claim-on-dark-1024.png is 1024x874, but decoding its alpha channel
+                // shows the visible dots+wordmark only occupy rows 51-560 (~64% of the canvas
+                // height) - the bottom third-plus is transparent padding baked into the asset
+                // itself (reserved for where the with-claim variant's claim text sits), not a
+                // layout bug of ours. `logoH` above is sized to the FULL canvas so the Image
+                // element displays the asset undistorted, so positioning the claim off `logoH`
+                // put it under that invisible padding instead of under the real glyph - human
+                // feedback 2026-09-25 ("claim je spatne umisteny... patri pod logo"). Pull the
+                // claim up by that baked-in padding so `claimGap` measures from the actual visible
+                // wordmark bottom, matching the sketch's tight "claim directly under logo" look.
+                const float LogoVisibleContentBottomFrac = 0.6419f;
+                float logoVisibleBottom = logoH * LogoVisibleContentBottomFrac;
                 if (_brandClaim != null)
                 {
                     _brandClaim.style.fontSize = claimFont;
-                    _brandClaim.style.marginTop = claimGap;
+                    _brandClaim.style.marginTop = claimGap - (logoH - logoVisibleBottom);
                 }
-                brandBottom = brandTop + logoH + claimGap + claimFont * 1.25f;
+                brandBottom = brandTop + logoVisibleBottom + claimGap + claimFont * 1.25f;
             }
 
-            // ---- Carousel box: exactly the active card's height, anchored at the GOLDEN top ----
-            float cardTop = Mathf.Max(brandBottom + VisualTokens.Spacing.S, screenH * Golden.CardTopOfScreenH);
+            // ---- Carousel box ----
+            // `Golden.CardTopOfScreenH` (an absolute screenH fraction measured on the GOLDEN
+            // board's 852x1846/0.462-aspect mockup) is gone: on this device's much taller
+            // 968x2376/0.407 aspect it pinned the card far too close to the claim while leaving
+            // a huge unused band (~200 logical units, measured) for `_bottomSpacer` to swallow
+            // below Play - human feedback 2026-09-25 ("strasne moc prostoru... uplne prazdno" /
+            // "claim... temer se nedotyka karuselu"). Same aspect-mismatch bug class already fixed
+            // once for the nav bar. Fix: anchor the card a comfortable fixed gap under the claim,
+            // then let the real leftover space (computed from actual content, not a mockup ratio)
+            // grow the carousel itself - capped, so it reads as "a bigger carousel" rather than an
+            // absurd one - instead of pooling as dead air the bottom spacer alone absorbed before.
+            float cardTopBase = brandBottom + VisualTokens.Spacing.XXL;
 
-            // Overlap guard. Card, dots and Play are each laid out with a strictly positive
-            // measured gap, so they cannot overlap each other - but on a screen too short for all
-            // of them the fixed-height carousel would push the Play pill off the bottom or under
-            // the floating nav instead. Shrink the card (keeping its aspect, so its silhouette
-            // stays the GOLDEN one) until the whole column fits. This is what previously
-            // regressed, so it is enforced here rather than left to flex behaviour.
             bool compactNavOverlay = ResponsiveNavBar.BreakpointForWidth(screenW) == ShellBreakpoint.Compact;
             // Matches ApplyBreakpointLayout's navBottom (safe-area inset + 4, not the old
             // Golden-board offset - see that method's notes) plus the bar's own height, so the
@@ -882,6 +902,28 @@ namespace HearApp.Core.Shell.UI
             float dotsGap = screenH * Golden.CardToDotsOfScreenH;
             float playGap = screenH * Golden.DotsToPlayOfScreenH;
             float belowCard = dotsGap + dotDiameter + playGap + playH + navReserve;
+
+            float slack = screenH - cardTopBase - activeH - belowCard;
+            if (slack > 0f)
+            {
+                // Grow the card into up to ~30% of its own height worth of the leftover space
+                // (rather than all of it, so it stays a "bigger carousel", not a wall) - whatever
+                // remains after that still shrinks `_bottomSpacer`'s dead gap a lot, from ~200
+                // logical units down to a plausible, deliberate-looking clearance above the nav.
+                float growCap = activeH * 0.3f;
+                float grow = Mathf.Min(slack, growCap);
+                activeH += grow;
+                activeW = activeH / Golden.CardHeightOverWidth;
+                peekH = activeH * Golden.PeekHeightOfActiveH;
+                peekW = peekH / Golden.CardHeightOverWidth;
+            }
+
+            float cardTop = cardTopBase;
+            // Overlap guard for short screens: card, dots and Play are each laid out with a
+            // strictly positive measured gap, so they cannot overlap each other - but on a screen
+            // too short for all of them the fixed-height carousel would push the Play pill off the
+            // bottom or under the floating nav instead. Shrink the card (keeping its aspect, so its
+            // silhouette stays the GOLDEN one) until the whole column fits.
             float cardBudget = screenH - cardTop - belowCard;
             if (activeH > cardBudget)
             {

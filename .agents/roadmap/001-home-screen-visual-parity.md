@@ -129,6 +129,38 @@ were written for, and keeps the 600/960 breakpoints meaning what `home-layout.js
 
 ## Notes
 
+- 2026-09-25: Vertical rhythm fix - human feedback comparing the fixed claim position against the
+  concept board noticed two more problems: a huge (~200 logical units, pixel-measured) dead gap
+  between Play and the nav bar, and the claim/carousel gap reading as "almost touching". Root cause
+  was, again, `Golden.CardTopOfScreenH` (0.2422) - an absolute screenH fraction from the GOLDEN
+  board's 0.462-aspect mockup, invalid on this device's 0.407 aspect - pinning the card too close
+  to the claim while `_bottomSpacer`'s `flexGrow:1` swallowed the resulting slack as dead air below
+  Play (third time this exact aspect-mismatch bug class has shown up this session, after the nav
+  bar and the claim's own position). Fix: card top is now `brandBottom + Spacing.XXL` (a real fixed
+  gap, not a mockup ratio), and any leftover vertical slack grows the carousel itself (capped at
+  30% of its own height, so it reads as "a bigger carousel" rather than an absurd one) instead of
+  pooling invisibly at the bottom. Also dialed the claim font back down (`ClaimFontOfScreenW` 0.048
+  -> 0.040, "moc velkymi pismeny"). Verified on-device: card visibly larger, Play-to-nav gap much
+  smaller (not fully zero - some clearance above the floating glass nav is intentional), claim gap
+  from the carousel clearly no longer touching. Human plans to re-test next on a classic
+  (non-foldable) phone with a more standard aspect ratio - this device's cover screen (0.407) is
+  unusually elongated even for a phone, so these constants may want re-tuning again there.
+- 2026-09-25: Claim text position + font size, and Play pill size, per human feedback comparing
+  the running app against `sources/HEAR-App-UI-Concept-Board.png` side by side (the claim "belongs
+  right under the logo"; Play "should be bigger"). First attempt removed `Golden.ClaimTopOfScreenH`
+  (an absolute-screen-height anchor, same aspect-mismatch class of bug already fixed once for the
+  nav bar) - measured before/after via pixel scan of the screenshots and found it barely moved the
+  claim, so that was NOT the real cause here. Decoded `hear-logo-no-claim-on-dark-1024.png`'s alpha
+  channel directly (1024x874 canvas, visible dots+wordmark content only in rows 51-560) and found
+  the actual bug: the asset itself bakes in ~36% of transparent padding below the visible glyph
+  (reserved for where the with-claim variant's text sits), and `logoH` - sized to the full canvas
+  so the Image element renders the asset undistorted - was being used directly as the claim's
+  vertical anchor, so the claim sat under that invisible padding, not under the real wordmark. Fix:
+  added `LogoVisibleContentBottomFrac = 0.6419` (measured from the decode) and anchor the claim off
+  `logoH * that fraction` instead of raw `logoH`. Also enlarged the claim font
+  (`ClaimFontOfScreenW` 0.0389 -> 0.048, "vetsi pismo, at je citelne") and the Play pill
+  (`PlayWidthOfScreenW` 0.4249 -> 0.49, aspect unchanged). Verified on-device: claim now sits tight
+  under "HEAR" as in the reference sketch; Play pill visibly larger.
 - 2026-09-25: Play pill glow, round 7 - human confirmed round 6 (pad 4px/alpha 0.32) as "konecne
   se priblizujeme vysledku", asked only for it to be "nepatrne uzsi" (slightly narrower). Width-
   only trim: padding 4 -> 3.3px, falloff 2.2 -> 2.6 (steeper), alpha untouched at 0.32 so it does
