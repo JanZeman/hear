@@ -27,6 +27,10 @@ namespace HearApp.Core.Shell.UI
         /// nav overlay from this (see ShellUIController's Golden.NavCenterOfScreenH).</summary>
         public const float CompactBarHeight = 56f;
 
+        /// <summary>Shared with ShellUIController's nav backdrop extension (the strip filling the
+        /// safe-area gesture-inset gap below this bar), so the two always match exactly.</summary>
+        public static readonly Color GlassBackgroundColor = new(0.04f, 0.07f, 0.14f, 0.45f);
+
         private const float CompactIconSize = 26f;
         private const float RailIconSize = 18f;
         private const float CompactSideInset = 8f;
@@ -86,12 +90,25 @@ namespace HearApp.Core.Shell.UI
             Root.style.paddingLeft = sideInset;
             Root.style.paddingRight = sideInset;
             bool compactOverlay = compact && _overlayMode;
-            // GOLDEN board: the compact Home nav has no bar background at all - icons/labels float
-            // directly on the scene, with only a soft blue glow behind the active icon. A flat
-            // translucent strip (even at low alpha) still read as a "slab" against bright skies, so
-            // overlay mode now carries no Root-level background/border of its own.
-            Root.style.backgroundColor = compactOverlay ? Color.clear : VisualTokens.Colors.Pearl50;
-            Root.style.borderTopWidth = 0;
+            // sources/HEAR-App-UI-Concept-Board.png shows the compact Home nav as a "glass" panel
+            // - a translucent dark bar with a thin light rim right at its top edge, not bare
+            // floating icons - per human direction 2026-09-25, overriding an earlier pass that
+            // read a *different* reference (the GOLDEN board) as having no bar background at all.
+            if (compactOverlay)
+            {
+                Root.style.backgroundColor = GlassBackgroundColor;
+                Root.style.borderTopWidth = 1f;
+                Root.style.borderTopColor = new Color(1f, 1f, 1f, 0.18f);
+                Root.style.borderTopLeftRadius = VisualTokens.Radius.L;
+                Root.style.borderTopRightRadius = VisualTokens.Radius.L;
+            }
+            else
+            {
+                Root.style.backgroundColor = VisualTokens.Colors.Pearl50;
+                Root.style.borderTopWidth = 0;
+                Root.style.borderTopLeftRadius = 0;
+                Root.style.borderTopRightRadius = 0;
+            }
 
             AddItem(NavDestination.Worlds, "Worlds", "worlds", wide, compact, compactOverlay);
             AddItem(NavDestination.Results, "Results", "results", wide, compact, compactOverlay);
@@ -132,32 +149,38 @@ namespace HearApp.Core.Shell.UI
 
             if (overlay && isActive)
             {
-                // Measured on sources/HEAR-App-UI-Home.png along the row through the active
-                // "Worlds" icon: the blue channel rises from the background's ~26 to 141 right at
-                // the icon's edge and halves roughly every 8.5px, still readable 35px out - a
-                // wide, strong halo, not the "a few px past the edge" one the previous pass
-                // assumed. Composite alpha therefore reaches ~0.50 at the icon edge and decays
-                // exponentially; nine layers keep each step under 0.12 so it still reads as soft.
-                // The INACTIVE icons in that mockup carry no halo at all, so none is drawn here.
+                // A prior pass here measured the reference board's halo as wide/strong (padding
+                // out to 17.5px across only 9 hand-tuned layers, composite alpha ~0.5 at the icon
+                // edge) and it technically matched that number, but read as a hard-edged blue
+                // "blob with rings" rather than a soft bloom on a real device - human feedback
+                // 2026-09-25 (side-by-side photo comparison against an earlier, subtler,
+                // also-committed-but-overwritten pass). Root cause: UI Toolkit has no real
+                // blur, only stacked flat-alpha circles - at a narrow spread the steps between
+                // layers are imperceptible, but stretched to 17.5px across only 9 layers each
+                // ring's edge becomes individually visible. Fix keeps the halo close to that
+                // earlier subtler footprint (max ~9px, well short of 17.5px) but generates many
+                // more, much-more-closely-spaced layers from a smooth exponential falloff formula
+                // instead of a handful of hand-tuned values, so it still reads as continuous.
                 float iconSize = compact ? CompactIconSize : RailIconSize;
-                float[] pad = { 17.5f, 14.8f, 12f, 9.5f, 7.2f, 5.2f, 3.5f, 2f, 0.8f };
-                // Scaled by 0.71 after the first on-device check: the stack composited to an
-                // effective 0.70 at the icon edge where the board measures 0.50.
-                float[] alpha = { 0.050f, 0.020f, 0.030f, 0.038f, 0.048f, 0.058f, 0.067f, 0.079f, 0.083f };
-                float scale = iconSize / CompactIconSize;
+                const int layerCount = 14;
+                const float maxPadding = 9f;
+                const float peakAlpha = 0.085f;
+                const float falloffRate = 2.4f;
                 var glowTint = new Color(0.2f, 0.6f, 1f, 1f);
-                for (int i = 0; i < pad.Length; i++)
+                for (int i = 0; i < layerCount; i++)
                 {
-                    float p = pad[i] * scale;
-                    float size = iconSize + p * 2f;
+                    float t = i / (layerCount - 1f);
+                    float pad = t * maxPadding;
+                    float alpha = peakAlpha * Mathf.Exp(-falloffRate * t);
+                    float size = iconSize + pad * 2f;
                     var glow = new VisualElement
                     {
                         style =
                         {
-                            position = Position.Absolute, width = size, height = size, left = -p, top = -p,
+                            position = Position.Absolute, width = size, height = size, left = -pad, top = -pad,
                             borderTopLeftRadius = size * 0.5f, borderTopRightRadius = size * 0.5f,
                             borderBottomLeftRadius = size * 0.5f, borderBottomRightRadius = size * 0.5f,
-                            backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, alpha[i])
+                            backgroundColor = new Color(glowTint.r, glowTint.g, glowTint.b, alpha)
                         },
                         pickingMode = PickingMode.Ignore
                     };

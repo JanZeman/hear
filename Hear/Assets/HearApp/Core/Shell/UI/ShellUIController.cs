@@ -23,6 +23,13 @@ namespace HearApp.Core.Shell.UI
         private VisualElement _root;
         private VisualElement _screenLayer;
         private VisualElement _navHost;
+        // Fills the safe-area gesture-inset gap below the compact-overlay glass nav panel with
+        // the same colour, so the bar reads as one continuous panel reaching the true screen edge
+        // regardless of whether the OS's own nav bar happens to be shown or auto-hidden at that
+        // moment - see ApplyBreakpointLayout. Human feedback 2026-09-25: with the gap left bare,
+        // it looked fine only when the OS bar happened to be visible and filled it; empty
+        // otherwise ("je-li schovany, tak tam neni 'nic' a to vypada blbe").
+        private VisualElement _navBackdropExtension;
         private ResponsiveNavBar _nav;
         private Label _hudProgressLabel;
         private VisualElement _hudProgressFill;
@@ -34,6 +41,8 @@ namespace HearApp.Core.Shell.UI
         private VisualElement _ambientBack;
         private VisualElement _ambientFront;
         private Coroutine _ambientAnim;
+        // Tracks identity against the untreated source texture - see RefreshHomeBackground.
+        private Texture2D _lastAmbientSourceTex;
 
         // Home / World Selector carousel live references, updated in place on resize instead of a
         // full rebuild. Rebuilt per hear-home-screen-handoff-v1.0: a real carousel (one active
@@ -52,13 +61,20 @@ namespace HearApp.Core.Shell.UI
         private VisualElement _companion;
         private VisualElement _companionShadow;
         private Button _playButton;
-        // The GOLDEN board's Play pill has NO glow. Measured across its left edge on
-        // sources/HEAR-App-UI-Home.png: background luminance 91, then 72 (a faint one-pixel dark
-        // rim), then 130, then 240 - a razor-sharp edge, not a halo. The app's four-layer halo
-        // instead produced four visible luminance steps (47 -> 56 -> 64 -> 77 -> 255) over 20px
-        // on a dark background, which is exactly the banding the glow was meant to avoid. The
-        // layers are gone; only the bottom nav's active icon keeps a glow, and that one is
-        // measured from the board too (see ResponsiveNavBar).
+        // The GOLDEN board's Play pill itself has NO glow (measured across its left edge on
+        // sources/HEAR-App-UI-Home.png: a razor-sharp edge, no halo) - re-added anyway on human
+        // direction 2026-09-25 as a deliberate deviation, meant to read as subconscious/barely
+        // there ("melo to byt jen takove 'podvedome'. Uzoulinky prouzek."). Same
+        // smooth-exponential-falloff construction as the nav icon's glow (see
+        // ResponsiveNavBar.AddItem). Two overcorrections on the way here: max 6px/peak 0.05 was
+        // invisible on-device; max 10px/peak 0.12 was then "moc viditelne" (too visible, no
+        // longer subliminal). Landed narrower and fainter than either - a hairline sliver, not a
+        // halo.
+        private VisualElement[] _playGlowLayers;
+        private const int PlayGlowLayerCount = 10;
+        private const float PlayGlowMaxPadding = 5f; // +1px per human direction 2026-09-25 ("neviditelny, zvec o jeden pixel")
+        private const float PlayGlowPeakAlpha = 0.07f;
+        private const float PlayGlowFalloffRate = 3.0f;
         private VisualElement _playRow;
         private VisualElement _bottomSpacer;
         private VisualElement _brandBlock;
@@ -200,6 +216,23 @@ namespace HearApp.Core.Shell.UI
                 : GetBottomSafeAreaInsetLogical();
             _navHost.style.bottom = navOverlay ? navBottom : new StyleLength(StyleKeyword.Auto);
 
+            // See _navBackdropExtension's declaration comment. Spills below _navHost's own box
+            // (which only spans the 56-tall icon row) via a negative bottom offset, filling the
+            // reserved gesture-safe-area gap down to the true screen edge with the same glass
+            // colour, so it reads as one continuous panel whether or not the OS's own nav bar
+            // happens to be visible right now.
+            if (navOverlay && navBottom > 0.5f)
+            {
+                _navBackdropExtension.style.display = DisplayStyle.Flex;
+                _navBackdropExtension.style.bottom = -navBottom;
+                _navBackdropExtension.style.height = navBottom;
+                _navBackdropExtension.style.backgroundColor = ResponsiveNavBar.GlassBackgroundColor;
+            }
+            else
+            {
+                _navBackdropExtension.style.display = DisplayStyle.None;
+            }
+
             if (breakpoint == _lastBreakpoint) return;
             _lastBreakpoint = breakpoint;
 
@@ -273,6 +306,13 @@ namespace HearApp.Core.Shell.UI
             _nav = new ResponsiveNavBar();
             _nav.DestinationSelected += OnNavDestinationSelected;
             _navHost.Add(_nav.Root);
+
+            _navBackdropExtension = new VisualElement
+            {
+                style = { position = Position.Absolute, left = 0, right = 0, display = DisplayStyle.None },
+                pickingMode = PickingMode.Ignore
+            };
+            _navHost.Add(_navBackdropExtension);
 
             _screenLayer = new VisualElement { style = { flexGrow = 1, position = Position.Relative, overflow = Overflow.Hidden } };
 
@@ -408,8 +448,6 @@ namespace HearApp.Core.Shell.UI
             button.style.minHeight = 40;
         }
 
-        // Centers a glow layer over its (also-centered) sibling in `playRow` regardless of the
-        // row's own resolved size - see the Play pill glow call site in UpdateCarouselForCurrentSize.
         private void OnCarouselPointerDown(PointerDownEvent evt)
         {
             _swipeStartX = evt.position.x;
@@ -489,10 +527,13 @@ namespace HearApp.Core.Shell.UI
 
             BuildAmbientBackground();
 
-            // Flat darkening across the very top only, so the logo/claim stay legible over any
-            // world's sky (Tide Troubles' daytime sky in particular) without a blur pass over the
-            // whole background, per the v1.0 rule "sharp active-world background, not blur".
-            // A single flat 26%-tall block left a hard horizontal seam right across the screen
+            // Extra graduated darkening across the very top only, on top of the whole-background
+            // blur/darken/desaturate treatment now applied in BuildAmbientBackground (which
+            // deliberately reverses the earlier v1.0 handoff's "sharp active-world background,
+            // never generic blur" rule - see WorldArt.GetTreatedAmbient) - the logo/claim still
+            // need this additional top-only darkening for legibility over a bright sky (Tide
+            // Troubles' daytime sky in particular). A single flat 26%-tall block left a hard
+            // horizontal seam right across the screen
             // where it stopped (clearly visible on-device, absent from the GOLDEN board). UI
             // Toolkit has no gradient background, so the same darkening is stacked as bands of
             // decreasing height and alpha, which fades out instead of cutting off.
@@ -592,8 +633,26 @@ namespace HearApp.Core.Shell.UI
             }
             content.Add(dotsRow);
 
-            // ---- Single Play pill, not attached to the card and with no glow of its own ----
+            // ---- Single Play pill, not attached to the card ----
+            // The GOLDEN board itself shows no glow here (confirmed by direct pixel measurement:
+            // a razor-sharp edge, no halo) and an earlier pass removed it for exactly that reason
+            // - but human direction 2026-09-25 wants a very subtle one back regardless, as a
+            // deliberate deviation from the board. Built the same way as the nav icon's glow (many
+            // closely-spaced layers from a smooth exponential falloff, not a handful of
+            // hand-tuned rings - see ResponsiveNavBar.AddItem's notes on why that matters), tuned
+            // even more subtle than the nav icon per "opravdu musi byt jen velice subtilni".
             var playRow = new VisualElement { style = { alignItems = Align.Center } };
+            _playGlowLayers = new VisualElement[PlayGlowLayerCount];
+            for (int i = 0; i < PlayGlowLayerCount; i++)
+            {
+                var glow = new VisualElement
+                {
+                    style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, 0f) },
+                    pickingMode = PickingMode.Ignore
+                };
+                _playGlowLayers[i] = glow;
+                playRow.Add(glow);
+            }
             var playButton = new Button(() => _flow.RequestPlaySelectedWorld()) { text = "Play   \u2192" };
             playButton.style.backgroundColor = Color.white;
             playButton.style.color = VisualTokens.Colors.Ink900;
@@ -878,6 +937,17 @@ namespace HearApp.Core.Shell.UI
                 _playButton.style.fontSize = playW * Golden.PlayFontOfPlayW;
                 _playButton.style.borderTopLeftRadius = playH * 0.5f; _playButton.style.borderTopRightRadius = playH * 0.5f;
                 _playButton.style.borderBottomLeftRadius = playH * 0.5f; _playButton.style.borderBottomRightRadius = playH * 0.5f;
+
+                if (_playGlowLayers != null)
+                {
+                    for (int i = 0; i < _playGlowLayers.Length; i++)
+                    {
+                        float t = i / (PlayGlowLayerCount - 1f);
+                        float pad = t * PlayGlowMaxPadding;
+                        float alpha = PlayGlowPeakAlpha * Mathf.Exp(-PlayGlowFalloffRate * t);
+                        SizeCenteredGlow(_playGlowLayers[i], playW + pad * 2f, playH + pad * 2f, alpha);
+                    }
+                }
             }
 
             foreach (var dot in _worldDots)
@@ -1013,22 +1083,56 @@ namespace HearApp.Core.Shell.UI
             var tex = WorldArt.GetHomeBackground(worldId, aspectClass);
             if (tex == null) return;
 
-            if (_ambientBack.style.backgroundImage.value.texture == null)
+            // Identity is tracked against the untreated source (_lastAmbientSourceTex), not
+            // against what's actually on screen: the displayed image is now the blurred/darkened/
+            // desaturated result (WorldArt.GetTreatedAmbient), a RenderTexture that's never `==`
+            // comparable to the source Texture2D the old "already showing this" check used.
+            if (_lastAmbientSourceTex == null)
             {
                 // First entry into the world selector this session - no previous world to fade from.
-                _ambientBack.style.backgroundImage = tex;
+                _ambientBack.style.backgroundImage = ToStyleBackground(WorldArt.GetTreatedAmbient(tex));
+                _lastAmbientSourceTex = tex;
                 return;
             }
 
-            if (_ambientBack.style.backgroundImage.value.texture == tex) return;
+            if (_lastAmbientSourceTex == tex) return;
+            _lastAmbientSourceTex = tex;
 
-            _ambientFront.style.backgroundImage = tex;
+            var treated = WorldArt.GetTreatedAmbient(tex);
+            _ambientFront.style.backgroundImage = ToStyleBackground(treated);
             _ambientFront.style.opacity = 0f;
             if (_ambientAnim != null) StopCoroutine(_ambientAnim);
-            _ambientAnim = StartCoroutine(CrossfadeAmbient(tex));
+            _ambientAnim = StartCoroutine(CrossfadeAmbient(treated));
         }
 
-        private IEnumerator CrossfadeAmbient(Texture2D newTex)
+        private static StyleBackground ToStyleBackground(Texture tex)
+        {
+            return tex switch
+            {
+                RenderTexture rt => new StyleBackground(Background.FromRenderTexture(rt)),
+                Texture2D t2d => new StyleBackground(Background.FromTexture2D(t2d)),
+                _ => default
+            };
+        }
+
+        // Centers a pill-shaped glow layer over its (also-centered) sibling in `playRow`
+        // regardless of the row's own resolved size - see the Play pill glow call site above.
+        private static void SizeCenteredGlow(VisualElement glow, float width, float height, float alpha)
+        {
+            glow.style.width = width;
+            glow.style.height = height;
+            glow.style.left = new Length(50f, LengthUnit.Percent);
+            glow.style.top = new Length(50f, LengthUnit.Percent);
+            glow.style.marginLeft = -width * 0.5f;
+            glow.style.marginTop = -height * 0.5f;
+            float radius = height * 0.5f;
+            glow.style.borderTopLeftRadius = radius; glow.style.borderTopRightRadius = radius;
+            glow.style.borderBottomLeftRadius = radius; glow.style.borderBottomRightRadius = radius;
+            var c = glow.style.backgroundColor.value;
+            glow.style.backgroundColor = new Color(c.r, c.g, c.b, alpha);
+        }
+
+        private IEnumerator CrossfadeAmbient(Texture newTex)
         {
             float duration = VisualTokens.MotionMs.Scene / 1000f;
             float elapsed = 0f;
@@ -1038,7 +1142,7 @@ namespace HearApp.Core.Shell.UI
                 _ambientFront.style.opacity = Mathf.Clamp01(elapsed / duration);
                 yield return null;
             }
-            _ambientBack.style.backgroundImage = newTex;
+            _ambientBack.style.backgroundImage = ToStyleBackground(newTex);
             _ambientFront.style.opacity = 0f;
         }
 

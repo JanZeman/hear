@@ -129,6 +129,80 @@ were written for, and keeps the 600/960 breakpoints meaning what `home-layout.js
 
 ## Notes
 
+- 2026-09-25: Compact-overlay bottom nav left a bare gap between the glass panel's bottom edge
+  and the true screen edge (reserved so the panel never overlaps the OS gesture-nav safe area -
+  `GetBottomSafeAreaInsetLogical()`). Human feedback: "vypada OK" when the OS's own nav bar
+  happened to be visible and filled that gap, "vypada blbe" (empty) when it auto-hid, which is
+  most of the time (`AB` immersive-sticky). Fixed with a new `_navBackdropExtension` element
+  (`ShellUIController`) that spills below the glass panel's own box via a negative `bottom`
+  offset, filling exactly that gap with the identical glass colour (now
+  `ResponsiveNavBar.GlassBackgroundColor`, shared instead of duplicated) - the panel now reads as
+  one continuous surface reaching the true screen edge regardless of the OS bar's own state.
+  Confirmed on-device with the OS bar auto-hidden (the common case). Not re-confirmed with the OS
+  bar swiped visible - the test device physically unfolded mid-check (a swipe-from-edge gesture
+  meant to reveal the OS bar instead triggered/coincided with the fold-state change, switching to
+  the inner 1856x2160 display and the Wide/Medium icon-rail layout) and adb has no way to force it
+  back to the cover screen; should still hold structurally (the OS bar always draws on top of app
+  content, so it would simply cover this backdrop the same way it already covers the panel above
+  it), but wants an eyes-on check next on-device session.
+- 2026-09-25: Play pill glow +1px on explicit human direction ("neviditelny, zvec o jeden pixel");
+  max padding 4 -> 5, alpha/falloff unchanged (they asked for the one specific number, not a
+  general re-tune).
+- 2026-09-25: Two more corrections from the same on-device feedback loop. (1) Play pill glow: the
+  previous round's "faint but real halo" (max 10px, peak alpha 0.12) was then "moc viditelne" -
+  wanted "podvedome"/subliminal, "uzoulinky prouzek" (a hairline sliver). Narrowed further (max
+  4px, peak alpha 0.07, steeper falloff) - now barely perceptible even in a close-up crop. Three
+  rounds total on this one control (invisible -> too visible -> subliminal) - if it needs tuning
+  again, start from these numbers, not the very first attempt's. (2) Compact Home bottom nav:
+  restored a "glass panel" background (translucent dark navy, thin light top rim, rounded top
+  corners) per `sources/HEAR-App-UI-Concept-Board.png`, which shows exactly that - overriding an
+  earlier pass that read a *different* reference (the GOLDEN board) as having no bar background
+  at all and removed it entirely. Both references are real handoff artifacts; when they conflict,
+  the human's pointed reference for the specific feedback wins.
+- 2026-09-25: Play pill glow restored on explicit human direction ("opravdu musi byt jen velice
+  subtilni"), deliberately deviating from the GOLDEN board (which has none there at all, per the
+  pixel measurement recorded in an earlier round). First attempt reused the nav icon glow's
+  numbers (max 6px padding, peak alpha 0.05) and came out essentially invisible on-device -
+  confirmed by human observation and a close-up crop. Root cause: the nav icon is a thin-stroke
+  glyph with transparent gaps the glow shows through even at pad=0 (fully inside the icon's own
+  bounding box); the Play pill is one opaque filled shape, so the ENTIRE visible contribution is
+  only the sliver of each layer beyond the pill's own edge - the same alpha/padding numbers are
+  much less visible on a filled shape than on a glyph. Retuned (max 10px, peak alpha 0.12, 14
+  layers, same smooth exponential falloff) until a close-up crop showed a real but faint halo,
+  clearly short of the old wide/strong version. Also confirmed, on request, that nav icon/label
+  size itself was never changed by the glow work (`CompactIconSize`/`RailIconSize` = 26/18
+  unchanged across all commits) - a side-by-side crop showed the icon glyph and "Worlds" label at
+  identical size before and after; the earlier glow fix only changed the halo's own footprint.
+- 2026-09-25: Active bottom-nav icon glow (`ResponsiveNavBar.AddItem`) softened back down after
+  human feedback (side-by-side photo comparison) that it had regressed to a "hard-edged blue blob
+  with visible rings". History: a subtler version (max 8px padding, low alpha) was committed in
+  `2d6bd48`, then overwritten by `1cc0e81`'s own reference-board remeasurement, which found the
+  board's actual halo wide/strong (padding to 17.5px, composite alpha ~0.5 at the icon edge) and
+  implemented that faithfully - technically matching its measurement, but with only 9 hand-tuned
+  layers spread that wide, each ring's edge became individually visible (UI Toolkit has no real
+  blur; this whole effect is stacked flat-alpha circles, which only reads as continuous when the
+  steps between layers are small). Fix: kept the halo close to the earlier subtler footprint (max
+  9px, not 17.5px) but generates many more layers (14) from a smooth exponential falloff formula
+  instead of a handful of hand-tuned values, so it still looks continuous. Also removed a stale
+  orphaned comment left behind after an earlier `SizeGlowPill` helper (Play button glow, already
+  removed by `1cc0e81` - the board has no glow there at all) was deleted but its doc comment
+  wasn't. Confirmed on-device via a close-up crop: smooth, contained glow, no visible rings.
+- 2026-09-25: Home's full-bleed ambient background is now blurred, darkened and desaturated
+  (`WorldArt.GetTreatedAmbient`, `Assets/HearApp/Resources/Shaders/AmbientTreatment.shader`),
+  while the carousel cards and all UI stay untouched/sharp - relaying designer feedback ("uzivatel
+  si nemusi uvedomit, ze tam je carousel"; the reference concept board itself doesn't show this,
+  so this is a deliberate deviation from it, not a parity fix). This **reverses** the earlier
+  v1.0 handoff's own rule ("sharp active-world background, never generic blur" -
+  `docs/v1.0-home-handoff/`) - that handoff doc is left as-is (historical record of what was
+  actually delivered then), but the two code comments that stated it as current
+  (`ShellUIController.ShowWorldSelectorScreen`'s topScrim comment, `WorldArt.GetHomeBackground`'s
+  doc comment) were updated so they don't contradict the live behavior. Implementation: a cheap
+  downsample Blit (the real softness) followed by a small custom shader
+  (`Hidden/HearAmbientTreatment`) doing a 9-tap blur + darken/desaturate lerp in one pass,
+  computed once per source texture and cached as a `RenderTexture` (never per-frame). The shader
+  lives in a `Resources/` folder specifically so it can't hit the build-stripping bug found
+  earlier this session with the URP particle shader (`Shader.Find` has no such guarantee).
+  Confirmed on-device: background clearly hazier/dimmer, carousel/UI unaffected.
 - 2026-09-25: Third on-device round, measured rather than eyeballed (see the measurement table
   above). Root cause of the whole "everything is too big" family of defects was the panel's
   `referenceDpi = 96`. Play button glow removed outright - the reference has none. Bottom nav's

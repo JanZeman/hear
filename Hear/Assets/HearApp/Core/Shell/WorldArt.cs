@@ -99,10 +99,11 @@ namespace HearApp.Core.Shell
         public enum HomeBgAspect { Portrait, Square, Landscape, Ultrawide }
 
         /// <summary>
-        /// The Home screen's full-bleed sharp background for the active world. River Journey ships
-        /// dedicated Home background variants per aspect in this handoff; the other two worlds do
-        /// not, so they fall back to their own sharp world-16x9/master-clean art (still sharp, per
-        /// the "no generic blur" rule) - a documented, honest placeholder gap, not a redraw.
+        /// The Home screen's full-bleed background source for the active world (pre-treatment -
+        /// see <see cref="GetTreatedAmbient"/>). River Journey ships dedicated Home background
+        /// variants per aspect in this handoff; the other two worlds do not, so they fall back to
+        /// their own world-16x9/master-clean art - a documented, honest placeholder gap, not a
+        /// redraw.
         /// </summary>
         public static Texture2D GetHomeBackground(string worldId, HomeBgAspect aspect)
         {
@@ -121,6 +122,56 @@ namespace HearApp.Core.Shell
 
             var textures = GetWorldTextures(worldId);
             return aspect == HomeBgAspect.Portrait && textures.Portrait916 != null ? textures.Portrait916 : textures.Wide169;
+        }
+
+        private static readonly Dictionary<Texture2D, RenderTexture> AmbientTreatedCache = new();
+        private static Material _ambientTreatmentMaterial;
+
+        /// <summary>
+        /// Blurred/darkened/desaturated version of an ambient Home background, so the carousel
+        /// cards and UI read as the sharp interactive foreground against a hazier backdrop -
+        /// deliberately reversing the earlier v1.0 handoff's "sharp active-world background,
+        /// never generic blur" rule (docs/v1.0-home-handoff/), per later designer feedback
+        /// 2026-09-25 ("uzivatel si nemusi uvedomit, ze tam je carousel"). Computed once per
+        /// source texture and cached (never per-frame): a cheap downsample blit first (the real
+        /// softness), then Shaders/AmbientTreatment.shader (a Resources-folder shader, so it is
+        /// never build-stripped the way Shader.Find lookups can be - see roadmap 001's notes on
+        /// the URP particle shader bug) does a small multi-tap blur plus the darken/desaturate
+        /// lerp in one pass. Falls back to the untreated source if the shader can't be loaded,
+        /// rather than showing nothing.
+        /// </summary>
+        public static Texture GetTreatedAmbient(Texture2D source)
+        {
+            if (source == null) return null;
+            if (AmbientTreatedCache.TryGetValue(source, out var cached) && cached != null) return cached;
+
+            if (_ambientTreatmentMaterial == null)
+            {
+                var shader = Resources.Load<Shader>("Shaders/AmbientTreatment");
+                if (shader == null)
+                {
+                    Debug.LogWarning("[WorldArt] AmbientTreatment shader not found; showing the untreated background.");
+                    return source;
+                }
+                _ambientTreatmentMaterial = new Material(shader);
+            }
+
+            int downW = Mathf.Max(8, source.width / 6);
+            int downH = Mathf.Max(8, source.height / 6);
+            var small = RenderTexture.GetTemporary(downW, downH, 0, RenderTextureFormat.ARGB32);
+            small.filterMode = FilterMode.Bilinear;
+            Graphics.Blit(source, small);
+
+            var result = new RenderTexture(source.width, source.height, 0, RenderTextureFormat.ARGB32)
+            {
+                filterMode = FilterMode.Bilinear
+            };
+            result.Create();
+            Graphics.Blit(small, result, _ambientTreatmentMaterial);
+            RenderTexture.ReleaseTemporary(small);
+
+            AmbientTreatedCache[source] = result;
+            return result;
         }
 
         public static Texture2D Icon(string name) => Resources.Load<Texture2D>($"Icons/{name}");
