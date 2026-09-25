@@ -99,28 +99,80 @@ namespace HearApp.Core.Shell.UI
                 style =
                 {
                     flexGrow = 1, paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
-                    paddingTop = VisualTokens.Spacing.XXL
+                    paddingTop = VisualTokens.Spacing.XXL, paddingBottom = VisualTokens.Spacing.XXL
                 }
             };
             content.Add(MakeLabel("Results", VisualTokens.Type.Title, Color.white, 0, VisualTokens.Spacing.L));
 
+            // The card group is only ever a few hundred px tall on a phone-height screen, so it is
+            // wrapped in its own flexGrow:1/Center container instead of just stacking top-down -
+            // otherwise, per human on-device feedback 2026-09-26, it reads as broken/unfinished,
+            // stranded at the top with a huge dead gap below it before the nav bar.
+            var centerGroup = new VisualElement { style = { flexGrow = 1, justifyContent = Justify.Center } };
+
             var card = MakeCard();
             card.style.alignItems = Align.Center;
             card.Add(MakeLabel("No result yet", VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, VisualTokens.Spacing.M));
-            card.Add(MakeLabel("Play your first world to create your baseline.", VisualTokens.Type.Body,
-                VisualTokens.Colors.Ink700, VisualTokens.Spacing.XS));
-            content.Add(card);
 
-            var playBtn = new Button(() => flow.ReturnToSelectorFromResults()) { text = "Play your first world" };
+            // Small decorative upward sparkline, purely illustrative (no real data exists yet) -
+            // echoes the empty-state reference's own little growth-curve icon, reusing the same
+            // LineChartElement the populated screen's real charts use rather than a static image.
+            var sparkline = new LineChartElement
+            {
+                style = { height = 48, width = Length.Percent(60f), marginTop = VisualTokens.Spacing.S }
+            };
+            sparkline.SetSeries(new List<LineChartElement.Series>
+            {
+                new(new List<float> { 0.15f, 0.2f, 0.35f, 0.55f, 0.9f }, new Color(0.6f, 0.66f, 0.78f, 0.6f))
+            });
+            card.Add(sparkline);
+
+            card.Add(MakeLabel("Play your first world to create your baseline.", VisualTokens.Type.Body,
+                VisualTokens.Colors.Ink700, VisualTokens.Spacing.M));
+            var footerRow = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginTop = VisualTokens.Spacing.M } };
+            footerRow.Add(new VisualElement
+            {
+                style =
+                {
+                    width = 6, height = 6, backgroundColor = GoodGreen, marginRight = VisualTokens.Spacing.S,
+                    borderTopLeftRadius = 3, borderTopRightRadius = 3, borderBottomLeftRadius = 3, borderBottomRightRadius = 3
+                }
+            });
+            var footerLabel = MakeLabel("Results will appear after your first reliable session.", VisualTokens.Type.Caption, VisualTokens.Colors.Slate400);
+            footerLabel.style.flexShrink = 1;
+            footerRow.Add(footerLabel);
+            card.Add(footerRow);
+            centerGroup.Add(card);
+
+            var playBtn = new Button(() => flow.ReturnToSelectorFromResults());
             StyleUtilityButton(playBtn, destructive: false);
-            content.Add(playBtn);
+            playBtn.style.flexDirection = FlexDirection.Row;
+            playBtn.style.justifyContent = Justify.Center;
+            playBtn.style.alignItems = Align.Center;
+            playBtn.Add(new VisualElement
+            {
+                style =
+                {
+                    width = 22, height = 22, marginRight = VisualTokens.Spacing.S,
+                    backgroundImage = WorldArt.Icon("play"), unityBackgroundImageTintColor = Color.white
+                }
+            });
+            playBtn.Add(new Label("Play your first world") { style = { color = Color.white, fontSize = VisualTokens.Type.BodyStrong.Size, unityFontStyleAndWeight = VisualTokens.Type.BodyStrong.Style } });
+            centerGroup.Add(playBtn);
 
             var infoCard = MakeCard();
             infoCard.Add(MakeLabel("What you'll see here", VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink900));
             infoCard.Add(MakeLabel("Your hearing age, your latest session, and a simple hearing profile over time.",
                 VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, VisualTokens.Spacing.XS));
-            content.Add(infoCard);
+            centerGroup.Add(infoCard);
 
+            var infoCard2 = MakeCard();
+            infoCard2.Add(MakeLabel("No sessions yet", VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink900));
+            infoCard2.Add(MakeLabel("Complete your first world to see your history here.",
+                VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, VisualTokens.Spacing.XS));
+            centerGroup.Add(infoCard2);
+
+            content.Add(centerGroup);
             screen.Add(content);
         }
 

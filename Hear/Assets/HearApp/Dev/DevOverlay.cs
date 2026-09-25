@@ -35,7 +35,7 @@ namespace HearApp.Dev
         {
             if (!_visible) return;
 
-            GUILayout.BeginArea(new Rect(Screen.width - 260, 10, 250, 470), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(Screen.width - 260, 10, 250, 500), GUI.skin.box);
             GUILayout.Label("HEAR Dev Overlay (`)");
 
             GUILayout.Label("Channel:");
@@ -62,6 +62,10 @@ namespace HearApp.Dev
             if (GUILayout.Button("Miss")) flow.InjectDevOutcome(TrialOutcome.Miss, _selectedChannel, freq);
             if (GUILayout.Button("False Positive")) flow.InjectDevOutcome(TrialOutcome.FalsePositive, _selectedChannel, freq);
             if (GUILayout.Button("Correct Rejection")) flow.InjectDevOutcome(TrialOutcome.CorrectRejection, _selectedChannel, freq);
+            // Real sessions (especially with "Long session" dev-speed on, 10x trials) can take
+            // minutes to finish on their own - this lets a hand-injected batch of outcomes above
+            // reach Results immediately, without waiting out the rest of the real trial loop.
+            if (GUILayout.Button("Force Complete Session")) flow.Engine.CompleteSession();
             GUI.enabled = true;
 
             GUILayout.Space(10);
