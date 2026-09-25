@@ -125,6 +125,8 @@ namespace Hear.Editor
                         NamedBuildTarget.iOS,
                         "com.janzeman.hear");
                     PlayerSettings.iOS.targetOSVersionString = "15.0";
+                    // Jan's active Apple Developer Program team
+                    PlayerSettings.iOS.appleDeveloperTeamID = "9VBQGD32YX";
                     break;
 
                 case BuildTarget.StandaloneOSX:
