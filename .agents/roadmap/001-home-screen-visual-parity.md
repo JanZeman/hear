@@ -129,6 +129,18 @@ were written for, and keeps the 600/960 breakpoints meaning what `home-layout.js
 
 ## Notes
 
+- 2026-09-25: On explicit human direction: compact bottom-nav icons/labels enlarged ~9%
+  (`CompactIconSize` 26 -> 28.3, `RailIconSize` 18 -> 19.6, compact label font 11 -> 12); Play
+  pill glow max padding 5 -> 7 (running total +3px across two rounds, still reported barely
+  visible - if raised again, alpha/falloff are the more likely lever than padding alone).
+  Confirmed on-device (icons/labels visibly bigger in a close-up crop). Discussed but NOT
+  implemented: dynamically repositioning the glass nav panel based on live Android
+  `WindowInsets` (whether the OS's own nav bar is momentarily shown via edge-swipe or hidden) -
+  technically feasible (same `AndroidJavaObject`/listener pattern as the status-bar work), but the
+  backdrop-extension fix above should already prevent any real collision, since the OS bar always
+  draws on top of app content; recommended verifying that on-device before building another native
+  integration. Blocked on the test device being physically unfolded mid-session (adb can't force
+  it back to the cover screen) - re-verify next session.
 - 2026-09-25: Compact-overlay bottom nav left a bare gap between the glass panel's bottom edge
   and the true screen edge (reserved so the panel never overlaps the OS gesture-nav safe area -
   `GetBottomSafeAreaInsetLogical()`). Human feedback: "vypada OK" when the OS's own nav bar

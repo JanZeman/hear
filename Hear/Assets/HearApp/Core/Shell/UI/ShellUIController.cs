@@ -72,7 +72,7 @@ namespace HearApp.Core.Shell.UI
         // halo.
         private VisualElement[] _playGlowLayers;
         private const int PlayGlowLayerCount = 10;
-        private const float PlayGlowMaxPadding = 5f; // +1px per human direction 2026-09-25 ("neviditelny, zvec o jeden pixel")
+        private const float PlayGlowMaxPadding = 7f; // +1px then +2px more, per human direction 2026-09-25 ("stale nic nevidim")
         private const float PlayGlowPeakAlpha = 0.07f;
         private const float PlayGlowFalloffRate = 3.0f;
         private VisualElement _playRow;

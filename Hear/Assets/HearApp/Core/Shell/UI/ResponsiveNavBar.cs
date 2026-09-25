@@ -31,8 +31,10 @@ namespace HearApp.Core.Shell.UI
         /// safe-area gesture-inset gap below this bar), so the two always match exactly.</summary>
         public static readonly Color GlassBackgroundColor = new(0.04f, 0.07f, 0.14f, 0.45f);
 
-        private const float CompactIconSize = 26f;
-        private const float RailIconSize = 18f;
+        // +~9% ("o necelych 10%") on human direction 2026-09-25.
+        private const float CompactIconSize = 28.3f;
+        private const float RailIconSize = 19.6f;
+        private const float CompactLabelFontSize = 12f; // was 11
         private const float CompactSideInset = 8f;
 
         public VisualElement Root { get; } = new();
@@ -207,7 +209,7 @@ namespace HearApp.Core.Shell.UI
                 {
                     style =
                     {
-                        fontSize = compact ? 11 : VisualTokens.Type.Label.Size,
+                        fontSize = compact ? CompactLabelFontSize : VisualTokens.Type.Label.Size,
                         unityFontStyleAndWeight = FontStyle.Normal,
                         color = isActive ? activeTint : inactiveTint,
                         marginLeft = compact ? 0 : VisualTokens.Spacing.S,
