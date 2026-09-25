@@ -40,8 +40,6 @@ namespace HearApp.Core.Shell.UI
         // card, two peeking neighbors) rather than a hero panel + separate thumbnail row.
         private VisualElement _carousel;
         private VisualElement _activeCard;
-        // Fraction of a neighbor card's own width that peeks out past the active card on top of it.
-        private const float CarouselPeekVisibleFraction = 0.5f;
         private VisualElement _prevCard;
         private VisualElement _nextCard;
         private float _swipeStartX;
@@ -50,26 +48,92 @@ namespace HearApp.Core.Shell.UI
         private const float SwipeThresholdPx = 40f;
         private const float SwipeCaptureThresholdPx = 12f;
         private readonly List<VisualElement> _worldDots = new();
-        // Measured against sources/HEAR-App-UI-Home.png (852x1846): dot diameter ~19.5px vs.
-        // Play button width ~344px there (see UpdateCarouselForCurrentSize's dot sizing).
-        private const float DotToPlayWidthRatio = 0.0567f;
         private Coroutine _carouselEntranceAnim;
         private VisualElement _companion;
         private VisualElement _companionShadow;
         private Button _playButton;
-        // Soft multi-layer glow (human feedback 2026-09-25: the original 2-ring attempt read as
-        // "brutal"/naive; a real soft glow needs many layers, each barely visible on its own).
-        // Second pass (human feedback 2026-09-25): still "much too wide" at up to +26px - measured
-        // against the reference mockup, its own glow (where visible at all) is only a few px past
-        // the element's own edge, not a wide halo. Padding (px beyond the button's own rect) and
-        // peak opacity per layer, outermost last.
-        private static readonly float[] PlayGlowPadding = { 1.5f, 3f, 5f, 8f };
-        private static readonly float[] PlayGlowAlpha = { 0.05f, 0.03f, 0.018f, 0.008f };
-        private VisualElement[] _playGlowLayers;
+        // The GOLDEN board's Play pill has NO glow. Measured across its left edge on
+        // sources/HEAR-App-UI-Home.png: background luminance 91, then 72 (a faint one-pixel dark
+        // rim), then 130, then 240 - a razor-sharp edge, not a halo. The app's four-layer halo
+        // instead produced four visible luminance steps (47 -> 56 -> 64 -> 77 -> 255) over 20px
+        // on a dark background, which is exactly the banding the glow was meant to avoid. The
+        // layers are gone; only the bottom nav's active icon keeps a glow, and that one is
+        // measured from the board too (see ResponsiveNavBar).
         private VisualElement _playRow;
+        private VisualElement _bottomSpacer;
+        private VisualElement _brandBlock;
+        private Image _brandLogo;
+        private Label _brandClaim;
+        private VisualElement _dotsRow;
         private VisualElement _navLogo;
         private WorldArt.HomeBgAspect _lastHomeAspect = (WorldArt.HomeBgAspect)(-1);
         private string _lastHomeWorldId;
+
+        /// <summary>
+        /// Every Home-screen proportion, taken by direct pixel measurement of the GOLDEN board
+        /// `sources/HEAR-App-UI-Home.png` (852x1846) on 2026-09-25 and stored as a ratio of a
+        /// stable in-image reference, never as a raw pixel count - the mockup and any real device
+        /// differ in both resolution and aspect ratio, so only ratios transfer. Horizontal sizes
+        /// are fractions of screen width, vertical positions fractions of screen height, and a
+        /// few sizes are fractions of the element they must stay proportional to (card radius of
+        /// card width, dot diameter of Play width). Raw measurements behind each value are in
+        /// `.agents/roadmap/001-home-screen-visual-parity.md`.
+        /// </summary>
+        private static class Golden
+        {
+            // Brand block: logo top y=144, wordmark bottom y=325, claim band y=351..381.
+            public const float BrandTopOfScreenH = 0.078f;
+            // Both re-derived from an on-device measurement after the first pass (the supplied
+            // logo bitmap does not carry the GOLDEN board's own wordmark proportions, so the
+            // element size that lands the wordmark on 0.277 of screen width has to be measured,
+            // not computed from the texture): wordmark came out at 0.322 with 0.457 here, and the
+            // claim at 0.383 against the board's 0.358.
+            public const float BrandLogoOfScreenW = 0.393f;
+            public const float ClaimFontOfScreenW = 0.0389f;
+            public const float ClaimGapOfScreenH = 0.0141f;
+            public const float ClaimTopOfScreenH = 0.1901f;
+
+            // Active card: x=184..670, y=447..1185.
+            public const float CardTopOfScreenH = 0.2422f;
+            public const float CardWidthOfScreenW = 0.5716f;
+            public const float CardHeightOverWidth = 1.517f;
+            public const float CardRadiusOfCardW = 0.082f;
+            public const float CardBorderOfCardW = 0.0051f;
+            public const float CardBorderAlpha = 0.7f;
+            public const float CardTitleCapOfCardW = 0.0431f;
+            public const float CardTitleWidthOfCardW = 0.680f;
+            // The board's world name is set very airily: 331px of line for a 21px cap height,
+            // and the glyph size already matches, so tracking is what has to carry the extra
+            // width. CAREFUL WITH THE UNIT: two on-device measurements (0.22em -> 0.50 of card
+            // width, 0.46em -> 0.52) show this Unity version's `letterSpacing` behaving as
+            // hundredths of an em, not logical px - a nominal 2.8 only bought 0.36px of gap. So
+            // this value is em/100 and, unlike a px value, must NOT be scaled by the font size.
+            public const float CardTitleTrackingEmHundredths = 27.5f;
+            public const float CardPaddingOfCardW = 0.060f;
+
+            // Peek cards: y=523..1068 (0.739 of the active card's height), inner edge 21px from
+            // the active card, same silhouette aspect as the active card. No label (approved
+            // deviation from the GOLDEN board, human direction 2026-09-25).
+            public const float PeekHeightOfActiveH = 0.739f;
+            public const float PeekGapOfScreenW = 0.0235f;
+            public const float PeekCenterRiseOfActiveH = 0.028f;
+
+            // Play pill: x=245..606, y=1280..1375, fully rounded.
+            public const float PlayWidthOfScreenW = 0.4249f;
+            public const float PlayHeightOverWidth = 0.2652f;
+            public const float PlayFontOfPlayW = 0.115f;
+
+            // Dots: three 20px circles, 43.5px apart, centred on the screen; card bottom 1185 ->
+            // dots top 1213, dots bottom 1235 -> Play top 1280.
+            public const float DotDiameterOfPlayW = 0.0552f;
+            public const float DotPitchOfPlayW = 0.1202f;
+            public const float CardToDotsOfScreenH = 0.0152f;
+            public const float DotsToPlayOfScreenH = 0.0244f;
+
+            // Bottom nav: icon 51px wide, cell centre y=1693.
+            public const float NavIconOfScreenW = 0.0599f;
+            public const float NavCenterOfScreenH = 0.9171f;
+        }
 
         private void Awake()
         {
@@ -127,7 +191,14 @@ namespace HearApp.Core.Shell.UI
             _navHost.style.position = navOverlay ? Position.Absolute : Position.Relative;
             _navHost.style.left = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
             _navHost.style.right = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
-            _navHost.style.bottom = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
+            // The GOLDEN board's nav row is centred at 0.917 of screen height, not flush to the
+            // bottom edge - sitting at bottom:0 put it 0.03 of screen height too low on-device.
+            float screenH = _root.resolvedStyle.height;
+            float navBottom = screenH > 0
+                ? Mathf.Max(GetBottomSafeAreaInsetLogical(),
+                            screenH * (1f - Golden.NavCenterOfScreenH) - ResponsiveNavBar.CompactBarHeight * 0.5f)
+                : GetBottomSafeAreaInsetLogical();
+            _navHost.style.bottom = navOverlay ? navBottom : new StyleLength(StyleKeyword.Auto);
 
             if (breakpoint == _lastBreakpoint) return;
             _lastBreakpoint = breakpoint;
@@ -168,8 +239,16 @@ namespace HearApp.Core.Shell.UI
             // the same thing) on desktop and mobile alike. fallbackDpi covers devices/emulators that
             // report Screen.dpi == 0.
             settings.scaleMode = PanelScaleMode.ConstantPhysicalSize;
-            settings.referenceDpi = 96f;
-            settings.fallbackDpi = 96f;
+            // referenceDpi 160 (not 96) makes one UI Toolkit logical unit equal one Android
+            // density-independent pixel. At 96 this device's 968-physical-px screen resolved to a
+            // 221-unit-wide panel, so every token expressed in "logical px" (16px body text, 26px
+            // nav icon, 32px radius) rendered roughly 1.67x too large relative to the screen -
+            // measured on-device 2026-09-25: wordmark 0.435 of screen width vs. 0.277 in
+            // sources/HEAR-App-UI-Home.png, nav icon 0.095 vs. 0.060. 160 puts the panel at 369
+            // units here, the dp space every size token in VisualTokens was written for, and keeps
+            // the 600/960 breakpoints meaning what home-layout.json says they mean.
+            settings.referenceDpi = 160f;
+            settings.fallbackDpi = 160f;
             return settings;
         }
 
@@ -320,19 +399,6 @@ namespace HearApp.Core.Shell.UI
 
         // Centers a glow layer over its (also-centered) sibling in `playRow` regardless of the
         // row's own resolved size - see the Play pill glow call site in UpdateCarouselForCurrentSize.
-        private static void SizeGlowPill(VisualElement glow, float width, float height)
-        {
-            glow.style.width = width;
-            glow.style.height = height;
-            glow.style.left = new Length(50f, LengthUnit.Percent);
-            glow.style.top = new Length(50f, LengthUnit.Percent);
-            glow.style.marginLeft = -width * 0.5f;
-            glow.style.marginTop = -height * 0.5f;
-            float radius = height * 0.5f;
-            glow.style.borderTopLeftRadius = radius; glow.style.borderTopRightRadius = radius;
-            glow.style.borderBottomLeftRadius = radius; glow.style.borderBottomRightRadius = radius;
-        }
-
         private void OnCarouselPointerDown(PointerDownEvent evt)
         {
             _swipeStartX = evt.position.x;
@@ -415,39 +481,53 @@ namespace HearApp.Core.Shell.UI
             // Flat darkening across the very top only, so the logo/claim stay legible over any
             // world's sky (Tide Troubles' daytime sky in particular) without a blur pass over the
             // whole background, per the v1.0 rule "sharp active-world background, not blur".
-            var topScrim = new VisualElement
+            // A single flat 26%-tall block left a hard horizontal seam right across the screen
+            // where it stopped (clearly visible on-device, absent from the GOLDEN board). UI
+            // Toolkit has no gradient background, so the same darkening is stacked as bands of
+            // decreasing height and alpha, which fades out instead of cutting off.
+            float[] scrimHeights = { 34f, 28f, 23f, 18f, 14f, 10f, 7f, 4f };
+            float[] scrimAlphas = { 0.04f, 0.04f, 0.04f, 0.04f, 0.04f, 0.04f, 0.04f, 0.04f };
+            for (int i = 0; i < scrimHeights.Length; i++)
             {
-                style = { position = Position.Absolute, left = 0, top = 0, right = 0, height = Length.Percent(26), backgroundColor = new Color(0f, 0f, 0f, 0.24f) },
-                pickingMode = PickingMode.Ignore
-            };
-            _screenLayer.Add(topScrim);
+                var band = new VisualElement
+                {
+                    style = { position = Position.Absolute, left = 0, top = 0, right = 0, height = Length.Percent(scrimHeights[i]), backgroundColor = new Color(0f, 0f, 0f, scrimAlphas[i]) },
+                    pickingMode = PickingMode.Ignore
+                };
+                _screenLayer.Add(band);
+            }
 
             var content = new VisualElement { style = { flexGrow = 1, flexDirection = FlexDirection.Column } };
 
             // ---- Brand: HEAR mark+wordmark (locked on-dark asset) + live claim text ----
+            // Brand block size and vertical position are both driven from the screen in
+            // UpdateCarouselForCurrentSize (see Golden.BrandTopOfScreenH / BrandLogoOfScreenW) -
+            // a fixed 176-unit logo with a 72% cap rendered the wordmark at 0.435 of screen width
+            // against the GOLDEN board's 0.277.
             var brand = new VisualElement
             {
                 style =
                 {
                     alignItems = Align.Center,
-                    paddingTop = VisualTokens.Spacing.L + GetTopSafeAreaInsetLogical(),
                     paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L
                 }
             };
             var logoTex = WorldArt.LogoOnDark;
-            var logoImage = new Image
-            {
-                scaleMode = ScaleMode.ScaleToFit,
-                image = logoTex,
-                style = { width = 176, maxWidth = Length.Percent(72), height = logoTex != null ? 176f * logoTex.height / logoTex.width : 60f }
-            };
+            var logoImage = new Image { scaleMode = ScaleMode.ScaleToFit, image = logoTex };
             brand.Add(logoImage);
-            var claim = MakeLabel("Sound opens worlds.", new VisualTokens.TypeStyle(18, 400), new Color(1f, 1f, 1f, 0.92f), VisualTokens.Spacing.XS);
+            var claim = MakeLabel("Sound opens worlds.", new VisualTokens.TypeStyle(18, 400), new Color(1f, 1f, 1f, 0.92f));
             brand.Add(claim);
             content.Add(brand);
+            _brandBlock = brand;
+            _brandLogo = logoImage;
+            _brandClaim = claim;
 
             // ---- Carousel: one active card, two peeking neighbors (no separate thumbnail row) ----
-            _carousel = new VisualElement { style = { flexGrow = 1, position = Position.Relative, marginTop = VisualTokens.Spacing.S } };
+            // flexGrow 0: the carousel box is exactly as tall as the active card, so the card's
+            // top edge can be anchored at the GOLDEN board's own ratio instead of drifting with
+            // whatever vertical slack a given screen happens to leave. All slack is collected by
+            // _bottomSpacer below the Play pill, where the GOLDEN board also puts it.
+            _carousel = new VisualElement { style = { flexGrow = 0, flexShrink = 0, position = Position.Relative } };
             _carousel.RegisterCallback<PointerDownEvent>(OnCarouselPointerDown);
             _carousel.RegisterCallback<PointerMoveEvent>(OnCarouselPointerMove);
             _carousel.RegisterCallback<PointerUpEvent>(OnCarouselPointerUp);
@@ -481,7 +561,8 @@ namespace HearApp.Core.Shell.UI
             // ALL THREE dots are the SAME size; only color/opacity marks the active one, it is
             // NOT a wider pill. `DotDiameter` below is that ratio applied to our own Play button
             // width (see UpdateCarouselForCurrentSize) rather than a flat guessed constant.
-            var dotsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center, marginTop = VisualTokens.Spacing.M } };
+            var dotsRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center } };
+            _dotsRow = dotsRow;
             for (int i = 0; i < count; i++)
             {
                 bool isActive = i == activeIndex;
@@ -489,8 +570,7 @@ namespace HearApp.Core.Shell.UI
                 {
                     style =
                     {
-                        backgroundColor = isActive ? Color.white : new Color(1f, 1f, 1f, 0.5f),
-                        marginLeft = 5, marginRight = 5
+                        backgroundColor = isActive ? Color.white : new Color(1f, 1f, 1f, 0.5f)
                     }
                 };
                 _worldDots.Add(dot);
@@ -498,24 +578,8 @@ namespace HearApp.Core.Shell.UI
             }
             content.Add(dotsRow);
 
-            // ---- Single Play pill (not attached to the card), with a soft glow halo ----
-            // marginTop reserves enough room for the glow's largest layer (see PlayGlowPadding)
-            // so it can never reach up into dotsRow above it - the two must never visually overlap.
-            var playRow = new VisualElement
-            {
-                style = { alignItems = Align.Center, marginTop = VisualTokens.Spacing.XXL, marginBottom = VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical() }
-            };
-            _playGlowLayers = new VisualElement[PlayGlowPadding.Length];
-            for (int i = 0; i < _playGlowLayers.Length; i++)
-            {
-                var layer = new VisualElement
-                {
-                    style = { position = Position.Absolute, backgroundColor = new Color(0.55f, 0.75f, 1f, PlayGlowAlpha[i]) },
-                    pickingMode = PickingMode.Ignore
-                };
-                _playGlowLayers[i] = layer;
-                playRow.Add(layer);
-            }
+            // ---- Single Play pill, not attached to the card and with no glow of its own ----
+            var playRow = new VisualElement { style = { alignItems = Align.Center } };
             var playButton = new Button(() => _flow.RequestPlaySelectedWorld()) { text = "Play   \u2192" };
             playButton.style.backgroundColor = Color.white;
             playButton.style.color = VisualTokens.Colors.Ink900;
@@ -531,6 +595,12 @@ namespace HearApp.Core.Shell.UI
             playRow.Add(playButton);
             _playRow = playRow;
             content.Add(playRow);
+
+            // Every unit of vertical slack lands here, between the Play pill and the floating
+            // bottom nav - the same place the GOLDEN board leaves open foreground for the
+            // Companion. Its minimum height keeps the nav from ever covering the Play pill.
+            _bottomSpacer = new VisualElement { style = { flexGrow = 1, flexShrink = 0 }, pickingMode = PickingMode.Ignore };
+            content.Add(_bottomSpacer);
 
             _screenLayer.Add(content);
 
@@ -560,33 +630,19 @@ namespace HearApp.Core.Shell.UI
             // sky/mountains/river/figure all visible top-to-bottom - instead of a squarer crop that
             // truncates the top of the scene.
             var cardTexture = tex.Portrait916 != null ? tex.Portrait916 : (tex.Square11 != null ? tex.Square11 : tex.Wide169);
-            // Active vs. peek cards read as distinctly different shapes (human feedback
-            // 2026-09-25: peek tiles "must have a completely different shape"): peek tiles get a
-            // smaller corner radius, while the active card gets a slightly more present frame.
-            // The first attempt at a thicker active border (3px/0.6 alpha) measured "too thick" on
-            // a real device (human feedback 2026-09-25, asked to measure rather than guess again);
-            // this is a smaller correction, not another guess at a much bigger number. Peek tiles
-            // also get their own thin border now (per human suggestion) rather than "near
-            // invisible" - the reference mockup has none, a deliberate addition here.
-            float radius = isActive ? VisualTokens.Radius.XL : VisualTokens.Radius.M;
-            float borderWidth = isActive ? 1.5f : 1f;
-            float borderAlpha = isActive ? 0.35f : 0.16f;
+            // Corner radius and border width are proportional to the card's own width and are
+            // applied in ApplyCardRect, because both peek cards and the active card must keep the
+            // GOLDEN board's single radius-to-width ratio (40px radius on a 487px card) at every
+            // size. Measured border there: a ~2px near-white line at roughly 0.7 alpha.
             var card = new VisualElement
             {
                 style =
                 {
                     position = Position.Absolute, top = 0,
-                    borderTopLeftRadius = radius, borderTopRightRadius = radius,
-                    borderBottomLeftRadius = radius, borderBottomRightRadius = radius,
                     overflow = Overflow.Hidden,
                     backgroundImage = cardTexture,
                     unityBackgroundScaleMode = ScaleMode.ScaleAndCrop,
-                    opacity = isActive ? 1f : 0.88f,
-                    borderTopWidth = borderWidth, borderBottomWidth = borderWidth, borderLeftWidth = borderWidth, borderRightWidth = borderWidth,
-                    borderTopColor = new Color(1f, 1f, 1f, borderAlpha),
-                    borderBottomColor = new Color(1f, 1f, 1f, borderAlpha),
-                    borderLeftColor = new Color(1f, 1f, 1f, borderAlpha),
-                    borderRightColor = new Color(1f, 1f, 1f, borderAlpha)
+                    opacity = isActive ? 1f : 0.88f
                 }
             };
 
@@ -598,8 +654,15 @@ namespace HearApp.Core.Shell.UI
                 // UI Toolkit has no native gradient background, so it's faked with several stacked
                 // bands of decreasing height/opacity instead of a single flat block (a single block
                 // left a visible hard seam where it cut off against the sky).
-                float[] bandHeights = { 22f, 17f, 12f, 8f };
-                float[] bandAlphas = { 0.34f, 0.22f, 0.12f, 0.05f };
+                // Equal alphas, decreasing heights: stacked this way the darkening builds up
+                // towards the top and thins out downwards. The previous table put its LARGEST
+                // alpha (0.34) on its TALLEST band, which cut a hard horizontal line across the
+                // card at 22% of its height - clearly visible on-device, absent from the board.
+                float[] bandHeights = { 30f, 25f, 20f, 16f, 12f, 9f, 6f, 4f };
+                // 0.10 per band composites to the same ~0.57 at the card's very top as the old
+                // four-band table, so nothing is lost where the title sits on a bright daytime
+                // sky (Tide Troubles) - only the hard edge at the bottom of the stack is gone.
+                float[] bandAlphas = { 0.10f, 0.10f, 0.10f, 0.10f, 0.10f, 0.10f, 0.10f, 0.10f };
                 for (int i = 0; i < bandHeights.Length; i++)
                 {
                     var band = new VisualElement
@@ -610,14 +673,16 @@ namespace HearApp.Core.Shell.UI
                     card.Add(band);
                 }
 
-                var info = new VisualElement { style = { position = Position.Absolute, left = VisualTokens.Spacing.L, right = VisualTokens.Spacing.L, top = VisualTokens.Spacing.L, alignItems = Align.Center } };
-                var title = MakeLabel(entry.DisplayName.ToUpperInvariant(), VisualTokens.Type.Headline, Color.white);
+                var info = new VisualElement { style = { position = Position.Absolute, alignItems = Align.Center } };
+                info.name = "cardInfo";
+                // The GOLDEN board sets the world name in a light, widely tracked all-caps line,
+                // not a bold one - measured cap height there is only 0.043 of the card's width.
+                var title = MakeLabel(entry.DisplayName.ToUpperInvariant(), new VisualTokens.TypeStyle(20, 400), Color.white);
                 title.name = "cardTitle";
-                title.style.letterSpacing = 2;
                 title.style.unityTextAlign = TextAnchor.MiddleCenter;
-                title.style.whiteSpace = WhiteSpace.Normal;
+                title.style.whiteSpace = WhiteSpace.NoWrap;
                 info.Add(title);
-                var tagline = MakeLabel(entry.Tagline, VisualTokens.Type.Caption, new Color(1f, 1f, 1f, 0.88f), 4);
+                var tagline = MakeLabel(entry.Tagline, VisualTokens.Type.Caption, new Color(1f, 1f, 1f, 0.88f));
                 tagline.name = "cardTagline";
                 tagline.style.unityTextAlign = TextAnchor.MiddleCenter;
                 tagline.style.whiteSpace = WhiteSpace.Normal;
@@ -635,13 +700,27 @@ namespace HearApp.Core.Shell.UI
             return card;
         }
 
-        private static void ApplyCardRect(VisualElement card, float left, float top, float width, float height)
+        private static void ApplyCardRect(VisualElement card, float left, float top, float width, float height, bool isActive)
         {
             if (card == null) return;
             card.style.left = left;
             card.style.top = top;
             card.style.width = width;
             card.style.height = height;
+
+            float radius = width * Golden.CardRadiusOfCardW;
+            card.style.borderTopLeftRadius = radius; card.style.borderTopRightRadius = radius;
+            card.style.borderBottomLeftRadius = radius; card.style.borderBottomRightRadius = radius;
+
+            // Peek tiles keep a deliberately fainter frame than the active card (human direction
+            // 2026-09-25); the GOLDEN board gives them none at all.
+            float borderWidth = Mathf.Max(1f, width * Golden.CardBorderOfCardW);
+            float borderAlpha = isActive ? Golden.CardBorderAlpha : 0.16f;
+            card.style.borderTopWidth = borderWidth; card.style.borderBottomWidth = borderWidth;
+            card.style.borderLeftWidth = borderWidth; card.style.borderRightWidth = borderWidth;
+            var borderColor = new Color(1f, 1f, 1f, borderAlpha);
+            card.style.borderTopColor = borderColor; card.style.borderBottomColor = borderColor;
+            card.style.borderLeftColor = borderColor; card.style.borderRightColor = borderColor;
         }
 
         private void UpdateCarouselForCurrentSize()
@@ -651,89 +730,163 @@ namespace HearApp.Core.Shell.UI
             float screenH = _screenLayer.resolvedStyle.height;
             if (screenW <= 0 || screenH <= 0) return;
 
-            // Fractions from metadata/home-layout.json's "compact" carousel block - used across all
-            // breakpoints for this first pass rather than a second Wide-specific tuning table.
-            float activeW = screenW * 0.71f;
-            // The card's box must NEVER exceed the carousel's own resolved height - a flat
-            // screenH-based fraction could spill the card past its box into the dots/Play rows
-            // below (confirmed on-device: carousel, world-counter dots and the Play button visibly
-            // overlapped). Clamping to carouselH with a small margin makes that structurally
-            // impossible regardless of breakpoint or safe-area insets.
-            float carouselH = _carousel.resolvedStyle.height;
-            float activeH = Mathf.Min(screenH * 0.49f, Mathf.Max(40f, carouselH - 8f));
-            // Widened from 0.285/0.42 - the previous, narrower peek sliver left so little logical
-            // width for the neighbor-card label that even short words ("TIDE", "GARDEN") broke
-            // mid-word into unreadable single-glyph lines.
-            float neighborW = screenW * 0.34f;
-            const float peekVisibleFraction = CarouselPeekVisibleFraction;
+            // ---- Everything below is Golden's measured ratios applied to this screen ----
+            // Horizontal sizes scale with screen width, vertical anchors with screen height, so
+            // the composition transfers to an aspect ratio the mockup never showed.
+            float activeW = screenW * Golden.CardWidthOfScreenW;
+            float activeH = activeW * Golden.CardHeightOverWidth;
+            float peekH = activeH * Golden.PeekHeightOfActiveH;
+            float peekW = peekH / Golden.CardHeightOverWidth;
+            float playW = screenW * Golden.PlayWidthOfScreenW;
+            float playH = playW * Golden.PlayHeightOverWidth;
+            float dotDiameter = playW * Golden.DotDiameterOfPlayW;
+            float dotMargin = playW * (Golden.DotPitchOfPlayW - Golden.DotDiameterOfPlayW) * 0.5f;
+
+            // ---- Brand block ----
+            var logoTex = WorldArt.LogoOnDark;
+            float brandBottom = 0f;
+            if (_brandBlock != null)
+            {
+                float brandTop = Mathf.Max(GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.S,
+                                           screenH * Golden.BrandTopOfScreenH);
+                _brandBlock.style.paddingTop = brandTop;
+                float logoW = screenW * Golden.BrandLogoOfScreenW;
+                float logoH = logoTex != null ? logoW * logoTex.height / logoTex.width : logoW * 0.56f;
+                if (_brandLogo != null)
+                {
+                    _brandLogo.style.width = logoW;
+                    _brandLogo.style.height = logoH;
+                }
+                float claimFont = screenW * Golden.ClaimFontOfScreenW;
+                // The GOLDEN board pins the claim's own band at 0.190 of screen height. Anchor it
+                // there rather than hanging it off the logo, whose bitmap is proportionally
+                // shorter than the board's - otherwise the claim rides up with the logo and the
+                // whole brand block reads as compressed. The board's own logo-to-claim gap is the
+                // floor, so the claim can never collide with the wordmark on a short screen.
+                float claimGap = Mathf.Max(screenH * Golden.ClaimGapOfScreenH,
+                                           screenH * Golden.ClaimTopOfScreenH - (brandTop + logoH));
+                if (_brandClaim != null)
+                {
+                    _brandClaim.style.fontSize = claimFont;
+                    _brandClaim.style.marginTop = claimGap;
+                }
+                brandBottom = brandTop + logoH + claimGap + claimFont * 1.25f;
+            }
+
+            // ---- Carousel box: exactly the active card's height, anchored at the GOLDEN top ----
+            float cardTop = Mathf.Max(brandBottom + VisualTokens.Spacing.S, screenH * Golden.CardTopOfScreenH);
+
+            // Overlap guard. Card, dots and Play are each laid out with a strictly positive
+            // measured gap, so they cannot overlap each other - but on a screen too short for all
+            // of them the fixed-height carousel would push the Play pill off the bottom or under
+            // the floating nav instead. Shrink the card (keeping its aspect, so its silhouette
+            // stays the GOLDEN one) until the whole column fits. This is what previously
+            // regressed, so it is enforced here rather than left to flex behaviour.
+            bool compactNavOverlay = ResponsiveNavBar.BreakpointForWidth(screenW) == ShellBreakpoint.Compact;
+            float navReserve = compactNavOverlay
+                ? screenH * (1f - Golden.NavCenterOfScreenH) + ResponsiveNavBar.CompactBarHeight * 0.5f + VisualTokens.Spacing.S
+                : VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical();
+            float dotsGap = screenH * Golden.CardToDotsOfScreenH;
+            float playGap = screenH * Golden.DotsToPlayOfScreenH;
+            float belowCard = dotsGap + dotDiameter + playGap + playH + navReserve;
+            float cardBudget = screenH - cardTop - belowCard;
+            if (activeH > cardBudget)
+            {
+                activeH = Mathf.Max(40f, cardBudget);
+                activeW = activeH / Golden.CardHeightOverWidth;
+                peekH = activeH * Golden.PeekHeightOfActiveH;
+                peekW = peekH / Golden.CardHeightOverWidth;
+            }
+
+            _carousel.style.height = activeH;
+            _carousel.style.marginTop = cardTop - brandBottom;
 
             float activeLeft = (screenW - activeW) * 0.5f;
-            float activeTop = Mathf.Max(0f, (carouselH - activeH) * 0.5f);
+            const float activeTop = 0f;
+            // Peek tiles keep the active card's silhouette but sit slightly higher, exactly as the
+            // GOLDEN board has them (peek centre 20px above the active card's centre on 852x1846).
+            float peekTop = activeTop + (activeH - peekH) * 0.5f - activeH * Golden.PeekCenterRiseOfActiveH;
+            float peekGap = screenW * Golden.PeekGapOfScreenW;
 
-            // Peek tiles are a deliberately different shape from the active card (human feedback
-            // 2026-09-25), not just a narrower crop at the same height: noticeably smaller and
-            // recessed, reinforcing "this is a thumbnail, not the featured card".
-            const float peekScale = 0.74f;
-            float neighborH = activeH * peekScale;
-            float neighborTop = activeTop + (activeH - neighborH) * 0.5f;
+            ApplyCardRect(_activeCard, activeLeft, activeTop, activeW, activeH, isActive: true);
+            ApplyCardRect(_prevCard, activeLeft - peekGap - peekW, peekTop, peekW, peekH, isActive: false);
+            ApplyCardRect(_nextCard, activeLeft + activeW + peekGap, peekTop, peekW, peekH, isActive: false);
 
-            ApplyCardRect(_activeCard, activeLeft, activeTop, activeW, activeH);
-            ApplyCardRect(_prevCard, activeLeft - neighborW * peekVisibleFraction, neighborTop, neighborW, neighborH);
-            ApplyCardRect(_nextCard, activeLeft + activeW - neighborW * peekVisibleFraction, neighborTop, neighborW, neighborH);
-
-            // The active card's title previously used a fixed 36px Display style and severely
-            // word-wrapped (even mid-word) on a narrow real phone screen - size it from the card's
-            // own resolved width instead.
+            // ---- Active card's title and tagline ----
             var title = _activeCard?.Q<Label>("cardTitle");
             var tagline = _activeCard?.Q<Label>("cardTagline");
+            var info = _activeCard?.Q<VisualElement>("cardInfo");
+            float cardPadding = activeW * Golden.CardPaddingOfCardW;
+            if (info != null)
+            {
+                info.style.left = cardPadding;
+                info.style.right = cardPadding;
+                info.style.top = cardPadding;
+            }
             if (title != null)
             {
-                bool narrow = activeW < 260f;
-                title.style.fontSize = narrow ? 18 : 22;
-                if (tagline != null) tagline.style.fontSize = narrow ? 12 : 13;
+                // Size from the card, then let tracking carry the rest of the width. A long name
+                // ("THE PAPER GARDEN") would otherwise overrun the card at the GOLDEN board's own
+                // tracking, and whiteSpace is NoWrap here - so shrink both together to fit.
+                string text = title.text ?? string.Empty;
+                float innerW = Mathf.Max(1f, activeW - cardPadding * 2f);
+                float fontSize = activeW * Golden.CardTitleCapOfCardW / 0.711f;
+                float tracking = Golden.CardTitleTrackingEmHundredths;
+                int glyphs = Mathf.Max(1, text.Length);
+                // 0.42 em is this font's measured average advance for an all-caps world name, so
+                // `projected` is only an overflow guard - the aimed-for width comes from the cap
+                // height and the tracking above. The longest name ("THE PAPER GARDEN") is the one
+                // that decides whether the guard ever fires.
+                float projected = glyphs * fontSize * 0.42f + (glyphs - 1) * tracking * 0.01f * fontSize;
+                if (projected > innerW)
+                {
+                    float shrink = innerW / projected;
+                    fontSize *= shrink;
+                    tracking *= shrink;
+                }
+                title.style.fontSize = fontSize;
+                title.style.letterSpacing = tracking;
+                if (tagline != null)
+                {
+                    tagline.style.fontSize = fontSize * 0.80f;
+                    tagline.style.marginTop = fontSize * 0.55f;
+                }
             }
 
-            // Play pill: computed as an explicit pixel size (not Percent+maxWidth) because at
-            // runtime under PanelScaleMode.ConstantPhysicalSize the Percent(61)+maxWidth(340)
-            // combination on the Button silently failed to clamp on real Android hardware and
-            // rendered as a screen-spanning ellipse instead of a compact pill. Height is now
-            // proportional to width (a fixed 59px looked "insanely tall" - human feedback
-            // 2026-09-25 - on the narrower widths a real device produces), clamped to a minimum
-            // that still meets a comfortable touch-target size.
+            // ---- Play pill ----
+            // Explicit pixel sizes, not Percent+maxWidth: under ConstantPhysicalSize the
+            // Percent(61)+maxWidth(340) combination on the Button silently failed to clamp on real
+            // Android hardware and rendered as a screen-spanning ellipse.
             if (_playButton != null)
             {
-                float playW = Mathf.Min(screenW * 0.61f, 340f);
-                float playH = Mathf.Clamp(playW * 0.19f, 44f, 64f);
                 _playButton.style.width = playW;
                 _playButton.style.height = playH;
+                _playButton.style.fontSize = playW * Golden.PlayFontOfPlayW;
                 _playButton.style.borderTopLeftRadius = playH * 0.5f; _playButton.style.borderTopRightRadius = playH * 0.5f;
                 _playButton.style.borderBottomLeftRadius = playH * 0.5f; _playButton.style.borderBottomRightRadius = playH * 0.5f;
-
-                if (_playGlowLayers != null)
-                {
-                    for (int i = 0; i < _playGlowLayers.Length; i++)
-                        SizeGlowPill(_playGlowLayers[i], playW + PlayGlowPadding[i] * 2f, playH + PlayGlowPadding[i] * 2f);
-                }
-
-                float dotDiameter = playW * DotToPlayWidthRatio;
-                foreach (var dot in _worldDots)
-                {
-                    dot.style.width = dotDiameter;
-                    dot.style.height = dotDiameter;
-                    dot.style.borderTopLeftRadius = dotDiameter * 0.5f; dot.style.borderTopRightRadius = dotDiameter * 0.5f;
-                    dot.style.borderBottomLeftRadius = dotDiameter * 0.5f; dot.style.borderBottomRightRadius = dotDiameter * 0.5f;
-                }
             }
 
-            // Compact Home floats the bottom nav as an absolute-positioned overlay (see
-            // ApplyBreakpointLayout) so it no longer reserves its own flex row - the Play row must
-            // reserve that space itself instead, or the floating nav visually covers the Play pill.
+            foreach (var dot in _worldDots)
+            {
+                dot.style.width = dotDiameter;
+                dot.style.height = dotDiameter;
+                dot.style.marginLeft = dotMargin;
+                dot.style.marginRight = dotMargin;
+                dot.style.borderTopLeftRadius = dotDiameter * 0.5f; dot.style.borderTopRightRadius = dotDiameter * 0.5f;
+                dot.style.borderBottomLeftRadius = dotDiameter * 0.5f; dot.style.borderBottomRightRadius = dotDiameter * 0.5f;
+            }
+
+            // ---- Vertical gaps between card, dots and Play ----
+            // These gaps are the whole reason the three rows can never overlap: each one is a
+            // strictly positive margin measured on the GOLDEN board, and nothing here draws
+            // outside its own box any more, so there is no halo that could reach across one.
+            if (_dotsRow != null) _dotsRow.style.marginTop = dotsGap;
             if (_playRow != null)
             {
-                bool compactNavOverlay = ResponsiveNavBar.BreakpointForWidth(screenW) == ShellBreakpoint.Compact;
-                float navClearance = compactNavOverlay ? 56f + GetBottomSafeAreaInsetLogical() : 0f;
-                _playRow.style.marginBottom = VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical() + navClearance;
+                _playRow.style.marginTop = playGap;
+                _playRow.style.marginBottom = 0f;
             }
+            if (_bottomSpacer != null) _bottomSpacer.style.minHeight = navReserve;
 
             RefreshHomeBackground();
 
@@ -745,7 +898,12 @@ namespace HearApp.Core.Shell.UI
             if (companionTex != null && _companion != null)
             {
                 var placement = GetHomeCompanionPlacement(ClassifyHomeAspect(screenW, screenH));
-                float companionWidth = screenW * placement.WidthFraction;
+                // companion.json's widthFraction describes the Companion as it is SEEN. The
+                // supplied sprite is 1024px wide but its non-transparent body only spans 619px of
+                // that (0.6045), and ScaleToFit fits the whole texture including its transparent
+                // margin - so applying widthFraction to the element box rendered the Companion at
+                // 0.112 of screen width on-device against 0.203 measured on the GOLDEN board.
+                float companionWidth = screenW * placement.WidthFraction / CompanionSpriteContentFraction;
                 float companionHeight = companionWidth * companionTex.height / companionTex.width;
                 float centerX = screenW * placement.NormX;
 
@@ -774,6 +932,11 @@ namespace HearApp.Core.Shell.UI
                 }
             }
         }
+
+        /// <summary>Fraction of `companion-neutral-left.png`'s width occupied by non-transparent
+        /// pixels (619 of 1024, measured 2026-09-25). See the companion sizing in
+        /// UpdateCarouselForCurrentSize.</summary>
+        private const float CompanionSpriteContentFraction = 0.6045f;
 
         private static WorldArt.HomeBgAspect ClassifyHomeAspect(float screenW, float screenH)
         {

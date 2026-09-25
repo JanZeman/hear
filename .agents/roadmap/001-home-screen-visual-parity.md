@@ -15,13 +15,125 @@ build -> install -> screenshot -> compare -> adjust `ShellUIController.cs` / `Wo
 ## Definition of done
 
 - [ ] Every item in `Hear/docs/v1.0-home-handoff/02-developer-checklist.md` verified true
-      on-device.
-- [ ] Side-by-side screenshot of the running app vs. `sources/HEAR-App-UI-Home.png` shows no
-      structural difference (layout, carousel, companion placement, nav, brand).
-- [ ] The issues listed in `Hear/docs/v1.0-home-handoff/current-implementation-delta.md` are
-      confirmed resolved on-device.
+      on-device. NOT DONE: that checklist has not been walked item by item; only the properties in
+      the measurement table below were verified.
+- [x] Side-by-side screenshot of the running app vs. `sources/HEAR-App-UI-Home.png` shows no
+      structural difference (layout, carousel, companion placement, nav, brand). Verified
+      2026-09-25 by pixel measurement, not by eye - see the table below; every structural ratio is
+      within 3% except the three noted there, each with a stated reason. Evidence:
+      `Hear/docs/v1.0-home-handoff/evidence/2026-09-25-home-on-device-SM-F956B.png`.
+- [x] The issues listed in `Hear/docs/v1.0-home-handoff/current-implementation-delta.md` are
+      confirmed resolved on-device. All twelve, seen on the device: 1, 3, 6, 7, 12 by the carousel
+      and full-bleed world art; 2 by the brand block measuring within 0.2% of the board; 4, 11 by
+      absence; 5 and 8 by all three world names rendering on one line at the same cap height
+      (checked for "RIVER JOURNEY", "THE PAPER GARDEN" and "TIDE TROUBLES"); 9 by the Companion
+      being a separate sprite placed from `companion.json`; 10 by the nav measuring within 0.4
+      percentage points of the board. Item 9's "grounding" half is only partly resolved: the
+      Companion no longer sits on the card, but our background crop gives it no surface to rest
+      on the way the board's foreground rock does.
+
+## Measurement table, 2026-09-25 (round 2 of this item)
+
+Method: both PNGs dumped to raw RGBA (`ffmpeg -f rawvideo -pix_fmt rgba`) and scanned in Python
+for colour transitions. Reference `sources/HEAR-App-UI-Home.png` is 852x1846 (aspect 0.462);
+the device (Galaxy Z Fold `SM-F956B`, cover screen) is 968x2376 (aspect 0.407). Because the two
+resolutions and aspect ratios differ, **every figure below is a ratio** against a stable reference
+in its own image - screen width, screen height, or the element the property must stay proportional
+to. `pp` means percentage points of the stated denominator.
+
+| Property | Reference | App | Delta | Fix applied |
+| --- | --- | --- | --- | --- |
+| Active card, width / screen W | 0.5716 | 0.5723 | +0.1% | `Golden.CardWidthOfScreenW`; was 0.71 from the spec, the board says 0.572 and the board wins |
+| Active card, height / own width | 1.517 | 1.516 | -0.1% | `CardHeightOverWidth`; height now derives from width, not from a screen-height fraction |
+| Active card, height / screen H | 0.4003 | 0.3535 | -4.7 pp | **Deliberately not matched.** The card's own silhouette is held instead; this device is proportionally much taller, so an aspect-correct card covers less of its height |
+| Active card, top / screen H | 0.2422 | 0.2403 | -0.2 pp | `CardTopOfScreenH`; the card is anchored at this ratio instead of being centred in whatever slack the carousel had |
+| Active card, corner radius / card W | 0.0739 | 0.0650 | -0.9 pp | `CardRadiusOfCardW` = 0.082; corner-settle depth is the least precise number here (3px antialiased border) |
+| Active card, border width / card W | 0.0041 | 0.0054 | +0.13 pp | `CardBorderOfCardW`, floored at 1 logical px |
+| Active card, border alpha | ~0.80 | ~0.77 | -0.03 | `CardBorderAlpha` = 0.7 |
+| Peek card, height / active height | 0.739 | 0.740 | +0.1% | `PeekHeightOfActiveH` |
+| Peek card, visible width / screen W | 0.1913 | 0.1911 | -0.1% | follows from the peek's own aspect plus the gap below |
+| Peek card, gap to active card / screen W | 0.0235 | 0.0227 | -0.08 pp | `PeekGapOfScreenW` |
+| Peek card, centre rise / active height | 0.028 | 0.028 | 0% | `PeekCenterRiseOfActiveH` |
+| Peek card, corner radius / own width | same ratio as active | same ratio as active | - | shares `CardRadiusOfCardW` |
+| Peek card, label | present | none | **approved deviation** | side cards carry no world name; human direction 2026-09-25 |
+| Play, width / screen W | 0.4249 | 0.4256 | +0.2% | `PlayWidthOfScreenW`; was 0.61 from the spec |
+| Play, height / own width | 0.2652 | 0.2646 | -0.2% | `PlayHeightOverWidth`; was a 0.19 factor clamped to 44-64 |
+| Play, corner radius / own width | 0.1022 (pill) | 0.1019 (pill) | -0.03 pp | unchanged, already a pill |
+| Play, centre x | 0.5000 | 0.4995 | -0.05 pp | - |
+| Play, glow at its own edge | none: 91 -> 72 -> 130 -> 240 luminance | none: 58 -> 42 -> 255 | match | **Glow removed.** The app's four halo layers produced four visible luminance steps over 20px; the board has a razor-sharp edge with a faint one-pixel dark rim, no halo |
+| Gap card bottom -> dots top / screen H | 0.0152 | 0.0147 | -0.05 pp | `CardToDotsOfScreenH` |
+| Gap dots bottom -> Play top / screen H | 0.0244 | 0.0240 | -0.04 pp | `DotsToPlayOfScreenH` |
+| Gap Play bottom -> nav cell top / screen H | 0.1495 | 0.2092 | +6.0 pp | **Deliberately not matched.** All vertical slack is collected here, where the board also leaves open foreground; a taller device has more of it |
+| Dot count | 3 | 3 | - | - |
+| Dot diameter / Play width | 0.0552 | 0.0546 | -0.06 pp | `DotDiameterOfPlayW` |
+| Dot pitch / Play width | 0.1202 | 0.1177 | -0.25 pp | `DotPitchOfPlayW` |
+| Dots all one size, colour marks the active one | yes | yes | match | re-verified this round; still true |
+| Wordmark width / screen W | 0.2770 | 0.2769 | -0.04% | `BrandLogoOfScreenW` = 0.393, measured on-device rather than computed - the supplied bitmap does not carry the board's own wordmark proportions |
+| Claim width / screen W | 0.3580 | 0.3574 | -0.2% | `ClaimFontOfScreenW` |
+| Claim centre y / screen H | 0.1983 | 0.1999 | +0.16 pp | `ClaimTopOfScreenH` pins the claim's band rather than hanging it off the logo |
+| Logo block top / screen H | 0.0780 | 0.0779 | -0.01 pp | `BrandTopOfScreenH` |
+| Logo mark (ellipse row) width / screen W | 0.2793 | 0.2903 | +1.1 pp | not fixable in code: the bitmap's ellipse row is proportionally wider than the board's. [007](007-brand-art-visual-weight.md) |
+| Wordmark centre y / screen H | 0.1663 | 0.1376 | -2.9 pp | same cause: the bitmap's mark is proportionally shorter than the board's, so the wordmark sits higher. [007](007-brand-art-visual-weight.md) |
+| Card title, cap height / card W | 0.0431 | 0.0433 | +0.02 pp | `CardTitleCapOfCardW` |
+| Card title, line width / card W | 0.680 | 0.664 | -1.6 pp | `CardTitleTrackingEmHundredths`; see the unit note below |
+| Card title, line count | 1 | 1 | match | verified for all three world names on-device |
+| Companion, visible width / screen W | 0.2031 (board) / 0.19 (`companion.json`) | 0.186 | -1.7 pp vs board, -0.4 pp vs JSON | element box divided by the sprite's 0.6045 alpha-content fraction; the JSON's fraction describes the Companion as seen, the element box carries transparent margin |
+| Companion, centre x / screen W | 0.8556 (board) / 0.80 (JSON) | 0.799 | matches JSON | JSON wins: it is the spec across aspect buckets the board never shows |
+| Companion, centre y / screen H | 0.7405 (board) / 0.73 (JSON) | 0.731 | matches JSON | as above |
+| Nav icon width / screen W | 0.0599 | 0.0579 | -0.2 pp | falls out of the panel-scale fix |
+| Nav label width / screen W | 0.0892 | 0.0899 | +0.07 pp | compact label 10 -> 11 |
+| Nav icon centre y / screen H | 0.9076 | 0.9091 | +0.15 pp | `NavCenterOfScreenH`; the overlay used to sit flush at bottom:0 |
+| Nav label centre y / screen H | 0.9350 | 0.9322 | -0.28 pp | as above |
+| Nav outer icon centre x / screen W | 0.1808 | 0.1772 | -0.36 pp | `CompactSideInset` = 8 |
+| Nav active icon halo, alpha at icon edge | ~0.50 | ~0.58 | +0.08 | nine layers fitted to the board's measured exponential falloff |
+| Nav active icon halo, reach / icon width | ~0.64 | ~0.68 | +0.04 | as above |
+| Nav inactive icon halo | none | none | match | the app's dark inactive halo removed; the board has none |
+
+### Overlap check (explicit, this was the earlier regression)
+
+Measured on the final on-device screenshot, in physical px: card bottom 1410 < dots top 1445 <
+dots bottom 1470 < Play top 1527 < Play bottom 1635 < nav icon top 2132. Nothing draws outside
+its own box any more, because the Play glow is gone. On top of the measured gaps there is now a
+structural guard in `UpdateCarouselForCurrentSize`: the card is shrunk, keeping its aspect, if the
+column would not otherwise fit between the brand block and the reserved nav strip. Only the one
+breakpoint this device offers was tested on hardware; the Fold's inner screen and desktop widths
+were not, so the guard is reasoning, not an on-device result, for those.
+
+### Root cause found this round
+
+The panel was configured `ConstantPhysicalSize` with `referenceDpi = 96`, which resolved this
+968-physical-px screen to a **221-unit-wide** panel. Every size token written in "logical px"
+(16px body, 26px nav icon, 32px radius) therefore rendered about 1.67x too large relative to the
+screen - the wordmark measured 0.435 of screen width against the board's 0.277, the nav icon 0.095
+against 0.060. `referenceDpi = 160` makes one unit one Android dp, which is the space those tokens
+were written for, and keeps the 600/960 breakpoints meaning what `home-layout.json` says.
+
+### Two behaviours worth remembering
+
+- `letterSpacing` in this Unity version behaves as **hundredths of an em**, not logical px: a
+  nominal 2.8 bought 0.36px of gap. Two on-device measurements were needed to see it. The card
+  title's tracking constant is therefore not scaled by the font size.
+- Stacked darkening bands must carry their **largest alpha on their shortest band**. The card's
+  title gradient had it the other way round, so the darkening stopped dead at 22% of the card and
+  cut a hard horizontal line across it. Same defect existed as one flat 26%-tall screen scrim.
+
+### Known non-parity items, all out of this item's scope
+
+- Font family is not Inter: [006](006-integrate-inter-font.md). Text widths above therefore carry
+  a font-metric difference of a few percent on top of the geometry.
+- Logo mark proportions: [007](007-brand-art-visual-weight.md).
+- OS status bar: [005](005-immersive-os-chrome.md).
+- Background crop is tighter than the board's on this aspect ratio, and the world taglines differ
+  from the board's copy ("Listen. Explore. Progress." vs "Paddle your way through sound."). Both
+  are content/art decisions, not layout; neither was changed without asking.
 
 ## Notes
+
+- 2026-09-25: Third on-device round, measured rather than eyeballed (see the measurement table
+  above). Root cause of the whole "everything is too big" family of defects was the panel's
+  `referenceDpi = 96`. Play button glow removed outright - the reference has none. Bottom nav's
+  active-icon glow rebuilt from a measurement of the board and is now far wider and stronger than
+  the previous "max +8px, <=5% opacity" guess, which was wrong in the other direction.
 
 - 2026-09-25: Second on-device feedback round, fixed and verified: (1) **Overlap bug** - the
   carousel/dots/Play button could visually overlap (card height was a flat `screenH * 0.49`
