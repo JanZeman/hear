@@ -135,13 +135,30 @@ namespace HearApp.Worlds.TideTroubles
             return result;
         }
 
-        /// <summary>xImg/yImgTop are image-space (top-left origin); converted here to Unity's
-        /// bottom-left sprite-rect space.</summary>
+        // All sheets (fish/seagull/dog/companion/buoy/launcher/splash/effects) ship at this
+        // native size; rects below are authored against it. Import settings disable
+        // power-of-two rescaling (see the sheets' .meta nPOTScale: 0) so textures should load at
+        // exactly this size - but rects are still rescaled proportionally against the texture's
+        // actual size as a defensive fallback, since a texture reimported at a different size
+        // (e.g. nPOTScale flipped back on, or a platform max-size override) previously crashed
+        // TideTroublesPresentation.Awake outright (see docs/v1.0-tide-troubles-handoff).
+        private const int NativeSheetSize = 1448;
+        private const int NativeSheetHeight = 1086;
+
+        /// <summary>xImg/yImgTop are image-space (top-left origin) in native-sheet pixels;
+        /// converted here to Unity's bottom-left sprite-rect space in the texture's actual
+        /// (possibly rescaled) pixel space.</summary>
         private static Sprite MakeSprite(Texture2D tex, int xImg, int yImgTop, int w, int h)
         {
             if (tex == null) return null;
-            int unityY = Mathf.Max(0, tex.height - (yImgTop + h));
-            var rect = new Rect(xImg, unityY, w, h);
+            float scaleX = tex.width / (float)NativeSheetSize;
+            float scaleY = tex.height / (float)NativeSheetHeight;
+            int rx = Mathf.RoundToInt(xImg * scaleX);
+            int ry = Mathf.RoundToInt(yImgTop * scaleY);
+            int rw = Mathf.Max(1, Mathf.RoundToInt(w * scaleX));
+            int rh = Mathf.Max(1, Mathf.RoundToInt(h * scaleY));
+            int unityY = Mathf.Max(0, tex.height - (ry + rh));
+            var rect = new Rect(rx, unityY, rw, rh);
             return Sprite.Create(tex, rect, new Vector2(0.5f, 0.5f), Ppu);
         }
     }

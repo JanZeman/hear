@@ -450,9 +450,14 @@ namespace HearApp.Worlds.TideTroubles
             {
                 int species = i % TideTroublesArt.FishSpeciesCount;
                 var obj = CreateSprite($"Fish_{i}", TideTroublesArt.FishIdle(species), sortingOrder: 0, scale: 0.9f);
+                // Background's horizon sits around +0.16*halfHeight in world space (the
+                // background/dock cover-fit keeps the full portrait image height on-screen, per
+                // docs/v1.0-tide-troubles-handoff/implementation-notes.md); fish must stay below
+                // that or they visibly float in the sky/cliffs instead of the water - reported
+                // on-device 2026-09-25.
                 Vector3 pos = new(
                     Random.Range(-halfWidth * 0.65f, halfWidth * 0.65f),
-                    Random.Range(-halfHeight * 0.1f, halfHeight * 0.4f),
+                    Random.Range(-halfHeight * 0.5f, -halfHeight * 0.05f),
                     0f);
                 obj.transform.position = pos;
                 if (Random.value < 0.5f)
@@ -503,7 +508,8 @@ namespace HearApp.Worlds.TideTroubles
                 float x = leftSide
                     ? Random.Range(-halfWidth * 0.9f, -halfWidth * 0.45f)
                     : Random.Range(halfWidth * 0.45f, halfWidth * 0.9f);
-                float y = Random.Range(-halfHeight * 0.05f, halfHeight * 0.2f);
+                // Keep below the horizon (~+0.16*halfHeight), same reasoning as SpawnFishTargets.
+                float y = Random.Range(-halfHeight * 0.55f, halfHeight * 0.05f);
                 Vector3 pos = new(x, y, 0f);
                 obj.transform.position = pos;
 
