@@ -31,8 +31,9 @@ namespace HearApp.Core.HearingEngine
         private IWorldPresentation _world;
         private TonePlayer _tonePlayer;
         private int _totalPlanned;
-        private int _trialsProcessed;
         private bool _tapReceived;
+        private float _sessionElapsedSeconds;
+        private float _estimatedTotalSeconds;
 
         private void Awake()
         {
@@ -42,8 +43,18 @@ namespace HearApp.Core.HearingEngine
         private void Update()
         {
             if (!IsRunning) return;
-            if (Pointer.current?.press.wasPressedThisFrame == true)
+            // Time.timeScale == 0 is the Playing HUD's pause button (ShellUIController); a tap
+            // landing while paused must not bleed into the trial that resumes.
+            if (Time.timeScale > 0f && Pointer.current?.press.wasPressedThisFrame == true)
                 _tapReceived = true;
+
+            // Time-based, continuously advancing rather than jumping once per completed trial -
+            // the discrete per-trial jump read as an unintended "tap now" cue on-device (human
+            // feedback 2026-09-25: "jako kdyby dával impuls: klikni na obrazovku"). Capped below
+            // 1 while running so it never *looks* finished before CompleteSession actually snaps
+            // it to 1.
+            _sessionElapsedSeconds += Time.deltaTime;
+            Progress = Mathf.Min(0.97f, _sessionElapsedSeconds / Mathf.Max(0.01f, _estimatedTotalSeconds));
         }
 
         /// <summary>Attaches a world and resets session state. Call once per world entry.</summary>
@@ -52,7 +63,11 @@ namespace HearApp.Core.HearingEngine
             _world = world ?? throw new ArgumentNullException(nameof(world));
             CurrentResult = new SessionResult();
             _totalPlanned = Mathf.Max(1, totalPlannedTrials);
-            _trialsProcessed = 0;
+            // Rough per-trial average (idle wait + a partial active window, since most trials end
+            // early on a tap rather than running the full window) - only used to pace the
+            // continuous progress bar, not for anything measurement-accurate.
+            _estimatedTotalSeconds = _totalPlanned * ((MinIdleSeconds + MaxIdleSeconds) / 2f + ActiveWindowSeconds * 0.5f);
+            _sessionElapsedSeconds = 0f;
             Progress = 0f;
             IsRunning = true;
             _world.Initialize(context);
@@ -94,8 +109,7 @@ namespace HearApp.Core.HearingEngine
         public IEnumerator ProcessTrial(TrialOutcome outcome, EarChannel channel)
         {
             CurrentResult.Record(outcome, channel);
-            _trialsProcessed++;
-            Progress = Mathf.Clamp01((float)_trialsProcessed / _totalPlanned);
+            // Progress itself now advances continuously in Update(), not here - see BeginSession.
 
             var ctx = new OutcomePresentationContext(outcome, channel, Progress);
 

@@ -39,8 +39,11 @@ namespace HearApp.Worlds.TideTroubles
         public static Sprite SeagullPose(int i) => SeagullGrid()[Mathf.Abs(i) % 8];
         public static Sprite DogPose(int i) => DogGrid()[Mathf.Abs(i) % 8];
 
-        // --- Companion: 4x3 grid, 12 pose frames ---
-        public static Sprite CompanionPose(int i) => CompanionGrid()[Mathf.Abs(i) % 12];
+        // --- Companion: curated picks, not a uniform grid - the sheet's poses aren't laid out on
+        // a clean grid (unlike fish/seagull/dog) and a uniform 4x3 slice clipped the idle pose's
+        // bottom edge (visible on-device as a "hole" - reported 2026-09-25).
+        public static Sprite CompanionIdle => _companionIdle ??= MakeSprite(CompanionSheet, 0, 150, 320, 280);
+        public static Sprite CompanionHappy => _companionHappy ??= MakeSprite(CompanionSheet, 680, 0, 400, 430);
 
         // --- Floating props: curated picks from the buoy/crate sheet ---
         public static Sprite FlagBuoy => _flagBuoy ??= MakeSprite(BuoySheet, 0, 0, 290, 217);
@@ -95,16 +98,16 @@ namespace HearApp.Worlds.TideTroubles
         private static Texture2D Load(string relativePath) => Resources.Load<Texture2D>($"{Root}/{relativePath}");
 
         // --- Grid caches ---
-        private static Sprite[] _fishGrid, _seagullGrid, _dogGrid, _companionGrid, _splashPicks, _ripplePicks;
+        private static Sprite[] _fishGrid, _seagullGrid, _dogGrid, _splashPicks, _ripplePicks;
         private static Sprite _background, _dockFrame;
         private static Sprite _flagBuoy, _lighthouseBuoy, _barrel, _crate;
         private static Sprite _launcherIdleLeft, _launcherIdleRight, _netLoose;
         private static Sprite _ringGold, _celebrationBurst;
+        private static Sprite _companionIdle, _companionHappy;
 
         private static Sprite[] FishGrid() => _fishGrid ??= MakeUniformGrid(FishSheet, cols: 3, rows: 3, cellW: 482, cellH: 362);
         private static Sprite[] SeagullGrid() => _seagullGrid ??= MakeUniformGrid(SeagullSheet, cols: 4, rows: 2, cellW: 362, cellH: 543);
         private static Sprite[] DogGrid() => _dogGrid ??= MakeUniformGrid(DogSheet, cols: 4, rows: 2, cellW: 362, cellH: 543);
-        private static Sprite[] CompanionGrid() => _companionGrid ??= MakeUniformGrid(CompanionSheet, cols: 4, rows: 3, cellW: 362, cellH: 362);
 
         private static Sprite[] SplashPicks() => _splashPicks ??= new[]
         {

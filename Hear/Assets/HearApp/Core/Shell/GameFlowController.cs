@@ -34,6 +34,35 @@ namespace HearApp.Core.Shell
         public event Action<int> SelectedWorldIndexChanged;
         public event Action<SessionResult> SessionCompleted;
 
+        // Dev-speed settings (primitive Settings screen, human request 2026-09-25): skip the
+        // never-blocking headphone-choice and micro-instruction screens so starting a session
+        // drops straight into play. PlayerPrefs-backed, default true (both skipped) since the
+        // request was specifically "abychom to mohli rychleji testovat".
+        private const string SkipHeadphoneChoiceKey = "Settings.SkipHeadphoneChoice";
+        private const string SkipMicroInstructionKey = "Settings.SkipMicroInstruction";
+        private const string LongSessionKey = "Settings.LongSession";
+
+        public bool SkipHeadphoneChoice
+        {
+            get => PlayerPrefs.GetInt(SkipHeadphoneChoiceKey, 1) == 1;
+            set { PlayerPrefs.SetInt(SkipHeadphoneChoiceKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        public bool SkipMicroInstruction
+        {
+            get => PlayerPrefs.GetInt(SkipMicroInstructionKey, 1) == 1;
+            set { PlayerPrefs.SetInt(SkipMicroInstructionKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
+        /// <summary>Runs a session with 10x the trials (human request 2026-09-25: re-triggering
+        /// the whole shell flow every ~8 trials was slowing down playtesting a world). Remove
+        /// once the real worlds don't need this much iteration anymore.</summary>
+        public bool LongSession
+        {
+            get => PlayerPrefs.GetInt(LongSessionKey, 1) == 1;
+            set { PlayerPrefs.SetInt(LongSessionKey, value ? 1 : 0); PlayerPrefs.Save(); }
+        }
+
         public ShellState State { get; private set; } = ShellState.Splash;
         public int SelectedWorldIndex { get; private set; }
         public AudioOutputMode OutputMode { get; private set; } = AudioOutputMode.Speaker;
@@ -82,14 +111,30 @@ namespace HearApp.Core.Shell
             SelectedWorldIndexChanged?.Invoke(index);
         }
 
-        /// <summary>Player tapped Play on the World Selector for the currently selected world.</summary>
-        public void RequestPlaySelectedWorld() => SetState(ShellState.HeadphoneChoice);
+        /// <summary>Player tapped Play (or the active carousel card) for the currently selected world.</summary>
+        public void RequestPlaySelectedWorld()
+        {
+            if (!SkipHeadphoneChoice)
+            {
+                SetState(ShellState.HeadphoneChoice);
+                return;
+            }
+            // Headphone choice skipped: OutputMode keeps its existing/default value (Speaker)
+            // rather than prompting for it.
+            if (SkipMicroInstruction)
+                StartCoroutine(EnterWorldRoutine());
+            else
+                SetState(ShellState.MicroInstruction);
+        }
 
         /// <summary>Player picked Headphones or Speaker on the (never-blocking) headphone-choice screen.</summary>
         public void ChooseOutputMode(AudioOutputMode mode)
         {
             OutputMode = mode;
-            SetState(ShellState.MicroInstruction);
+            if (SkipMicroInstruction)
+                StartCoroutine(EnterWorldRoutine());
+            else
+                SetState(ShellState.MicroInstruction);
         }
 
         /// <summary>Player dismissed/demonstrated the micro-instruction; enter the world and start the session.</summary>
@@ -111,7 +156,7 @@ namespace HearApp.Core.Shell
             }
 
             var context = new WorldContext(OutputMode, Environment.TickCount);
-            var plan = TrialPlan.BuildDefault(OutputMode, new System.Random());
+            var plan = TrialPlan.BuildDefault(OutputMode, new System.Random(), repeatCount: LongSession ? 10 : 1);
             Engine.BeginSession(_activeWorld, context, plan.Count);
 
             SetState(ShellState.Playing);
