@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using HearApp.Core.HearingEngine;
 using HearApp.Core.Worlds;
 using UnityEngine;
@@ -36,6 +37,23 @@ namespace HearApp.Worlds.TideTroubles
 
         private const int IdleDogPoseIndex = 0;
         private const int HappyDogPoseIndex = 5;
+
+        // Handheld.Vibrate() triggers iOS's fixed-length/fixed-intensity system buzz with no way
+        // to tune it from C#; a light UIImpactFeedbackGenerator tap (Assets/Plugins/iOS/
+        // HearHaptics.mm) reads as noticeably gentler/shorter - human feedback 2026-09-26.
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")]
+        private static extern void _HearLightHaptic();
+#endif
+
+        private static void LightHaptic()
+        {
+#if UNITY_IOS && !UNITY_EDITOR
+            _HearLightHaptic();
+#else
+            Handheld.Vibrate();
+#endif
+        }
 
         private sealed class FishInstance
         {
@@ -181,7 +199,7 @@ namespace HearApp.Worlds.TideTroubles
             _captureParticles.transform.position = targetPos;
             _captureParticles.Emit(24);
             _audioSource.PlayOneShot(_gagChimeClip);
-            Handheld.Vibrate(); // haptic buzz timed with the camera shake, per device feedback 2026-09-25
+            LightHaptic(); // timed with the camera shake, per device feedback 2026-09-25/26
             var shake = StartCoroutine(CameraShake(0.15f, 0.12f));
             var react = StartCoroutine(ReactionPop(launchedFromLeft));
             yield return SquashStretchPop(fish.Transform, 0.25f);

@@ -28,10 +28,42 @@ namespace HearApp.Core.HearingEngine
         public bool IsRunning { get; private set; }
         public float Progress { get; private set; }
 
+        /// <summary>Points the most recent CorrectDetection earned - see <see
+        /// cref="PointsForFrequency"/>. Simple placeholder scoring (human request 2026-09-26:
+        /// "udělej to teď jen jednoduše" - do it simply for now); real scoring needs actual
+        /// per-trial volume/audibility data, not just the reference frequency. Tracked here as
+        /// roadmap item 009.</summary>
+        public int LastAwardedPoints { get; private set; }
+
+        /// <summary>Optional hook the Shell wires up so a tap that lands on interactive HUD
+        /// chrome (e.g. the pause button) isn't also counted as a hearing-test response - human
+        /// report 2026-09-26: tapping pause scored points. Takes the raw screen position of the
+        /// press; returns true to swallow it. The engine has no UI Toolkit dependency of its own,
+        /// so this stays a plain delegate rather than a direct reference to Shell/UI types.</summary>
+        public Func<Vector2, bool> IsScreenPointOverBlockingUI;
+
+        /// <summary>True once a session has been ended early by <see
+        /// cref="AbortSessionFranticTapping"/> - its results should be shown as uncounted, not as
+        /// a normal completed session.</summary>
+        public bool SessionInvalidatedByFranticTapping { get; private set; }
+
+        /// <summary>Fires with the strike number (1, 2, 3) each time a burst of rapid/frantic
+        /// tapping is detected within <see cref="FranticTapWindowSeconds"/> - human request
+        /// 2026-09-26: pause + warn on strikes 1-2, end the session (uncounted) on strike 3. The
+        /// Shell owns all the pause/warning/results UI this drives; the engine only detects and
+        /// (on strike 3) aborts.</summary>
+        public event Action<int> FranticTappingStrike;
+
+        private const int FranticTapCountThreshold = 8;
+        private const float FranticTapWindowSeconds = 2.5f;
+
         private IWorldPresentation _world;
         private TonePlayer _tonePlayer;
         private int _totalPlanned;
         private bool _tapReceived;
+        private bool _abortRequested;
+        private int _franticStrikeCount;
+        private readonly List<float> _recentTapTimes = new();
         private float _sessionElapsedSeconds;
         private float _estimatedTotalSeconds;
 
@@ -43,10 +75,25 @@ namespace HearApp.Core.HearingEngine
         private void Update()
         {
             if (!IsRunning) return;
-            // Time.timeScale == 0 is the Playing HUD's pause button (ShellUIController); a tap
-            // landing while paused must not bleed into the trial that resumes.
-            if (Time.timeScale > 0f && Pointer.current?.press.wasPressedThisFrame == true)
-                _tapReceived = true;
+
+            if (Pointer.current?.press.wasPressedThisFrame == true)
+            {
+                // Tracked regardless of pause state or what's under the finger - frantic tapping
+                // through a warning pause, or aimed at the pause button itself, is still frantic
+                // tapping. Unscaled time so the window keeps working correctly across a
+                // Time.timeScale == 0 pause.
+                TrackFranticTapping(Time.unscaledTime);
+
+                // Time.timeScale == 0 is the Playing HUD's pause button (ShellUIController); a
+                // tap landing while paused must not bleed into the trial that resumes.
+                if (Time.timeScale > 0f)
+                {
+                    Vector2 pos = Pointer.current.position.ReadValue();
+                    bool blockedByUi = IsScreenPointOverBlockingUI != null && IsScreenPointOverBlockingUI(pos);
+                    if (!blockedByUi)
+                        _tapReceived = true;
+                }
+            }
 
             // Time-based, continuously advancing rather than jumping once per completed trial -
             // the discrete per-trial jump read as an unintended "tap now" cue on-device (human
@@ -69,8 +116,37 @@ namespace HearApp.Core.HearingEngine
             _estimatedTotalSeconds = _totalPlanned * ((MinIdleSeconds + MaxIdleSeconds) / 2f + ActiveWindowSeconds * 0.5f);
             _sessionElapsedSeconds = 0f;
             Progress = 0f;
+            _abortRequested = false;
+            SessionInvalidatedByFranticTapping = false;
+            _franticStrikeCount = 0;
+            _recentTapTimes.Clear();
             IsRunning = true;
             _world.Initialize(context);
+        }
+
+        private void TrackFranticTapping(float nowUnscaled)
+        {
+            _recentTapTimes.Add(nowUnscaled);
+            _recentTapTimes.RemoveAll(t => nowUnscaled - t > FranticTapWindowSeconds);
+            if (_recentTapTimes.Count < FranticTapCountThreshold) return;
+
+            _recentTapTimes.Clear(); // a fresh burst is needed to trigger the next strike
+            _franticStrikeCount++;
+            FranticTappingStrike?.Invoke(_franticStrikeCount);
+            if (_franticStrikeCount >= 3)
+                AbortSessionFranticTapping();
+        }
+
+        /// <summary>Ends the session early and marks it uncounted - called automatically on the
+        /// third frantic-tapping strike (see <see cref="FranticTappingStrike"/>).</summary>
+        public void AbortSessionFranticTapping()
+        {
+            if (!IsRunning) return;
+            _abortRequested = true;
+            SessionInvalidatedByFranticTapping = true;
+            IsRunning = false;
+            _world.SetSessionProgress(1f);
+            _world.CompleteSession(CurrentResult);
         }
 
         /// <summary>Runs the real audio-driven trial loop against the given plan.</summary>
@@ -78,6 +154,8 @@ namespace HearApp.Core.HearingEngine
         {
             foreach (var spec in plan)
             {
+                if (_abortRequested) yield break; // AbortSessionFranticTapping already completed things
+
                 yield return new WaitForSeconds(UnityEngine.Random.Range(MinIdleSeconds, MaxIdleSeconds));
 
                 _tapReceived = false;
@@ -95,10 +173,11 @@ namespace HearApp.Core.HearingEngine
                     ? (_tapReceived ? TrialOutcome.FalsePositive : TrialOutcome.CorrectRejection)
                     : (_tapReceived ? TrialOutcome.CorrectDetection : TrialOutcome.Miss);
 
-                yield return StartCoroutine(ProcessTrial(outcome, spec.Channel));
+                yield return StartCoroutine(ProcessTrial(outcome, spec.Channel, spec.FrequencyHz));
             }
 
-            CompleteSession();
+            if (!_abortRequested)
+                CompleteSession();
         }
 
         /// <summary>
@@ -106,10 +185,15 @@ namespace HearApp.Core.HearingEngine
         /// world to report it is listening-safe again. Used by both the real loop above and the
         /// development mock driver, so both paths exercise identical engine behavior.
         /// </summary>
-        public IEnumerator ProcessTrial(TrialOutcome outcome, EarChannel channel)
+        /// <param name="frequencyHz">The reference frequency this trial tested, if any (0 for a
+        /// dev-injected outcome with no real trial behind it) - only used to compute <see
+        /// cref="LastAwardedPoints"/> on a CorrectDetection.</param>
+        public IEnumerator ProcessTrial(TrialOutcome outcome, EarChannel channel, float frequencyHz = 0f)
         {
             CurrentResult.Record(outcome, channel);
             // Progress itself now advances continuously in Update(), not here - see BeginSession.
+            if (outcome == TrialOutcome.CorrectDetection)
+                LastAwardedPoints = PointsForFrequency(frequencyHz);
 
             var ctx = new OutcomePresentationContext(outcome, channel, Progress);
 
@@ -136,6 +220,20 @@ namespace HearApp.Core.HearingEngine
             Progress = 1f;
             _world.SetSessionProgress(1f);
             _world.CompleteSession(CurrentResult);
+        }
+
+        /// <summary>Placeholder scoring: scales continuously with the reference frequency (higher
+        /// = more points, as a simple stand-in for "quiet/off-frequency tones are worth more"),
+        /// plus a small random jitter so results don't all land on a round multiple of ten
+        /// (human request 2026-09-26: "at je vysledek klidne 231 nebo 347"). This has no
+        /// relationship to how audible the tone actually was at the volume it played - real
+        /// difficulty-based scoring needs per-trial volume data the engine doesn't track yet.
+        /// See roadmap 009.</summary>
+        private static int PointsForFrequency(float hz)
+        {
+            int basePoints = Mathf.RoundToInt(hz / 50f);
+            int jitter = UnityEngine.Random.Range(-9, 10);
+            return Mathf.Max(1, basePoints + jitter);
         }
     }
 }

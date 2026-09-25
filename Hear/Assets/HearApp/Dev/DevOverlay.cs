@@ -15,7 +15,11 @@ namespace HearApp.Dev
     /// </summary>
     public sealed class DevOverlay : MonoBehaviour
     {
-        private bool _visible = true;
+        // Defaults hidden: the only toggle used to be the backquote key, which no touchscreen
+        // (iOS/Android) has - the panel was permanently stuck open on-device with no way to
+        // dismiss it (human report 2026-09-26; the "three-finger double-tap" they'd heard about
+        // is Unity's unrelated Rendering Debugger gesture, not this overlay).
+        private bool _visible;
         private EarChannel _selectedChannel = EarChannel.Combined;
         private IntegrationProofRunner _proofRunner;
 
@@ -32,9 +36,14 @@ namespace HearApp.Dev
 
         private void OnGUI()
         {
+            // Small always-visible tap target, touch-friendly - the only way to reach this
+            // overlay at all on a device with no keyboard.
+            if (GUI.Button(new Rect(Screen.width - 70, 10, 60, 32), _visible ? "DEV ▾" : "DEV ▸"))
+                _visible = !_visible;
+
             if (!_visible) return;
 
-            GUILayout.BeginArea(new Rect(Screen.width - 260, 10, 250, 420), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(Screen.width - 260, 50, 250, 420), GUI.skin.box);
             GUILayout.Label("HEAR Dev Overlay (`)");
 
             GUILayout.Label("Channel:");

@@ -194,7 +194,21 @@ namespace HearApp.Core.Shell.UI
             _flow = GameFlowController.Instance;
             _flow.StateChanged += OnStateChanged;
             _flow.SelectedWorldIndexChanged += OnSelectedWorldChanged;
+            // A tap on interactive HUD chrome (the pause button) must not also register as a
+            // hearing-test response - human report 2026-09-26: tapping pause scored points.
+            _flow.Engine.IsScreenPointOverBlockingUI = ScreenPointOverInteractiveHudElement;
+            _flow.Engine.FranticTappingStrike += OnFranticTappingStrike;
             OnStateChanged(_flow.State);
+        }
+
+        private bool ScreenPointOverInteractiveHudElement(Vector2 screenPos)
+        {
+            if (_document == null || _document.rootVisualElement?.panel == null) return false;
+            Vector2 panelPos = RuntimePanelUtils.ScreenToPanel(_document.rootVisualElement.panel, screenPos);
+            // Pick() already passes through every PickingMode.Ignore element (the HUD's
+            // decorative bits, the whole gameplay layer) - only a real interactive control like
+            // the pause button returns non-null here.
+            return _document.rootVisualElement.panel.Pick(panelPos) != null;
         }
 
         private void OnDestroy()
@@ -202,6 +216,8 @@ namespace HearApp.Core.Shell.UI
             if (_flow == null) return;
             _flow.StateChanged -= OnStateChanged;
             _flow.SelectedWorldIndexChanged -= OnSelectedWorldChanged;
+            if (_flow.Engine != null)
+                _flow.Engine.FranticTappingStrike -= OnFranticTappingStrike;
         }
 
         private void Update()
@@ -323,6 +339,14 @@ namespace HearApp.Core.Shell.UI
             _root.style.flexGrow = 1;
             _root.style.flexDirection = FlexDirection.Row;
             _root.style.backgroundColor = VisualTokens.Colors.Pearl0;
+            // Ignore is per-element, not inherited - every real button/card/toggle below still
+            // has its own default (non-Ignore) picking mode and keeps working exactly as before.
+            // Without this, the full-screen root/screenLayer containers themselves were valid
+            // Pick() targets everywhere, so ScreenPointOverInteractiveHudElement (added to keep
+            // the pause button from also scoring a hearing-test response) saw every tap as
+            // "over UI" and silently ate the entire game's input (human report 2026-09-26: "ani
+            // bod z teto hry").
+            _root.pickingMode = PickingMode.Ignore;
 
             _navHost = new VisualElement { style = { flexShrink = 0 } };
 
@@ -346,7 +370,11 @@ namespace HearApp.Core.Shell.UI
             };
             _navHost.Add(_navBackdropExtension);
 
-            _screenLayer = new VisualElement { style = { flexGrow = 1, position = Position.Relative, overflow = Overflow.Hidden } };
+            _screenLayer = new VisualElement
+            {
+                style = { flexGrow = 1, position = Position.Relative, overflow = Overflow.Hidden },
+                pickingMode = PickingMode.Ignore // see the note on _root's pickingMode above
+            };
 
             _root.Add(_navHost);
             _root.Add(_screenLayer);
@@ -1349,10 +1377,6 @@ namespace HearApp.Core.Shell.UI
 
         // ---------------------------------------------------------------- Playing HUD
 
-        // Points awarded per correct detection, purely a Shell-side display concept (the engine
-        // only tracks CorrectDetections) - matches the "+20" the reference concept art shows.
-        private const int PointsPerCatch = 20;
-
         // Redesigned per human direction 2026-09-25: no "Round X/12" (redundant with the progress
         // bar and more visually noisy); left-to-right: star+points badge, progress bar, pause
         // button. Points fly in from the catch and land in the badge instead of just ticking a
@@ -1384,19 +1408,25 @@ namespace HearApp.Core.Shell.UI
                 style =
                 {
                     flexDirection = FlexDirection.Row, alignItems = Align.Center,
-                    paddingLeft = VisualTokens.Spacing.S, paddingRight = VisualTokens.Spacing.S,
-                    paddingTop = 6, paddingBottom = 6,
+                    paddingLeft = VisualTokens.Spacing.M, paddingRight = VisualTokens.Spacing.M,
+                    paddingTop = 10, paddingBottom = 10,
                     backgroundColor = new Color(0f, 0f, 0f, 0.35f),
-                    borderTopLeftRadius = 999, borderTopRightRadius = 999,
-                    borderBottomLeftRadius = 999, borderBottomRightRadius = 999,
+                    // Rounded rectangle, not a pill/ellipse (human feedback 2026-09-26) - radius
+                    // well under half the badge's own height/width, unlike the progress bar's
+                    // deliberately full-pill ends.
+                    borderTopLeftRadius = VisualTokens.Radius.S, borderTopRightRadius = VisualTokens.Radius.S,
+                    borderBottomLeftRadius = VisualTokens.Radius.S, borderBottomRightRadius = VisualTokens.Radius.S,
                     marginRight = VisualTokens.Spacing.S
                 },
                 pickingMode = PickingMode.Ignore
             };
-            var star = MakeLabel("★", new VisualTokens.TypeStyle(15, 700), new Color(0.96f, 0.77f, 0.32f));
-            star.style.marginRight = 4;
+            // Sized to balance the enlarged pause button (human feedback 2026-09-26: both needed
+            // to be bigger, pause especially as a touch target, points to stay visually balanced
+            // against it).
+            var star = MakeLabel("★", new VisualTokens.TypeStyle(20, 700), new Color(0.96f, 0.77f, 0.32f));
+            star.style.marginRight = 6;
             _hudPointsBadge.Add(star);
-            _hudPointsLabel = MakeLabel("0", VisualTokens.Type.Caption, Color.white);
+            _hudPointsLabel = MakeLabel("0", new VisualTokens.TypeStyle(18, 700), Color.white);
             _hudPointsBadge.Add(_hudPointsLabel);
             hudRoot.Add(_hudPointsBadge);
 
@@ -1428,17 +1458,19 @@ namespace HearApp.Core.Shell.UI
             track.Add(_hudProgressFill);
             hudRoot.Add(track);
 
+            // 48x48 - a real touch target (human feedback 2026-09-26: "aby se do nej dalo prstem
+            // trefit"), not just a small icon-sized hit area.
             _pauseButton = new VisualElement
             {
                 style =
                 {
-                    width = 36, height = 36, alignItems = Align.Center, justifyContent = Justify.Center,
+                    width = 48, height = 48, alignItems = Align.Center, justifyContent = Justify.Center,
                     backgroundColor = new Color(0f, 0f, 0f, 0.35f),
                     borderTopLeftRadius = 999, borderTopRightRadius = 999,
                     borderBottomLeftRadius = 999, borderBottomRightRadius = 999
                 }
             };
-            _pauseIcon = new Image { image = WorldArt.Icon("pause"), style = { width = 16, height = 16 } };
+            _pauseIcon = new Image { image = WorldArt.Icon("pause"), style = { width = 22, height = 22 } };
             _pauseButton.Add(_pauseIcon);
             _pauseButton.RegisterCallback<ClickEvent>(_ => TogglePause());
             hudRoot.Add(_pauseButton);
@@ -1457,8 +1489,10 @@ namespace HearApp.Core.Shell.UI
             if (newCatches > 0)
             {
                 _lastCorrectDetections = correct;
+                // Simple placeholder scoring (varies by reference frequency, not real
+                // audibility yet - see TrialEngine.PointsForFrequency and roadmap 009).
                 for (int i = 0; i < newCatches; i++)
-                    StartCoroutine(AnimatePointsPopup(PointsPerCatch));
+                    StartCoroutine(AnimatePointsPopup(_flow.Engine.LastAwardedPoints));
             }
         }
 
@@ -1469,38 +1503,125 @@ namespace HearApp.Core.Shell.UI
             _pauseIcon.image = WorldArt.Icon(_isPaused ? "play" : "pause");
         }
 
+        /// <summary>Frantic/rapid-tapping defense (human request 2026-09-26): strikes 1 and 2
+        /// pause the session and show an escalating warning; strike 3 is handled by the engine
+        /// itself (<see cref="TrialEngine.AbortSessionFranticTapping"/>, called from inside
+        /// TrackFranticTapping), which ends the session - <see cref="ShowResultsScreen"/> reports
+        /// it as uncounted once <see cref="GameFlowController.ShellState.Results"/> arrives, so
+        /// there is nothing left to show here for strike 3.</summary>
+        private void OnFranticTappingStrike(int strike)
+        {
+            if (strike >= 3 || _flow.State != GameFlowController.ShellState.Playing) return;
+
+            _isPaused = true;
+            Time.timeScale = 0f;
+            if (_pauseIcon != null)
+                _pauseIcon.image = WorldArt.Icon("play");
+
+            ShowFranticTappingWarning(strike);
+        }
+
+        private void ShowFranticTappingWarning(int strike)
+        {
+            var backdrop = new VisualElement
+            {
+                style =
+                {
+                    position = Position.Absolute, left = 0, right = 0, top = 0, bottom = 0,
+                    backgroundColor = new Color(0f, 0f, 0f, 0.6f),
+                    alignItems = Align.Center, justifyContent = Justify.Center
+                }
+            };
+
+            var card = new VisualElement
+            {
+                style =
+                {
+                    maxWidth = 320,
+                    backgroundColor = VisualTokens.Colors.Pearl0,
+                    paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
+                    paddingTop = VisualTokens.Spacing.L, paddingBottom = VisualTokens.Spacing.L,
+                    borderTopLeftRadius = VisualTokens.Radius.M, borderTopRightRadius = VisualTokens.Radius.M,
+                    borderBottomLeftRadius = VisualTokens.Radius.M, borderBottomRightRadius = VisualTokens.Radius.M,
+                    alignItems = Align.Center
+                }
+            };
+
+            string title = strike == 1 ? "Slow down" : "Seriously, slow down";
+            string body = strike == 1
+                ? "It looks like you're just tapping randomly. Only tap when you actually hear a tone - otherwise the test doesn't mean anything."
+                : "That's rapid tapping again. One more time and this session will end early, with its results not counted.";
+
+            card.Add(MakeLabel(title, VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, 0f, VisualTokens.Spacing.S));
+            var bodyLabel = new Label(body)
+            {
+                style =
+                {
+                    fontSize = VisualTokens.Type.Body.Size, unityFontStyleAndWeight = VisualTokens.Type.Body.Style,
+                    color = VisualTokens.Colors.Ink700, whiteSpace = WhiteSpace.Normal,
+                    unityTextAlign = TextAnchor.MiddleCenter
+                }
+            };
+            card.Add(bodyLabel);
+
+            var continueButton = MakePrimaryButton("Continue", () =>
+            {
+                _screenLayer.Remove(backdrop);
+                _isPaused = false;
+                Time.timeScale = 1f;
+                if (_pauseIcon != null)
+                    _pauseIcon.image = WorldArt.Icon("pause");
+            });
+            continueButton.style.marginTop = VisualTokens.Spacing.M;
+            continueButton.style.width = 160;
+            card.Add(continueButton);
+
+            backdrop.Add(card);
+            _screenLayer.Add(backdrop);
+        }
+
         /// <summary>A "+20" pops up near the middle of the screen and flies into the points
         /// badge, arcing and shrinking/fading as it goes, then the badge's own number updates and
-        /// gives a small bounce - "jako by body přiletí tam do toho boxíku" (human direction
-        /// 2026-09-25), replacing a flat number tick.</summary>
+        /// <summary>Hop-and-fade near the middle of the screen (where a catch happens), not a
+        /// flight across the screen into the badge - human feedback 2026-09-25/26: flying all the
+        /// way to the corner was distracting, and a `worldBound`-based pixel position landed the
+        /// popup in the top-left corner instead of center screen (a layout-timing/coordinate-
+        /// space bug). Anchored with `Length.Percent` instead, which the layout engine resolves
+        /// correctly on its own - no manual pixel math, no race with layout settling.</summary>
         private IEnumerator AnimatePointsPopup(int amount)
         {
-            var popup = MakeLabel($"+{amount}", new VisualTokens.TypeStyle(22, 700), new Color(0.96f, 0.77f, 0.32f));
-            popup.style.position = Position.Absolute;
+            // Outer anchor: fixed at 50%/40% of the screen, centered on that point via a
+            // percent translate (percent translate is relative to the element's own size).
+            var anchor = new VisualElement
+            {
+                style =
+                {
+                    position = Position.Absolute,
+                    left = Length.Percent(50), top = Length.Percent(40),
+                    translate = new Translate(Length.Percent(-50), Length.Percent(-50), 0)
+                },
+                pickingMode = PickingMode.Ignore
+            };
+            var popup = MakeLabel($"+{amount}", new VisualTokens.TypeStyle(34, 700), new Color(0.96f, 0.77f, 0.32f));
             popup.pickingMode = PickingMode.Ignore;
-            _screenLayer.Add(popup);
+            anchor.Add(popup);
+            _screenLayer.Add(anchor);
 
-            yield return null; // let layout settle so worldBound is valid below
-            Rect badgeRect = _hudPointsBadge.worldBound;
-            Rect layerRect = _screenLayer.worldBound;
-            Vector2 target = new(badgeRect.x + badgeRect.width * 0.5f, badgeRect.y + badgeRect.height * 0.5f);
-            Vector2 start = new(layerRect.width * 0.5f, layerRect.height * 0.38f);
-
-            const float duration = 0.55f;
+            const float duration = 0.6f;
+            const float hopDistance = 70f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float p = Mathf.Clamp01(elapsed / duration);
-                float eased = p * p; // ease-in toward the badge
-                Vector2 pos = Vector2.Lerp(start, target, eased);
-                popup.style.left = pos.x;
-                popup.style.top = pos.y - Mathf.Sin(p * Mathf.PI) * 40f; // small arc, not a straight line
-                popup.style.opacity = 1f - Mathf.Pow(p, 3f);
-                popup.style.scale = new Scale(Vector3.one * Mathf.Lerp(1f, 0.5f, p));
+                // Pure pixel hop on the inner label, independent of the outer anchor's percent
+                // translate.
+                popup.style.translate = new Translate(0, -hopDistance * p, 0);
+                popup.style.opacity = 1f - Mathf.Pow(p, 2f);
+                popup.style.scale = new Scale(Vector3.one * Mathf.Lerp(1f, 1.1f, Mathf.Sin(p * Mathf.PI)));
                 yield return null;
             }
-            _screenLayer.Remove(popup);
+            _screenLayer.Remove(anchor);
 
             _hudPoints += amount;
             _hudPointsLabel.text = _hudPoints.ToString();
@@ -1527,6 +1648,34 @@ namespace HearApp.Core.Shell.UI
         private void ShowResultsScreen(SessionResult result)
         {
             var screen = NewScreen();
+
+            // Ended early by 3 frantic-tapping strikes (human request 2026-09-26) - tell the
+            // player plainly instead of showing normal results, per "rict, ze body se
+            // nezapocetnou".
+            if (_flow.Engine != null && _flow.Engine.SessionInvalidatedByFranticTapping)
+            {
+                screen.Add(MakeLabel("Session ended", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
+                var invalidatedBody = new Label(
+                    "We ended this session early because of repeated rapid tapping. Results from " +
+                    "this session are not counted - give it another try and tap only when you " +
+                    "actually hear a tone.")
+                {
+                    style =
+                    {
+                        fontSize = VisualTokens.Type.Body.Size, unityFontStyleAndWeight = VisualTokens.Type.Body.Style,
+                        color = VisualTokens.Colors.Ink700, marginTop = VisualTokens.Spacing.S, marginBottom = VisualTokens.Spacing.XL,
+                        whiteSpace = WhiteSpace.Normal, maxWidth = 360, unityTextAlign = TextAnchor.MiddleCenter
+                    }
+                };
+                screen.Add(invalidatedBody);
+
+                var backEarly = MakeSecondaryButton("Back to Worlds", () => _flow.ReturnToSelectorFromResults());
+                backEarly.style.width = 200;
+                backEarly.style.maxWidth = Length.Percent(85);
+                screen.Add(backEarly);
+                return;
+            }
+
             screen.Add(MakeLabel("Nice job!", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
             screen.Add(new Label("Your hearing tested like a typical listener's today.")
             {

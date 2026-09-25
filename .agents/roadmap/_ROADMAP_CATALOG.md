@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last updated**: 2026-09-25
+**Last updated**: 2026-09-26
 
 This file holds current and planned work only. Finished and abandoned items keep their permanent
 rows in [`_ROADMAP_HISTORY.md`](_ROADMAP_HISTORY.md), which is not loaded at ordinary task start.
@@ -110,6 +110,7 @@ actually applies, and writing that word - never an invented synonym.
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
 | 008 | [Carousel live drag tracking](008-carousel-live-drag-tracking.md) | - | Swipe today jumps only on release; investigated root cause + options, not yet actioned |
+| 009 | [Real audiometric-difficulty scoring](009-real-audiometric-scoring.md) | - | Points-per-catch is a frequency-only placeholder; needs real per-trial volume/audibility data |
 
 ---
 

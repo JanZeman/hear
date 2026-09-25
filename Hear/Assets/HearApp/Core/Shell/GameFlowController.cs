@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using HearApp.Core.HearingEngine;
 using HearApp.Core.Worlds;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 namespace HearApp.Core.Shell
@@ -80,6 +81,12 @@ namespace HearApp.Core.Shell
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // Unity's built-in URP Rendering Debugger runtime overlay - not something this app
+            // uses, but it ships enabled in Development builds and can pop up over the game
+            // (human report 2026-09-25: "ta debug screen... trochu mi překáží").
+            if (DebugManager.instance != null)
+                DebugManager.instance.enableRuntimeUI = false;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             ApplyAndroidStatusBarVisibleNavHidden();

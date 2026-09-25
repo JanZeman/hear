@@ -75,11 +75,22 @@ world art.
   props are explicitly "ambient"/"bobbing props", not targets). Their motion runs on independent
   timers (`Update`, `FishAmbientLoop`) uncorrelated with tone onset, per docs/07's ear-aware rule.
 
+## Source color correction (2026-09-26)
+
+The handoff art read as oversaturated/too bright on-device. First fix was a flat runtime dim
+overlay in `TideTroublesPresentation` (a semi-transparent black sprite over the whole scene) -
+replaced per human direction with a source-level correction instead, since a flat overlay just
+looked like a gray wash rather than a real color grade: `adjust-source-colors.py` (this folder)
+reduces saturation (0.68x) and brightness (0.88x) on every sheet/background, alpha untouched, and
+writes the results directly into `Assets/HearApp/Resources/Worlds/TideTroubles/Scene/`. It always
+re-derives from the original handoff zip (never a previously-adjusted PNG), so it's safe to
+re-run repeatedly while tuning the two constants at the top of the script.
+
 ## Known limitations / not done in this pass
 
-- Slicing rects were authored from visual inspection of each sheet (no PIL/numpy/Editor available
-  in this environment to do connected-component auto-slicing), so they are approximate, not
-  pixel-perfect. A human/Editor pass with the Sprite Editor could tighten these.
+- Slicing rects were authored from visual inspection of each sheet, not pixel-perfect connected-
+  component auto-slicing (no Sprite Editor session available in this environment). A human/Editor
+  pass with the Sprite Editor could tighten these.
 - This has not been build- or Play-mode-verified in this session (no Unity Editor run here - see
   the main `README.md`'s own "Known compromises" section for why that verification path is
   already unreliable/unavailable in this environment). The code was written and reviewed
