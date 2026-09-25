@@ -17,6 +17,7 @@ namespace HearApp.Dev
     {
         private bool _visible = true;
         private EarChannel _selectedChannel = EarChannel.Combined;
+        private int _selectedFrequencyIndex;
         private IntegrationProofRunner _proofRunner;
 
         private void Awake()
@@ -34,7 +35,7 @@ namespace HearApp.Dev
         {
             if (!_visible) return;
 
-            GUILayout.BeginArea(new Rect(Screen.width - 260, 10, 250, 420), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(Screen.width - 260, 10, 250, 470), GUI.skin.box);
             GUILayout.Label("HEAR Dev Overlay (`)");
 
             GUILayout.Label("Channel:");
@@ -45,14 +46,22 @@ namespace HearApp.Dev
             GUILayout.EndHorizontal();
 
             GUILayout.Space(6);
+            GUILayout.Label($"Frequency: {TrialPlan.ReferenceFrequenciesHz[_selectedFrequencyIndex]:0} Hz");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("<")) _selectedFrequencyIndex = (_selectedFrequencyIndex - 1 + TrialPlan.ReferenceFrequenciesHz.Length) % TrialPlan.ReferenceFrequenciesHz.Length;
+            if (GUILayout.Button(">")) _selectedFrequencyIndex = (_selectedFrequencyIndex + 1) % TrialPlan.ReferenceFrequenciesHz.Length;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(6);
             GUILayout.Label("Inject outcome (active session only):");
             var flow = GameFlowController.Instance;
             bool sessionRunning = flow != null && flow.Engine != null && flow.Engine.IsRunning;
+            float freq = TrialPlan.ReferenceFrequenciesHz[_selectedFrequencyIndex];
             GUI.enabled = sessionRunning;
-            if (GUILayout.Button("Correct Detection")) flow.InjectDevOutcome(TrialOutcome.CorrectDetection, _selectedChannel);
-            if (GUILayout.Button("Miss")) flow.InjectDevOutcome(TrialOutcome.Miss, _selectedChannel);
-            if (GUILayout.Button("False Positive")) flow.InjectDevOutcome(TrialOutcome.FalsePositive, _selectedChannel);
-            if (GUILayout.Button("Correct Rejection")) flow.InjectDevOutcome(TrialOutcome.CorrectRejection, _selectedChannel);
+            if (GUILayout.Button("Correct Detection")) flow.InjectDevOutcome(TrialOutcome.CorrectDetection, _selectedChannel, freq);
+            if (GUILayout.Button("Miss")) flow.InjectDevOutcome(TrialOutcome.Miss, _selectedChannel, freq);
+            if (GUILayout.Button("False Positive")) flow.InjectDevOutcome(TrialOutcome.FalsePositive, _selectedChannel, freq);
+            if (GUILayout.Button("Correct Rejection")) flow.InjectDevOutcome(TrialOutcome.CorrectRejection, _selectedChannel, freq);
             GUI.enabled = true;
 
             GUILayout.Space(10);

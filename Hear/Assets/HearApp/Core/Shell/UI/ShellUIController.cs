@@ -360,7 +360,7 @@ namespace HearApp.Core.Shell.UI
                     _flow.ReturnToSelectorFromResults();
                     break;
                 case NavDestination.Results:
-                    ShowResultsScreen(_flow.Engine.CurrentResult);
+                    _flow.ViewOverallResults();
                     break;
                 case NavDestination.Settings:
                     ShowSettingsScreen();
@@ -413,7 +413,7 @@ namespace HearApp.Core.Shell.UI
                 case GameFlowController.ShellState.HeadphoneChoice: ShowHeadphoneChoiceScreen(); break;
                 case GameFlowController.ShellState.MicroInstruction: ShowMicroInstructionScreen(); break;
                 case GameFlowController.ShellState.Playing: ShowPlayingHud(); break;
-                case GameFlowController.ShellState.Results: ShowResultsScreen(_flow.Engine.CurrentResult); break;
+                case GameFlowController.ShellState.Results: ShowResultsScreen(); break;
                 case GameFlowController.ShellState.Settings: ShowSettingsScreen(); break;
             }
         }
@@ -1524,31 +1524,13 @@ namespace HearApp.Core.Shell.UI
 
         // ---------------------------------------------------------------- Results
 
-        private void ShowResultsScreen(SessionResult result)
+        // Full implementation in ResultsScreenBuilder (its own class - this screen is a big,
+        // mostly self-contained scrollable page system, and ShellUIController is already large).
+        // See sources/Results/hear-results-handoff-v1.0 for the design handoff this follows.
+        private void ShowResultsScreen()
         {
-            var screen = NewScreen();
-            screen.Add(MakeLabel("Nice job!", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
-            screen.Add(new Label("Your hearing tested like a typical listener's today.")
-            {
-                style =
-                {
-                    fontSize = VisualTokens.Type.Body.Size, unityFontStyleAndWeight = VisualTokens.Type.Body.Style,
-                    color = VisualTokens.Colors.Ink700, marginTop = VisualTokens.Spacing.S, marginBottom = VisualTokens.Spacing.XS,
-                    whiteSpace = WhiteSpace.Normal, maxWidth = 360, unityTextAlign = TextAnchor.MiddleCenter
-                }
-            });
-            screen.Add(MakeLabel("(placeholder framing - real ear-age norm curve is not yet implemented)", VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, 0f, VisualTokens.Spacing.L));
-
-            if (result != null)
-            {
-                screen.Add(MakeLabel($"Detected {result.CorrectDetections} tones, correctly rejected {result.CorrectRejections} silent trials.",
-                    VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, 0f, VisualTokens.Spacing.XL));
-            }
-
-            var again = MakeSecondaryButton("Back to Worlds", () => _flow.ReturnToSelectorFromResults());
-            again.style.width = 200;
-            again.style.maxWidth = Length.Percent(85);
-            screen.Add(again);
+            var screen = NewScreen(padded: false);
+            ResultsScreenBuilder.Build(screen, _flow);
         }
 
         // ---------------------------------------------------------------- Settings

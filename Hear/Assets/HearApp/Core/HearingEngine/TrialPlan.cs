@@ -27,7 +27,9 @@ namespace HearApp.Core.HearingEngine
     /// </summary>
     public static class TrialPlan
     {
-        private static readonly float[] ReferenceFrequenciesHz = { 1000f, 2000f, 4000f, 8000f, 12000f, 16000f };
+        // Public so dev tooling (DevOverlay's frequency picker) can inject test data across the
+        // same frequency set a real session actually uses, instead of duplicating this list.
+        public static readonly float[] ReferenceFrequenciesHz = { 1000f, 2000f, 4000f, 8000f, 12000f, 16000f };
 
         /// <param name="repeatCount">Repeats the reference-frequency set this many times (catch
         /// trials scale proportionally, below). Dev-only "10x longer session" setting (human

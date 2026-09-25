@@ -95,7 +95,7 @@ namespace HearApp.Core.HearingEngine
                     ? (_tapReceived ? TrialOutcome.FalsePositive : TrialOutcome.CorrectRejection)
                     : (_tapReceived ? TrialOutcome.CorrectDetection : TrialOutcome.Miss);
 
-                yield return StartCoroutine(ProcessTrial(outcome, spec.Channel));
+                yield return StartCoroutine(ProcessTrial(outcome, spec.Channel, spec.FrequencyHz));
             }
 
             CompleteSession();
@@ -106,9 +106,9 @@ namespace HearApp.Core.HearingEngine
         /// world to report it is listening-safe again. Used by both the real loop above and the
         /// development mock driver, so both paths exercise identical engine behavior.
         /// </summary>
-        public IEnumerator ProcessTrial(TrialOutcome outcome, EarChannel channel)
+        public IEnumerator ProcessTrial(TrialOutcome outcome, EarChannel channel, float frequencyHz = 0f)
         {
-            CurrentResult.Record(outcome, channel);
+            CurrentResult.Record(outcome, channel, frequencyHz);
             // Progress itself now advances continuously in Update(), not here - see BeginSession.
 
             var ctx = new OutcomePresentationContext(outcome, channel, Progress);
