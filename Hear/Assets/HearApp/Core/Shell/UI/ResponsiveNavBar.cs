@@ -24,8 +24,10 @@ namespace HearApp.Core.Shell.UI
         private const float RailWidth = 60f;
 
         /// <summary>Height of the compact bottom bar, in logical px. Home positions its floating
-        /// nav overlay from this (see ShellUIController's Golden.NavCenterOfScreenH).</summary>
-        public const float CompactBarHeight = 56f;
+        /// nav overlay from this (see ShellUIController.ApplyBreakpointLayout/UpdateCarouselForCurrentSize).
+        /// Raised from 56 on human direction 2026-09-25 so the (also recently enlarged) icons and
+        /// labels have more vertical breathing room, not just a bar sized to fit them tightly.</summary>
+        public const float CompactBarHeight = 68f;
 
         /// <summary>Shared with ShellUIController's nav backdrop extension (the strip filling the
         /// safe-area gesture-inset gap below this bar), so the two always match exactly.</summary>

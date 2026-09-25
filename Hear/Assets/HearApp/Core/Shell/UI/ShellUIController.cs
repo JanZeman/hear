@@ -63,19 +63,28 @@ namespace HearApp.Core.Shell.UI
         private Button _playButton;
         // The GOLDEN board's Play pill itself has NO glow (measured across its left edge on
         // sources/HEAR-App-UI-Home.png: a razor-sharp edge, no halo) - re-added anyway on human
-        // direction 2026-09-25 as a deliberate deviation, meant to read as subconscious/barely
-        // there ("melo to byt jen takove 'podvedome'. Uzoulinky prouzek."). Same
-        // smooth-exponential-falloff construction as the nav icon's glow (see
-        // ResponsiveNavBar.AddItem). History: max 6px/peak 0.05 invisible; max 10px/peak 0.12 was
-        // then "moc viditelne"; max 7px/peak 0.07 (unchanged twice, +1px then +2px) was STILL
-        // reported invisible - three rounds of changing only the padding without result means
-        // padding was probably never the limiting factor here. This round raises alpha too, not
-        // just padding again, on that reasoning.
+        // direction 2026-09-25 as a deliberate deviation. History: max 6px/peak 0.05 invisible;
+        // max 10px/peak 0.12 "moc viditelne"; max 7px/peak 0.07 (x2) still invisible; max 11px/
+        // peak 0.10 finally visible, BUT now called "moc rozplizly"/"tlusty pruh" - a wide soft
+        // band, not the "jen tenky prouzek, par pixelu" wanted. The lesson across all five rounds:
+        // spread (padding) and strength (alpha) are independent knobs, and matching feedback to
+        // the wrong one is what produced this many rounds. "Thin but visible" means BOTH small
+        // padding AND enough alpha at once, not a trade-off between them - previous rounds each
+        // only moved one axis.
+        // Round 6 (2026-09-25): round 5's (pad 3, alpha 0.16) was verified only via a digitally
+        // cropped/zoomed screenshot, which exaggerates a few-percent alpha edge into visibility -
+        // on the real device at normal size (and further softened by scrcpy's video compression)
+        // human feedback was that it was invisible again. Keeps the narrow pad-3 spread's small
+        // physical footprint isolated - the "tlusty pruh" this whole tuning problem chases came
+        // from spread, not alpha - but roughly doubles peak alpha so the ring survives real
+        // on-screen viewing and lossy mirroring, not just a zoomed still. Confirmed on the human's
+        // own device/scrcpy view as visible and roughly right - round 7 is a small width-only
+        // trim ("nepatrne uzsi"), alpha untouched so it does not slip back toward invisible.
         private VisualElement[] _playGlowLayers;
         private const int PlayGlowLayerCount = 10;
-        private const float PlayGlowMaxPadding = 11f; // +4px per human direction 2026-09-25
-        private const float PlayGlowPeakAlpha = 0.10f; // was 0.07 - see history note above
-        private const float PlayGlowFalloffRate = 3.0f;
+        private const float PlayGlowMaxPadding = 3.3f;
+        private const float PlayGlowPeakAlpha = 0.32f;
+        private const float PlayGlowFalloffRate = 2.6f;
         private VisualElement _playRow;
         private VisualElement _bottomSpacer;
         private VisualElement _brandBlock;

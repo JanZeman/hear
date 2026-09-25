@@ -129,6 +129,41 @@ were written for, and keeps the 600/960 breakpoints meaning what `home-layout.js
 
 ## Notes
 
+- 2026-09-25: Play pill glow, round 7 - human confirmed round 6 (pad 4px/alpha 0.32) as "konecne
+  se priblizujeme vysledku", asked only for it to be "nepatrne uzsi" (slightly narrower). Width-
+  only trim: padding 4 -> 3.3px, falloff 2.2 -> 2.6 (steeper), alpha untouched at 0.32 so it does
+  not slip back toward invisible per the round-6 lesson. Verified via a full on-device screenshot:
+  still a clearly visible ring, narrower. Pending human confirmation via their own scrcpy view.
+- 2026-09-25: Play pill glow, round 6, and a verification-method fix. Round 5 (padding 3px, alpha
+  0.16) was confirmed only via a digitally cropped/zoomed screenshot - human feedback on the real
+  device (viewed live through scrcpy) was that it was invisible again, directly contradicting that
+  "confirmed" claim. Cause: a zoomed crop exaggerates a few-percent alpha edge into clear
+  visibility; at real on-screen size, and further softened by scrcpy's video compression, the same
+  pixels read as nothing. Fix keeps the narrow spread (padding 3 -> 4px, so it still can't become
+  the "tlusty pruh" this whole tuning problem chases) but roughly doubles peak alpha (0.16 -> 0.32,
+  falloff 3.0 -> 2.2) so the ring survives normal viewing and lossy mirroring, not just a still.
+  Verified this time via a full, uncropped on-device screenshot (not a close-up crop) - a thin blue
+  ring is visible around the Play pill - but left for human confirmation via their own scrcpy view
+  before calling it done, since that is the instrument that caught the previous false confirmation.
+- 2026-09-25: Diagnosed why the human's `scrcpy` device-mirroring session keeps dying on every
+  rebuild+redeploy cycle in this session: the `HearDevelopmentBuild.BuildAndroidRelease` Unity
+  build log itself contains the line `Killing ADB server in 0.029987 seconds.` - the Unity/Gradle
+  build pipeline actively kills the shared adb server (port 5037) at the end of every build, not
+  just as an incidental side effect of `adb install`. scrcpy's mirroring session depends on that
+  same server/device connection, so it drops every time. Confirmed directly in this session's own
+  adb output immediately after a rebuild: `adb devices` transiently returned "no devices/emulators
+  found" until the server re-established itself. No code change made or needed - noting as a known
+  cost of the build-and-verify-on-device loop; practical mitigation is to relaunch scrcpy after
+  each deploy (the device stays paired, so it reconnects immediately).
+- 2026-09-25: `ResponsiveNavBar.CompactBarHeight` 56 -> 68 on human direction, so the (recently
+  enlarged) icons/labels have more vertical breathing room instead of a bar sized to fit them
+  tightly. Play pill glow, round 5: round 4's fix (max 11px/peak 0.10) was finally visible but
+  now "moc rozplizly"/"tlusty pruh" (a wide soft band) - not the thin few-px sliver wanted.
+  Realized padding (spread) and alpha (strength) are independent controls, and every round so far
+  had moved only one of them at a time, which is why this took five rounds. This round: padding
+  11 -> 3 (thin) *and* alpha 0.10 -> 0.16 (strong enough to still read at that small a spread) at
+  once. Confirmed on-device via a close-up crop: a thin, clearly-defined ring right at the pill's
+  edge, not a blurred band.
 - 2026-09-25: The "empty space" human feedback (with a screenshot showing a large dead area below
   the nav panel and above the Play button) turned out not to be about the backdrop-extension's
   colour at all - it was a real, oversized gap. Root cause found in code, not just guessed: BOTH
