@@ -498,16 +498,29 @@ namespace HearApp.Core.Shell.UI
             return button;
         }
 
+        // A button's actual height here is ~40 (minHeight below, and content rarely forces it
+        // taller) - VisualTokens.Radius.Pill (999) vastly exceeds half that, and UI Toolkit in
+        // this Unity version doesn't clamp an oversized corner radius to the element's own size;
+        // it renders a degenerate/warped shape instead of a rounded pill (same root cause as the
+        // progress bar's "spicaty konec" and the points badge's ellipse, fixed the same way
+        // earlier - human feedback repeated it here 2026-09-26: "proc tak casto delas elipsy").
+        // Every MakePrimaryButton/MakeSecondaryButton call site gets the fix at once.
+        private const float ButtonCornerRadius = 20f;
+
         private static void StyleButton(Button button, Color background, Color foreground)
         {
             button.style.backgroundColor = background;
             button.style.color = foreground;
             button.style.fontSize = VisualTokens.Type.Label.Size;
             button.style.unityFontStyleAndWeight = VisualTokens.Type.Label.Style;
-            button.style.borderTopLeftRadius = VisualTokens.Radius.Pill;
-            button.style.borderTopRightRadius = VisualTokens.Radius.Pill;
-            button.style.borderBottomLeftRadius = VisualTokens.Radius.Pill;
-            button.style.borderBottomRightRadius = VisualTokens.Radius.Pill;
+            // No default Theme Style Sheet in this project, so Button's normal (theme-provided)
+            // centered text alignment doesn't apply - left unset, the label sits top-left inside
+            // the button box (reported 2026-09-26: "Continue... moc nahore a moc vlevo").
+            button.style.unityTextAlign = TextAnchor.MiddleCenter;
+            button.style.borderTopLeftRadius = ButtonCornerRadius;
+            button.style.borderTopRightRadius = ButtonCornerRadius;
+            button.style.borderBottomLeftRadius = ButtonCornerRadius;
+            button.style.borderBottomRightRadius = ButtonCornerRadius;
             button.style.borderTopWidth = 0; button.style.borderBottomWidth = 0;
             button.style.borderLeftWidth = 0; button.style.borderRightWidth = 0;
             button.style.paddingTop = VisualTokens.Spacing.S; button.style.paddingBottom = VisualTokens.Spacing.S;
@@ -1496,11 +1509,101 @@ namespace HearApp.Core.Shell.UI
             }
         }
 
+        /// <summary>Shared look for the pause menu and the frantic-tapping warning: a dimmed
+        /// full-screen backdrop plus a centered card. Returns the (unparented) backdrop so the
+        /// caller can add its own content to <paramref name="card"/> and remove the backdrop
+        /// later to dismiss.</summary>
+        private static VisualElement BuildModalBackdrop(out VisualElement card)
+        {
+            var backdrop = new VisualElement
+            {
+                style =
+                {
+                    position = Position.Absolute, left = 0, right = 0, top = 0, bottom = 0,
+                    backgroundColor = new Color(0f, 0f, 0f, 0.6f),
+                    alignItems = Align.Center, justifyContent = Justify.Center
+                }
+            };
+
+            card = new VisualElement
+            {
+                style =
+                {
+                    maxWidth = 320,
+                    backgroundColor = VisualTokens.Colors.Pearl0,
+                    paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
+                    paddingTop = VisualTokens.Spacing.L, paddingBottom = VisualTokens.Spacing.L,
+                    borderTopLeftRadius = VisualTokens.Radius.M, borderTopRightRadius = VisualTokens.Radius.M,
+                    borderBottomLeftRadius = VisualTokens.Radius.M, borderBottomRightRadius = VisualTokens.Radius.M,
+                    alignItems = Align.Center
+                }
+            };
+            backdrop.Add(card);
+            return backdrop;
+        }
+
+        private static Label MakeModalBody(string text)
+        {
+            return new Label(text)
+            {
+                style =
+                {
+                    fontSize = VisualTokens.Type.Body.Size, unityFontStyleAndWeight = VisualTokens.Type.Body.Style,
+                    color = VisualTokens.Colors.Ink700, whiteSpace = WhiteSpace.Normal,
+                    unityTextAlign = TextAnchor.MiddleCenter
+                }
+            };
+        }
+
+        /// <summary>Pause button now opens a real menu (Resume / Quit to Home) instead of just
+        /// silently freezing time - human request 2026-09-26: "dovol hru přerušit a navrátit
+        /// se".</summary>
         private void TogglePause()
         {
-            _isPaused = !_isPaused;
-            Time.timeScale = _isPaused ? 0f : 1f;
-            _pauseIcon.image = WorldArt.Icon(_isPaused ? "play" : "pause");
+            if (_isPaused)
+            {
+                ResumeFromPause();
+                return;
+            }
+
+            _isPaused = true;
+            Time.timeScale = 0f;
+            _pauseIcon.image = WorldArt.Icon("play");
+            ShowPauseMenu();
+        }
+
+        private void ResumeFromPause()
+        {
+            _isPaused = false;
+            Time.timeScale = 1f;
+            _pauseIcon.image = WorldArt.Icon("pause");
+        }
+
+        private void ShowPauseMenu()
+        {
+            var backdrop = BuildModalBackdrop(out var card);
+            card.Add(MakeLabel("Paused", VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, 0f, VisualTokens.Spacing.M));
+
+            var resumeButton = MakePrimaryButton("Resume", () =>
+            {
+                _screenLayer.Remove(backdrop);
+                ResumeFromPause();
+            });
+            resumeButton.style.width = 200;
+            card.Add(resumeButton);
+
+            var quitButton = MakeSecondaryButton("Quit to Home", () =>
+            {
+                _screenLayer.Remove(backdrop);
+                ResumeFromPause(); // clears the paused visual state; the scene is about to unload anyway
+                _flow.Engine.AbortSessionUserQuit();
+                _flow.ReturnToSelectorFromResults();
+            });
+            quitButton.style.marginTop = VisualTokens.Spacing.S;
+            quitButton.style.width = 200;
+            card.Add(quitButton);
+
+            _screenLayer.Add(backdrop);
         }
 
         /// <summary>Frantic/rapid-tapping defense (human request 2026-09-26): strikes 1 and 2
@@ -1523,29 +1626,7 @@ namespace HearApp.Core.Shell.UI
 
         private void ShowFranticTappingWarning(int strike)
         {
-            var backdrop = new VisualElement
-            {
-                style =
-                {
-                    position = Position.Absolute, left = 0, right = 0, top = 0, bottom = 0,
-                    backgroundColor = new Color(0f, 0f, 0f, 0.6f),
-                    alignItems = Align.Center, justifyContent = Justify.Center
-                }
-            };
-
-            var card = new VisualElement
-            {
-                style =
-                {
-                    maxWidth = 320,
-                    backgroundColor = VisualTokens.Colors.Pearl0,
-                    paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
-                    paddingTop = VisualTokens.Spacing.L, paddingBottom = VisualTokens.Spacing.L,
-                    borderTopLeftRadius = VisualTokens.Radius.M, borderTopRightRadius = VisualTokens.Radius.M,
-                    borderBottomLeftRadius = VisualTokens.Radius.M, borderBottomRightRadius = VisualTokens.Radius.M,
-                    alignItems = Align.Center
-                }
-            };
+            var backdrop = BuildModalBackdrop(out var card);
 
             string title = strike == 1 ? "Slow down" : "Seriously, slow down";
             string body = strike == 1
@@ -1553,30 +1634,17 @@ namespace HearApp.Core.Shell.UI
                 : "That's rapid tapping again. One more time and this session will end early, with its results not counted.";
 
             card.Add(MakeLabel(title, VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, 0f, VisualTokens.Spacing.S));
-            var bodyLabel = new Label(body)
-            {
-                style =
-                {
-                    fontSize = VisualTokens.Type.Body.Size, unityFontStyleAndWeight = VisualTokens.Type.Body.Style,
-                    color = VisualTokens.Colors.Ink700, whiteSpace = WhiteSpace.Normal,
-                    unityTextAlign = TextAnchor.MiddleCenter
-                }
-            };
-            card.Add(bodyLabel);
+            card.Add(MakeModalBody(body));
 
             var continueButton = MakePrimaryButton("Continue", () =>
             {
                 _screenLayer.Remove(backdrop);
-                _isPaused = false;
-                Time.timeScale = 1f;
-                if (_pauseIcon != null)
-                    _pauseIcon.image = WorldArt.Icon("pause");
+                ResumeFromPause();
             });
             continueButton.style.marginTop = VisualTokens.Spacing.M;
             continueButton.style.width = 160;
             card.Add(continueButton);
 
-            backdrop.Add(card);
             _screenLayer.Add(backdrop);
         }
 

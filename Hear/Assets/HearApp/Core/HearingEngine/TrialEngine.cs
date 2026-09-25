@@ -47,6 +47,12 @@ namespace HearApp.Core.HearingEngine
         /// a normal completed session.</summary>
         public bool SessionInvalidatedByFranticTapping { get; private set; }
 
+        /// <summary>True once the player has deliberately ended a session early via the pause
+        /// menu's "Quit to Home" (human request 2026-09-26: "dovol hru přerušit a navrátit se") -
+        /// distinct from <see cref="SessionInvalidatedByFranticTapping"/> so the Shell can show a
+        /// neutral message instead of a warning.</summary>
+        public bool SessionEndedByUserQuit { get; private set; }
+
         /// <summary>Fires with the strike number (1, 2, 3) each time a burst of rapid/frantic
         /// tapping is detected within <see cref="FranticTapWindowSeconds"/> - human request
         /// 2026-09-26: pause + warn on strikes 1-2, end the session (uncounted) on strike 3. The
@@ -54,8 +60,10 @@ namespace HearApp.Core.HearingEngine
         /// (on strike 3) aborts.</summary>
         public event Action<int> FranticTappingStrike;
 
-        private const int FranticTapCountThreshold = 8;
-        private const float FranticTapWindowSeconds = 2.5f;
+        // More sensitive than the original 8-taps/2.5s (human feedback 2026-09-26: "az po
+        // opravdu hodne kliknuti" - it only fired after way too many taps).
+        private const int FranticTapCountThreshold = 5;
+        private const float FranticTapWindowSeconds = 1.8f;
 
         private IWorldPresentation _world;
         private TonePlayer _tonePlayer;
@@ -118,6 +126,7 @@ namespace HearApp.Core.HearingEngine
             Progress = 0f;
             _abortRequested = false;
             SessionInvalidatedByFranticTapping = false;
+            SessionEndedByUserQuit = false;
             _franticStrikeCount = 0;
             _recentTapTimes.Clear();
             IsRunning = true;
@@ -144,6 +153,18 @@ namespace HearApp.Core.HearingEngine
             if (!IsRunning) return;
             _abortRequested = true;
             SessionInvalidatedByFranticTapping = true;
+            IsRunning = false;
+            _world.SetSessionProgress(1f);
+            _world.CompleteSession(CurrentResult);
+        }
+
+        /// <summary>Ends the session early because the player chose to, via the pause menu - see
+        /// <see cref="SessionEndedByUserQuit"/>.</summary>
+        public void AbortSessionUserQuit()
+        {
+            if (!IsRunning) return;
+            _abortRequested = true;
+            SessionEndedByUserQuit = true;
             IsRunning = false;
             _world.SetSessionProgress(1f);
             _world.CompleteSession(CurrentResult);

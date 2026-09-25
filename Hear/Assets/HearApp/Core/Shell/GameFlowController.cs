@@ -169,6 +169,13 @@ namespace HearApp.Core.Shell
             SetState(ShellState.Playing);
             yield return StartCoroutine(Engine.RunSession(plan));
 
+            // A deliberate "Quit to Home" (ShellUIController's pause menu) already unloaded the
+            // scene and moved to WorldSelector directly, synchronously, before RunSession's own
+            // loop got a chance to notice the abort flag and yield-break here - without this
+            // check, this coroutine would then overwrite that with SetState(Results) a frame or
+            // two later (a jarring flash back to Results after already leaving).
+            if (Engine.SessionEndedByUserQuit) yield break;
+
             SessionCompleted?.Invoke(Engine.CurrentResult);
             SetState(ShellState.Results);
         }
