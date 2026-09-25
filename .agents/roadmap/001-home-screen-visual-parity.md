@@ -129,6 +129,35 @@ were written for, and keeps the 600/960 breakpoints meaning what `home-layout.js
 
 ## Notes
 
+- 2026-09-25: Previous round's rounded/widened peek border was now judged the opposite problem -
+  thicker-looking than the active card's own line, since it was derived from the peek's own
+  (narrower) width and so didn't actually track the active card's line weight at all. Fix per
+  human direction: `ApplyCardRect` now takes the active card's width explicitly and derives
+  `borderWidth` from THAT for every card slot (active and both peeks alike), so the line is
+  identically sized everywhere; only `borderAlpha` (0.7 active, 0.4 peek) still distinguishes them.
+  Verified on-device: peek and active lines now read as the same weight, peek just fainter.
+- 2026-09-25: Peek card border still read as "rozmazany" (blurry) after the width/alpha bump
+  below - rounded `borderWidth` to a whole logical unit (a fractional value like 2.7 lands on a
+  fractional physical pixel at this device's scale and anti-aliases softly across it) and raised
+  alpha again (0.4 -> 0.55) for more edge contrast. Verified via a zoomed crop of the right peek
+  card's edge on-device: a clean, defined line.
+- 2026-09-25: Peek card border widened +1px and brightened (alpha 0.16 -> 0.4) - the deliberately
+  faint frame from an earlier pass (human direction, same day) read as "temer neviditelny" once
+  seen next to the active card's much bolder one. Still clearly subordinate to the active card
+  (alpha 0.7, no +1px). Verified on-device: both peek cards now show a visible thin light edge.
+- 2026-09-25: Play vertical position + Companion re-anchored to Play, on explicit human direction
+  (a deliberate departure from the GOLDEN board's own composition, not a bug fix). Play read as
+  "too stuck" to the three dots; moved it to the middle of whatever real vertical room is left
+  between the dots and the nav (half goes to the gap above Play, half now falls to
+  `_bottomSpacer`'s clearance above the nav - the two ends of that leftover space stay balanced).
+  Companion, previously positioned from companion.json's screen-normalized `homePlacement` (see
+  `GetHomeCompanionPlacement`) - which only happened to look attached to Play by coincidence of
+  where Play used to sit - is now anchored directly off Play's own resolved rect (top-right
+  corner), "jakoby z nej vyrustal": first pass centred the Companion too far over the button and
+  covered its own arrow glyph (confirmed on-device), corrected to `playRight + width*0.08` /
+  `playRowTop - height*0.32` so only its base overlaps the corner. `NormX`/`NormY` in
+  `GetHomeCompanionPlacement` are now unused (kept - other aspect classes still read
+  `WidthFraction` from the same tuple; not worth a signature change for this).
 - 2026-09-25: Vertical rhythm fix - human feedback comparing the fixed claim position against the
   concept board noticed two more problems: a huge (~200 logical units, pixel-measured) dead gap
   between Play and the nav bar, and the claim/carousel gap reading as "almost touching". Root cause

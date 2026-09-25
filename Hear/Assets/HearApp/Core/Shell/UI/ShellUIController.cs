@@ -799,7 +799,7 @@ namespace HearApp.Core.Shell.UI
             return card;
         }
 
-        private static void ApplyCardRect(VisualElement card, float left, float top, float width, float height, bool isActive)
+        private static void ApplyCardRect(VisualElement card, float left, float top, float width, float height, bool isActive, float activeCardWidth)
         {
             if (card == null) return;
             card.style.left = left;
@@ -812,9 +812,16 @@ namespace HearApp.Core.Shell.UI
             card.style.borderBottomLeftRadius = radius; card.style.borderBottomRightRadius = radius;
 
             // Peek tiles keep a deliberately fainter frame than the active card (human direction
-            // 2026-09-25); the GOLDEN board gives them none at all.
-            float borderWidth = Mathf.Max(1f, width * Golden.CardBorderOfCardW);
-            float borderAlpha = isActive ? Golden.CardBorderAlpha : 0.16f;
+            // 2026-09-25); the GOLDEN board gives them none at all. Two earlier passes (a fainter
+            // fixed width, then a peek-own-width-derived +1px one) still read as "rozmazany"
+            // (blurry) or, worst, thicker than the active card's own line - because a peek card is
+            // narrower, `Golden.CardBorderOfCardW * width` alone doesn't track the active card's
+            // line weight at all. Fix, per human direction: derive the width from the ACTIVE
+            // card's width for both, rounded once to a whole logical unit for a crisp (not
+            // anti-aliased-soft) edge, and let only alpha - not thickness - distinguish peek from
+            // active.
+            float borderWidth = Mathf.Round(Mathf.Max(1f, activeCardWidth * Golden.CardBorderOfCardW));
+            float borderAlpha = isActive ? Golden.CardBorderAlpha : 0.4f;
             card.style.borderTopWidth = borderWidth; card.style.borderBottomWidth = borderWidth;
             card.style.borderLeftWidth = borderWidth; card.style.borderRightWidth = borderWidth;
             var borderColor = new Color(1f, 1f, 1f, borderAlpha);
@@ -900,6 +907,9 @@ namespace HearApp.Core.Shell.UI
                 ? GetBottomSafeAreaInsetLogical() + 4f + ResponsiveNavBar.CompactBarHeight + VisualTokens.Spacing.S
                 : VisualTokens.Spacing.L + GetBottomSafeAreaInsetLogical();
             float dotsGap = screenH * Golden.CardToDotsOfScreenH;
+            // Only a placeholder for the slack/short-screen math below - overwritten further down
+            // once the card's final (possibly grown) height is known, per human direction
+            // 2026-09-25 ("Play moc prilepeny k teckam... do poloviny zbyvajiciho prostoru").
             float playGap = screenH * Golden.DotsToPlayOfScreenH;
             float belowCard = dotsGap + dotDiameter + playGap + playH + navReserve;
 
@@ -933,6 +943,18 @@ namespace HearApp.Core.Shell.UI
                 peekW = peekH / Golden.CardHeightOverWidth;
             }
 
+            // ---- Play vertical position: centred in the real leftover space below the dots,
+            // not glued to them ----
+            // Human direction 2026-09-25: Play read as "too stuck" to the three dots and should
+            // move down, roughly to the middle of whatever vertical room is actually left above
+            // the nav. Replaces the small Golden-ratio DotsToPlayOfScreenH gap (now unused for
+            // this) with half of the true remaining space, so the other half naturally becomes
+            // `_bottomSpacer`'s clearance above the nav - the two ends of that leftover room stay
+            // visually balanced instead of Play sitting at one extreme of it.
+            float dotsBottom = cardTop + activeH + dotsGap + dotDiameter;
+            float spaceForPlayAndSpacer = Mathf.Max(VisualTokens.Spacing.XL, screenH - navReserve - dotsBottom - playH);
+            playGap = spaceForPlayAndSpacer * 0.5f;
+
             _carousel.style.height = activeH;
             _carousel.style.marginTop = cardTop - brandBottom;
 
@@ -943,9 +965,9 @@ namespace HearApp.Core.Shell.UI
             float peekTop = activeTop + (activeH - peekH) * 0.5f - activeH * Golden.PeekCenterRiseOfActiveH;
             float peekGap = screenW * Golden.PeekGapOfScreenW;
 
-            ApplyCardRect(_activeCard, activeLeft, activeTop, activeW, activeH, isActive: true);
-            ApplyCardRect(_prevCard, activeLeft - peekGap - peekW, peekTop, peekW, peekH, isActive: false);
-            ApplyCardRect(_nextCard, activeLeft + activeW + peekGap, peekTop, peekW, peekH, isActive: false);
+            ApplyCardRect(_activeCard, activeLeft, activeTop, activeW, activeH, isActive: true, activeCardWidth: activeW);
+            ApplyCardRect(_prevCard, activeLeft - peekGap - peekW, peekTop, peekW, peekH, isActive: false, activeCardWidth: activeW);
+            ApplyCardRect(_nextCard, activeLeft + activeW + peekGap, peekTop, peekW, peekH, isActive: false, activeCardWidth: activeW);
 
             // ---- Active card's title and tagline ----
             var title = _activeCard?.Q<Label>("cardTitle");
@@ -1036,10 +1058,13 @@ namespace HearApp.Core.Shell.UI
 
             RefreshHomeBackground();
 
-            // Companion + shadow: positioned from companion.json's homePlacement normalized
-            // screen center (see GetHomeCompanionPlacement), not the active card's rect - anchoring
-            // to the card's corner placed the Companion far too high (tucked against the card)
-            // compared to the GOLDEN board, confirmed on a real Galaxy Z Fold screenshot.
+            // Companion + shadow: anchored to the Play button's own corner, not a screen-normalized
+            // companion.json placement - human direction 2026-09-25 ("maskota bych vzdy prilepil k
+            // tomu tlacitku... jakoby byl v rohu toho tlacitka, nebo z nej vyrustal"). A
+            // screen-normalized position happened to look right only by coincidence of where Play
+            // used to sit; now that Play's own vertical position is content-driven (see the "Play
+            // vertical position" block above), anchoring off Play directly keeps the two glued
+            // together through any future retune instead of drifting apart again.
             var companionTex = WorldArt.CompanionOnDarkNeutralLeft;
             if (companionTex != null && _companion != null)
             {
@@ -1051,16 +1076,15 @@ namespace HearApp.Core.Shell.UI
                 // 0.112 of screen width on-device against 0.203 measured on the GOLDEN board.
                 float companionWidth = screenW * placement.WidthFraction / CompanionSpriteContentFraction;
                 float companionHeight = companionWidth * companionTex.height / companionTex.width;
-                float centerX = screenW * placement.NormX;
 
-                // The spec's normalized Y lands inside the card's own bottom edge on an unusually
-                // tall/narrow screen (confirmed on a real Galaxy Z Fold cover display) - clamp
-                // below the card's actual resolved bottom so "doNotPlaceOverMainWorldCardSubject"
-                // (companion.json) holds regardless of aspect ratio.
-                float carouselTopInScreenLayer = _carousel.worldBound.yMin - _screenLayer.worldBound.yMin;
-                float cardBottom = carouselTopInScreenLayer + activeTop + activeH;
-                float minCenterY = cardBottom + companionHeight * 0.5f + VisualTokens.Spacing.S;
-                float centerY = Mathf.Max(screenH * placement.NormY, minCenterY);
+                float playRowTop = dotsBottom + playGap;
+                float playLeft = (screenW - playW) * 0.5f;
+                float playRight = playLeft + playW;
+                // Sits mostly beside/above Play's top-right corner, only its base overlapping, as
+                // if growing out of it - first pass centred too far over the button and covered
+                // its own arrow glyph, confirmed on-device 2026-09-25.
+                float centerX = playRight + companionWidth * 0.08f;
+                float centerY = playRowTop - companionHeight * 0.32f;
                 _companion.style.width = companionWidth;
                 _companion.style.height = companionHeight;
                 _companion.style.left = centerX - companionWidth * 0.5f;

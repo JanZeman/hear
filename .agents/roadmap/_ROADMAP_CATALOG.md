@@ -107,14 +107,9 @@ actually applies, and writing that word - never an invented synonym.
 
 ## Idea
 
-<!-- TODO: Add ideas as they come up - same file+row mechanism as everything else, just kept
-     light (Status: Idea, Milestone and Depends on as "-", one or two sentences in the file,
-     no Definition of done). Example:
-
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
-| 003 | [Idea name](003-idea-name.md) | - | One-line hook for what this idea is |
--->
+| 008 | [Carousel live drag tracking](008-carousel-live-drag-tracking.md) | - | Swipe today jumps only on release; investigated root cause + options, not yet actioned |
 
 ---
 

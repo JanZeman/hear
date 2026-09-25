@@ -310,3 +310,9 @@ __pycache__/
 .agents/.venture-wiki-last-check
 
 .agents/.venture-review-last-check
+
+# Ad-hoc Unity build logs and on-device QA screenshots dropped in the repo root during
+# build->install->screenshot->compare iteration (should live in the agent's scratchpad dir
+# instead, but keep this as a backstop).
+/*.log
+/*.png
