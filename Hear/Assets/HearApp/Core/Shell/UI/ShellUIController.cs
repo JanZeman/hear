@@ -31,8 +31,14 @@ namespace HearApp.Core.Shell.UI
         // otherwise ("je-li schovany, tak tam neni 'nic' a to vypada blbe").
         private VisualElement _navBackdropExtension;
         private ResponsiveNavBar _nav;
-        private Label _hudProgressLabel;
         private VisualElement _hudProgressFill;
+        private VisualElement _hudPointsBadge;
+        private Label _hudPointsLabel;
+        private int _hudPoints;
+        private int _lastCorrectDetections;
+        private VisualElement _pauseButton;
+        private Image _pauseIcon;
+        private bool _isPaused;
         private ShellBreakpoint _lastBreakpoint = (ShellBreakpoint)(-1);
 
         // Ambient background crossfade (world selector only): _ambientBack always shows the last
@@ -370,6 +376,14 @@ namespace HearApp.Core.Shell.UI
 
         private void OnStateChanged(GameFlowController.ShellState state)
         {
+            // Safety net: leaving Playing (session complete, or any other transition) must never
+            // leave the whole app time-frozen from a forgotten pause.
+            if (state != GameFlowController.ShellState.Playing && _isPaused)
+            {
+                _isPaused = false;
+                Time.timeScale = 1f;
+            }
+
             // _root's background must be transparent during Playing, or this UI Toolkit overlay
             // (which composites on top of the scene Camera) paints solid Pearl0 over the whole
             // screen and the world's own Camera - sprites, ambient creatures, the capture gag,
@@ -747,6 +761,12 @@ namespace HearApp.Core.Shell.UI
 
             if (isActive)
             {
+                // Tapping the centered/active card starts the same session as the Play pill -
+                // human request 2026-09-25 ("hra se spustí i kliknutím na prostřední tile").
+                // ClickEvent (not PointerDown/Up) so this naturally only fires on an actual tap,
+                // not a carousel drag, same as the peek cards' select-on-tap below.
+                card.RegisterCallback<ClickEvent>(_ => _flow.RequestPlaySelectedWorld());
+
                 // GOLDEN board: title+tagline sit near the TOP of the card, directly over the sky,
                 // with only a slight top-down gradient behind them - not a large opaque block
                 // covering the lower half of the scene (that hid the river/figure/bridge/lantern).
@@ -1329,43 +1349,99 @@ namespace HearApp.Core.Shell.UI
 
         // ---------------------------------------------------------------- Playing HUD
 
+        // Points awarded per correct detection, purely a Shell-side display concept (the engine
+        // only tracks CorrectDetections) - matches the "+20" the reference concept art shows.
+        private const int PointsPerCatch = 20;
+
+        // Redesigned per human direction 2026-09-25: no "Round X/12" (redundant with the progress
+        // bar and more visually noisy); left-to-right: star+points badge, progress bar, pause
+        // button. Points fly in from the catch and land in the badge instead of just ticking a
+        // number - "jako by body prileti tam do toho boxiku".
         private void ShowPlayingHud()
         {
             _screenLayer.Clear();
+            _isPaused = false;
+            Time.timeScale = 1f;
+            _hudPoints = 0;
+            _lastCorrectDetections = 0;
+
+            // Top inset must clear the safe area (notch / Dynamic Island / camera cutout) instead
+            // of a fixed spacing token - reported sitting under the cutout on-device 2026-09-25.
             var hudRoot = new VisualElement
             {
                 style =
                 {
-                    position = Position.Absolute, top = VisualTokens.Spacing.M, left = VisualTokens.Spacing.M, right = VisualTokens.Spacing.M,
+                    position = Position.Absolute,
+                    top = GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M,
+                    left = VisualTokens.Spacing.M, right = VisualTokens.Spacing.M,
                     flexDirection = FlexDirection.Row, alignItems = Align.Center
                 },
                 pickingMode = PickingMode.Ignore
             };
 
+            _hudPointsBadge = new VisualElement
+            {
+                style =
+                {
+                    flexDirection = FlexDirection.Row, alignItems = Align.Center,
+                    paddingLeft = VisualTokens.Spacing.S, paddingRight = VisualTokens.Spacing.S,
+                    paddingTop = 6, paddingBottom = 6,
+                    backgroundColor = new Color(0f, 0f, 0f, 0.35f),
+                    borderTopLeftRadius = 999, borderTopRightRadius = 999,
+                    borderBottomLeftRadius = 999, borderBottomRightRadius = 999,
+                    marginRight = VisualTokens.Spacing.S
+                },
+                pickingMode = PickingMode.Ignore
+            };
+            var star = MakeLabel("★", new VisualTokens.TypeStyle(15, 700), new Color(0.96f, 0.77f, 0.32f));
+            star.style.marginRight = 4;
+            _hudPointsBadge.Add(star);
+            _hudPointsLabel = MakeLabel("0", VisualTokens.Type.Caption, Color.white);
+            _hudPointsBadge.Add(_hudPointsLabel);
+            hudRoot.Add(_hudPointsBadge);
+
+            // Radius must be <= half the bar's own height (3) or UI Toolkit renders a pointed/
+            // mitered corner instead of a rounded cap - VisualTokens.Radius.S (10) on a 6px-tall
+            // bar did exactly that (reported on-device 2026-09-25: "špičatej konec").
+            const float barHeight = 6f;
+            const float barRadius = barHeight / 2f;
             var track = new VisualElement
             {
                 style =
                 {
-                    flexGrow = 1, height = 6, backgroundColor = VisualTokens.Colors.Mist100,
-                    borderTopLeftRadius = VisualTokens.Radius.S, borderTopRightRadius = VisualTokens.Radius.S,
-                    borderBottomLeftRadius = VisualTokens.Radius.S, borderBottomRightRadius = VisualTokens.Radius.S
-                }
+                    flexGrow = 1, height = barHeight, backgroundColor = VisualTokens.Colors.Mist100,
+                    borderTopLeftRadius = barRadius, borderTopRightRadius = barRadius,
+                    borderBottomLeftRadius = barRadius, borderBottomRightRadius = barRadius,
+                    marginRight = VisualTokens.Spacing.S
+                },
+                pickingMode = PickingMode.Ignore
             };
             _hudProgressFill = new VisualElement
             {
                 style =
                 {
-                    height = 6, width = 0, backgroundColor = VisualTokens.Colors.AuroraBlue,
-                    borderTopLeftRadius = VisualTokens.Radius.S, borderTopRightRadius = VisualTokens.Radius.S,
-                    borderBottomLeftRadius = VisualTokens.Radius.S, borderBottomRightRadius = VisualTokens.Radius.S
+                    height = barHeight, width = 0, backgroundColor = VisualTokens.Colors.AuroraBlue,
+                    borderTopLeftRadius = barRadius, borderTopRightRadius = barRadius,
+                    borderBottomLeftRadius = barRadius, borderBottomRightRadius = barRadius
                 }
             };
             track.Add(_hudProgressFill);
             hudRoot.Add(track);
 
-            _hudProgressLabel = MakeLabel("0%", VisualTokens.Type.Caption, VisualTokens.Colors.Ink700);
-            _hudProgressLabel.style.marginLeft = VisualTokens.Spacing.S;
-            hudRoot.Add(_hudProgressLabel);
+            _pauseButton = new VisualElement
+            {
+                style =
+                {
+                    width = 36, height = 36, alignItems = Align.Center, justifyContent = Justify.Center,
+                    backgroundColor = new Color(0f, 0f, 0f, 0.35f),
+                    borderTopLeftRadius = 999, borderTopRightRadius = 999,
+                    borderBottomLeftRadius = 999, borderBottomRightRadius = 999
+                }
+            };
+            _pauseIcon = new Image { image = WorldArt.Icon("pause"), style = { width = 16, height = 16 } };
+            _pauseButton.Add(_pauseIcon);
+            _pauseButton.RegisterCallback<ClickEvent>(_ => TogglePause());
+            hudRoot.Add(_pauseButton);
 
             _screenLayer.Add(hudRoot);
         }
@@ -1375,7 +1451,75 @@ namespace HearApp.Core.Shell.UI
             if (_hudProgressFill == null) return;
             float progress = _flow.Engine.Progress;
             _hudProgressFill.style.width = new Length(progress * 100f, LengthUnit.Percent);
-            _hudProgressLabel.text = $"{Mathf.RoundToInt(progress * 100f)}%";
+
+            int correct = _flow.Engine.CurrentResult.CorrectDetections;
+            int newCatches = correct - _lastCorrectDetections;
+            if (newCatches > 0)
+            {
+                _lastCorrectDetections = correct;
+                for (int i = 0; i < newCatches; i++)
+                    StartCoroutine(AnimatePointsPopup(PointsPerCatch));
+            }
+        }
+
+        private void TogglePause()
+        {
+            _isPaused = !_isPaused;
+            Time.timeScale = _isPaused ? 0f : 1f;
+            _pauseIcon.image = WorldArt.Icon(_isPaused ? "play" : "pause");
+        }
+
+        /// <summary>A "+20" pops up near the middle of the screen and flies into the points
+        /// badge, arcing and shrinking/fading as it goes, then the badge's own number updates and
+        /// gives a small bounce - "jako by body přiletí tam do toho boxíku" (human direction
+        /// 2026-09-25), replacing a flat number tick.</summary>
+        private IEnumerator AnimatePointsPopup(int amount)
+        {
+            var popup = MakeLabel($"+{amount}", new VisualTokens.TypeStyle(22, 700), new Color(0.96f, 0.77f, 0.32f));
+            popup.style.position = Position.Absolute;
+            popup.pickingMode = PickingMode.Ignore;
+            _screenLayer.Add(popup);
+
+            yield return null; // let layout settle so worldBound is valid below
+            Rect badgeRect = _hudPointsBadge.worldBound;
+            Rect layerRect = _screenLayer.worldBound;
+            Vector2 target = new(badgeRect.x + badgeRect.width * 0.5f, badgeRect.y + badgeRect.height * 0.5f);
+            Vector2 start = new(layerRect.width * 0.5f, layerRect.height * 0.38f);
+
+            const float duration = 0.55f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = Mathf.Clamp01(elapsed / duration);
+                float eased = p * p; // ease-in toward the badge
+                Vector2 pos = Vector2.Lerp(start, target, eased);
+                popup.style.left = pos.x;
+                popup.style.top = pos.y - Mathf.Sin(p * Mathf.PI) * 40f; // small arc, not a straight line
+                popup.style.opacity = 1f - Mathf.Pow(p, 3f);
+                popup.style.scale = new Scale(Vector3.one * Mathf.Lerp(1f, 0.5f, p));
+                yield return null;
+            }
+            _screenLayer.Remove(popup);
+
+            _hudPoints += amount;
+            _hudPointsLabel.text = _hudPoints.ToString();
+            yield return PopBadge();
+        }
+
+        private IEnumerator PopBadge()
+        {
+            const float duration = 0.25f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = elapsed / duration;
+                float bounce = Mathf.Sin(p * Mathf.PI) * 0.25f;
+                _hudPointsBadge.style.scale = new Scale(Vector3.one * (1f + bounce));
+                yield return null;
+            }
+            _hudPointsBadge.style.scale = new Scale(Vector3.one);
         }
 
         // ---------------------------------------------------------------- Results
@@ -1409,11 +1553,74 @@ namespace HearApp.Core.Shell.UI
 
         // ---------------------------------------------------------------- Settings
 
+        // Deliberately minimal (human request 2026-09-25: "strašně primitivní settings
+        // obrazovku") - two dev-speed toggles, PlayerPrefs-backed via GameFlowController. The
+        // exact settings surface for real users is still an open question; this exists purely to
+        // make playtesting faster by skipping the never-blocking intro screens.
         private void ShowSettingsScreen()
         {
             var screen = NewScreen();
             screen.Add(MakeLabel("Settings", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
-            screen.Add(MakeLabel("(placeholder - exact settings surface is an open question)", VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, VisualTokens.Spacing.S));
+            screen.Add(MakeLabel("Dev speed (more settings later)", VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, VisualTokens.Spacing.S));
+
+            var skipHeadphones = MakeCheckboxRow("Skip \"headphones recommended\" screen", _flow.SkipHeadphoneChoice,
+                v => _flow.SkipHeadphoneChoice = v);
+            skipHeadphones.style.marginTop = VisualTokens.Spacing.L;
+            screen.Add(skipHeadphones);
+
+            var skipInstructions = MakeCheckboxRow("Skip instructions screen", _flow.SkipMicroInstruction,
+                v => _flow.SkipMicroInstruction = v);
+            skipInstructions.style.marginTop = VisualTokens.Spacing.M;
+            screen.Add(skipInstructions);
+
+            var longSession = MakeCheckboxRow("Run session 10x longer (dev)", _flow.LongSession,
+                v => _flow.LongSession = v);
+            longSession.style.marginTop = VisualTokens.Spacing.M;
+            screen.Add(longSession);
+        }
+
+        // Hand-built instead of UI Toolkit's built-in Toggle: this project has no default Theme
+        // Style Sheet (see the "No Theme Style Sheet" runtime warning), so Toggle's built-in
+        // checkmark box renders invisibly - on-device the setting's own on/off state was
+        // impossible to see (reported 2026-09-25: "netuším, jestli je to enabled nebo
+        // disabled"). This draws its own box/checkmark so it never depends on a theme.
+        private static VisualElement MakeCheckboxRow(string label, bool initialValue, System.Action<bool> onChanged)
+        {
+            bool value = initialValue;
+            var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+
+            var box = new VisualElement
+            {
+                style =
+                {
+                    width = 22, height = 22, marginRight = VisualTokens.Spacing.S,
+                    borderTopWidth = 2, borderBottomWidth = 2, borderLeftWidth = 2, borderRightWidth = 2,
+                    borderTopColor = VisualTokens.Colors.Ink900, borderBottomColor = VisualTokens.Colors.Ink900,
+                    borderLeftColor = VisualTokens.Colors.Ink900, borderRightColor = VisualTokens.Colors.Ink900,
+                    borderTopLeftRadius = VisualTokens.Radius.S, borderTopRightRadius = VisualTokens.Radius.S,
+                    borderBottomLeftRadius = VisualTokens.Radius.S, borderBottomRightRadius = VisualTokens.Radius.S,
+                    alignItems = Align.Center, justifyContent = Justify.Center
+                }
+            };
+            var check = MakeLabel("✓", new VisualTokens.TypeStyle(16, 700), Color.white);
+            box.Add(check);
+            row.Add(box);
+            row.Add(MakeLabel(label, VisualTokens.Type.Body, VisualTokens.Colors.Ink900));
+
+            void Refresh()
+            {
+                box.style.backgroundColor = value ? VisualTokens.Colors.AuroraBlue : Color.clear;
+                check.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+            Refresh();
+
+            row.RegisterCallback<ClickEvent>(_ =>
+            {
+                value = !value;
+                Refresh();
+                onChanged(value);
+            });
+            return row;
         }
     }
 }

@@ -29,15 +29,24 @@ namespace HearApp.Core.HearingEngine
     {
         private static readonly float[] ReferenceFrequenciesHz = { 1000f, 2000f, 4000f, 8000f, 12000f, 16000f };
 
-        public static List<TrialSpec> BuildDefault(AudioOutputMode mode, System.Random rng)
+        /// <param name="repeatCount">Repeats the reference-frequency set this many times (catch
+        /// trials scale proportionally, below). Dev-only "10x longer session" setting (human
+        /// request 2026-09-25, so playtesting a world doesn't need re-triggering the whole shell
+        /// flow every ~8 trials); always 1 for real sessions.</param>
+        public static List<TrialSpec> BuildDefault(AudioOutputMode mode, System.Random rng, int repeatCount = 1)
         {
             var plan = new List<TrialSpec>();
-            for (int i = 0; i < ReferenceFrequenciesHz.Length; i++)
+            int idx = 0;
+            for (int rep = 0; rep < repeatCount; rep++)
             {
-                EarChannel channel = mode == AudioOutputMode.Headphones
-                    ? (i % 2 == 0 ? EarChannel.Left : EarChannel.Right)
-                    : EarChannel.Combined;
-                plan.Add(new TrialSpec(false, channel, ReferenceFrequenciesHz[i]));
+                for (int i = 0; i < ReferenceFrequenciesHz.Length; i++)
+                {
+                    EarChannel channel = mode == AudioOutputMode.Headphones
+                        ? (idx % 2 == 0 ? EarChannel.Left : EarChannel.Right)
+                        : EarChannel.Combined;
+                    plan.Add(new TrialSpec(false, channel, ReferenceFrequenciesHz[i]));
+                    idx++;
+                }
             }
 
             int catchCount = Mathf.Max(1, Mathf.RoundToInt(plan.Count * 0.2f));

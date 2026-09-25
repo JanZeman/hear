@@ -15,8 +15,12 @@ namespace HearApp.Worlds.TideTroubles
     /// see <see cref="TideTroublesArt"/>) instead of the earlier colored-quad greybox. Layering is
     /// controlled entirely via SpriteRenderer.sortingOrder rather than Z/camera transparency-sort
     /// settings, so it is correct regardless of project graphics settings: Background(-100) &lt;
-    /// FloatingProps(-10) &lt; Seagulls(-5) &lt; FishTargets(0) &lt; Net/Launcher(5) &lt;
-    /// Splash/Effects(9-10) &lt; DogCompanion(15) &lt; DockFrame(20, frontmost).
+    /// FloatingProps(-10) &lt; Seagulls(-5) &lt; FishTargets(0) &lt; DockFrame(3) &lt;
+    /// Net/Launcher(5) &lt; Splash/Effects(9-10) &lt; DogCompanion(15). DockFrame sits between
+    /// the fish and the launcher/net/dog/companion/effects on purpose - those all need to read
+    /// as standing *on* the dock, in front of its wood texture, not hidden behind it (a real bug
+    /// on-device 2026-09-25: DockFrame was frontmost, silently hiding the net/launcher/dog/
+    /// companion under its opaque lower portion).
     ///
     /// Ambient gulls/fish/floating props run on their own independent timers (see Update and
     /// FishAmbientLoop) so their motion is never correlated with stimulus onset. A
@@ -32,8 +36,6 @@ namespace HearApp.Worlds.TideTroubles
 
         private const int IdleDogPoseIndex = 0;
         private const int HappyDogPoseIndex = 5;
-        private const int IdleCompanionPoseIndex = 0;
-        private const int HappyCompanionPoseIndex = 2;
 
         private sealed class FishInstance
         {
@@ -156,6 +158,7 @@ namespace HearApp.Worlds.TideTroubles
             _capturedNow.Add(fish.Transform);
             Vector3 targetPos = fish.Transform.position;
             Transform launcher = GetLauncher(channel, targetPos);
+            bool launchedFromLeft = launcher == _launcherLeft.transform;
 
             // 1. Anticipation: the launcher squashes down before firing - a comic "wind-up" read.
             // No relation to tone timing; this whole sequence only starts after classification.
@@ -178,8 +181,9 @@ namespace HearApp.Worlds.TideTroubles
             _captureParticles.transform.position = targetPos;
             _captureParticles.Emit(24);
             _audioSource.PlayOneShot(_gagChimeClip);
+            Handheld.Vibrate(); // haptic buzz timed with the camera shake, per device feedback 2026-09-25
             var shake = StartCoroutine(CameraShake(0.15f, 0.12f));
-            var react = StartCoroutine(ReactionPop());
+            var react = StartCoroutine(ReactionPop(launchedFromLeft));
             yield return SquashStretchPop(fish.Transform, 0.25f);
             yield return shake;
             yield return react;
@@ -290,16 +294,27 @@ namespace HearApp.Worlds.TideTroubles
                 fish.Renderer.sprite = TideTroublesArt.FishIdle(fish.Species);
         }
 
-        private IEnumerator ReactionPop()
+        /// <summary>Only the reactor on the side the net was launched from celebrates (companion
+        /// sits left, dog sits right) - human feedback 2026-09-25: both popping on every single
+        /// catch was more simultaneous animation than the moment needed.</summary>
+        private IEnumerator ReactionPop(bool launchedFromLeft)
         {
-            _dogRenderer.sprite = TideTroublesArt.DogPose(HappyDogPoseIndex);
-            _companionRenderer.sprite = TideTroublesArt.CompanionPose(HappyCompanionPoseIndex);
-            SpawnTransientEffect(TideTroublesArt.CelebrationBurst, _companion.position + Vector3.up * 0.3f, 0.5f, sortingOrder: 14);
-            StartCoroutine(Pop(_dog, 0.3f));
-            yield return Pop(_companion, 0.3f);
-            yield return new WaitForSeconds(0.2f);
-            _dogRenderer.sprite = TideTroublesArt.DogPose(IdleDogPoseIndex);
-            _companionRenderer.sprite = TideTroublesArt.CompanionPose(IdleCompanionPoseIndex);
+            Vector3 burstPos = (launchedFromLeft ? _companion : _dog).position + Vector3.up * 0.3f;
+            SpawnTransientEffect(TideTroublesArt.CelebrationBurst, burstPos, 0.5f, sortingOrder: 14);
+            if (launchedFromLeft)
+            {
+                _companionRenderer.sprite = TideTroublesArt.CompanionHappy;
+                yield return Pop(_companion, 0.3f);
+                yield return new WaitForSeconds(0.2f);
+                _companionRenderer.sprite = TideTroublesArt.CompanionIdle;
+            }
+            else
+            {
+                _dogRenderer.sprite = TideTroublesArt.DogPose(HappyDogPoseIndex);
+                yield return Pop(_dog, 0.3f);
+                yield return new WaitForSeconds(0.2f);
+                _dogRenderer.sprite = TideTroublesArt.DogPose(IdleDogPoseIndex);
+            }
         }
 
         private static IEnumerator Pop(Transform t, float duration)
@@ -423,7 +438,7 @@ namespace HearApp.Worlds.TideTroubles
             AddCoverSprite("HarborBackground", TideTroublesArt.Background, worldW, worldH, sortingOrder: -100);
             // Dock frame is a foreground overlay (transparent center, wooden posts/rope border) -
             // per the handoff README, it sits in front of the play area.
-            AddCoverSprite("DockFrame", TideTroublesArt.DockFrame, worldW, worldH, sortingOrder: 20);
+            AddCoverSprite("DockFrame", TideTroublesArt.DockFrame, worldW, worldH, sortingOrder: 3);
         }
 
         /// <summary>Scales a sprite uniformly so it fully covers the given world-space rect
@@ -450,17 +465,34 @@ namespace HearApp.Worlds.TideTroubles
         {
             float halfHeight = cam.orthographicSize;
             float halfWidth = halfHeight * cam.aspect;
+
+            // Evenly-spaced, shuffled slots (jittered within each) instead of pure uniform random
+            // across the whole width - free random placement clustered fish right next to each
+            // other often enough to be worth fixing (human feedback 2026-09-25).
+            float rangeMin = -halfWidth * 0.65f;
+            float rangeMax = halfWidth * 0.65f;
+            float slotWidth = (rangeMax - rangeMin) / FishTargetCount;
+            var slotOrder = new List<int>();
+            for (int i = 0; i < FishTargetCount; i++) slotOrder.Add(i);
+            for (int i = slotOrder.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (slotOrder[i], slotOrder[j]) = (slotOrder[j], slotOrder[i]);
+            }
+
             for (int i = 0; i < FishTargetCount; i++)
             {
                 int species = i % TideTroublesArt.FishSpeciesCount;
-                var obj = CreateSprite($"Fish_{i}", TideTroublesArt.FishIdle(species), sortingOrder: 0, scale: 0.9f);
+                var obj = CreateSprite($"Fish_{i}", TideTroublesArt.FishIdle(species), sortingOrder: 0, scale: 2.3f);
                 // Background's horizon sits around +0.16*halfHeight in world space (the
                 // background/dock cover-fit keeps the full portrait image height on-screen, per
                 // docs/v1.0-tide-troubles-handoff/implementation-notes.md); fish must stay below
                 // that or they visibly float in the sky/cliffs instead of the water - reported
                 // on-device 2026-09-25.
+                float slotCenter = rangeMin + slotWidth * (slotOrder[i] + 0.5f);
+                float jitterX = Random.Range(-slotWidth * 0.3f, slotWidth * 0.3f);
                 Vector3 pos = new(
-                    Random.Range(-halfWidth * 0.65f, halfWidth * 0.65f),
+                    slotCenter + jitterX,
                     Random.Range(-halfHeight * 0.5f, -halfHeight * 0.05f),
                     0f);
                 obj.transform.position = pos;
@@ -483,7 +515,7 @@ namespace HearApp.Worlds.TideTroubles
             float halfWidth = halfHeight * cam.aspect;
             for (int i = 0; i < SeagullCount; i++)
             {
-                var obj = CreateSprite($"Seagull_{i}", TideTroublesArt.SeagullPose(0), sortingOrder: -5, scale: 0.7f);
+                var obj = CreateSprite($"Seagull_{i}", TideTroublesArt.SeagullPose(0), sortingOrder: -5, scale: 1.8f);
                 float y = Random.Range(halfHeight * 0.45f, halfHeight * 0.85f);
                 float x = Random.Range(-halfWidth, halfWidth);
                 obj.transform.position = new Vector3(x, y, 0f);
@@ -538,13 +570,16 @@ namespace HearApp.Worlds.TideTroubles
             float halfWidth = halfHeight * cam.aspect;
             float dockY = -halfHeight + 1.1f;
 
-            _launcherLeft = CreateSprite("LauncherLeft", TideTroublesArt.LauncherIdleLeft, sortingOrder: 5, scale: 0.5f);
+            // Scaled up again to match the enlarged fish/seagull/dog/companion (human feedback
+            // 2026-09-25, twice: "strašně malý" then still "pořád moc malé" at 0.85 - the
+            // reference concept art shows the net cannon as a large, dominant foreground prop).
+            _launcherLeft = CreateSprite("LauncherLeft", TideTroublesArt.LauncherIdleLeft, sortingOrder: 5, scale: 1.4f);
             _launcherLeft.transform.position = new Vector3(-halfWidth * 0.8f, dockY, 0f);
 
-            _launcherRight = CreateSprite("LauncherRight", TideTroublesArt.LauncherIdleRight, sortingOrder: 5, scale: 0.5f);
+            _launcherRight = CreateSprite("LauncherRight", TideTroublesArt.LauncherIdleRight, sortingOrder: 5, scale: 1.4f);
             _launcherRight.transform.position = new Vector3(halfWidth * 0.8f, dockY, 0f);
 
-            _net = CreateSprite("Net", TideTroublesArt.NetLoose, sortingOrder: 8, scale: 0.5f);
+            _net = CreateSprite("Net", TideTroublesArt.NetLoose, sortingOrder: 8, scale: 1.1f);
             _net.SetActive(false);
         }
 
@@ -554,13 +589,17 @@ namespace HearApp.Worlds.TideTroubles
             float halfWidth = halfHeight * cam.aspect;
             float dockY = -halfHeight + 1.0f;
 
-            var dogObj = CreateSprite("DogReaction", TideTroublesArt.DogPose(IdleDogPoseIndex), sortingOrder: 15, scale: 0.7f);
+            var dogObj = CreateSprite("DogReaction", TideTroublesArt.DogPose(IdleDogPoseIndex), sortingOrder: 15, scale: 1.8f);
             dogObj.transform.position = new Vector3(halfWidth * 0.5f, dockY - 0.15f, 0f);
             _dog = dogObj.transform;
             _dogRenderer = dogObj.GetComponent<SpriteRenderer>();
 
-            var companionObj = CreateSprite("CompanionReaction", TideTroublesArt.CompanionPose(IdleCompanionPoseIndex), sortingOrder: 15, scale: 0.8f);
-            companionObj.transform.position = new Vector3(-halfWidth * 0.5f, dockY + 0.35f, 0f);
+            // Tucked further under the bottom edge than the dog, not just level with it - human
+            // feedback 2026-09-25: level still read as "floating", not "emerging from below" like
+            // the dog (the companion sprite's own crop has less visual mass below its pivot, so
+            // matching Y alone wasn't enough).
+            var companionObj = CreateSprite("CompanionReaction", TideTroublesArt.CompanionIdle, sortingOrder: 15, scale: 2.0f);
+            companionObj.transform.position = new Vector3(-halfWidth * 0.5f, dockY - 0.55f, 0f);
             _companion = companionObj.transform;
             _companionRenderer = companionObj.GetComponent<SpriteRenderer>();
         }
