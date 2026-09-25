@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using HearApp.Core.HearingEngine;
+using HearApp.Core.Results;
 using HearApp.Core.Worlds;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -68,6 +69,13 @@ namespace HearApp.Core.Shell
         public int SelectedWorldIndex { get; private set; }
         public AudioOutputMode OutputMode { get; private set; } = AudioOutputMode.Speaker;
         public TrialEngine Engine { get; private set; }
+
+        /// <summary>True when the Results state was entered by just finishing a session (so the
+        /// Results screen should show the post-session context); false when entered via the
+        /// bottom nav's Results tab (the neutral "Overall Results" context). Set in
+        /// <see cref="EnterWorldRoutine"/> / <see cref="ViewOverallResults"/> - the only two paths
+        /// into <see cref="ShellState.Results"/>.</summary>
+        public bool HasJustCompletedSession { get; private set; }
 
         private Scene _loadedWorldScene;
         private WorldPresentationBase _activeWorld;
@@ -176,7 +184,25 @@ namespace HearApp.Core.Shell
             // two later (a jarring flash back to Results after already leaving).
             if (Engine.SessionEndedByUserQuit) yield break;
 
+            // Frantic-tap-invalidated sessions are explicitly "not counted" (human request
+            // 2026-09-26 - see ShellUIController.ShowResultsScreen) - don't persist them into
+            // history either, only real/normal completions.
+            if (!Engine.SessionInvalidatedByFranticTapping)
+            {
+                var record = SessionHistoryEntry.FromResult(entry.Id, Engine.CurrentResult);
+                SessionHistoryStore.Append(record);
+            }
+
+            HasJustCompletedSession = true;
             SessionCompleted?.Invoke(Engine.CurrentResult);
+            SetState(ShellState.Results);
+        }
+
+        /// <summary>Bottom nav's Results tab: always shows the neutral "Overall Results" context,
+        /// even if the player's last session is still fresh.</summary>
+        public void ViewOverallResults()
+        {
+            HasJustCompletedSession = false;
             SetState(ShellState.Results);
         }
 
@@ -193,10 +219,10 @@ namespace HearApp.Core.Shell
 
         /// <summary>Dev-only: inject a classified outcome directly into the running session's active world,
         /// bypassing real audio scheduling/timing entirely. No-op if no session is running.</summary>
-        public Coroutine InjectDevOutcome(TrialOutcome outcome, EarChannel channel)
+        public Coroutine InjectDevOutcome(TrialOutcome outcome, EarChannel channel, float frequencyHz = 1000f)
         {
             if (_activeWorld == null || !Engine.IsRunning) return null;
-            return StartCoroutine(Engine.ProcessTrial(outcome, channel));
+            return StartCoroutine(Engine.ProcessTrial(outcome, channel, frequencyHz));
         }
 
         public void ReturnToSelectorFromResults()

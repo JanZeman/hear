@@ -21,6 +21,7 @@ namespace HearApp.Dev
         // is Unity's unrelated Rendering Debugger gesture, not this overlay).
         private bool _visible;
         private EarChannel _selectedChannel = EarChannel.Combined;
+        private int _selectedFrequencyIndex;
         private IntegrationProofRunner _proofRunner;
 
         private void Awake()
@@ -43,7 +44,10 @@ namespace HearApp.Dev
 
             if (!_visible) return;
 
-            GUILayout.BeginArea(new Rect(Screen.width - 260, 50, 250, 420), GUI.skin.box);
+            // y starts below the always-visible "DEV" toggle tap target above (it sits at y=10,
+            // height 32) so the panel never overlaps it; height grown to 500 (from main) to fit
+            // the frequency picker + Force Complete Session button added there.
+            GUILayout.BeginArea(new Rect(Screen.width - 260, 50, 250, 500), GUI.skin.box);
             GUILayout.Label("HEAR Dev Overlay (`)");
 
             GUILayout.Label("Channel:");
@@ -54,14 +58,26 @@ namespace HearApp.Dev
             GUILayout.EndHorizontal();
 
             GUILayout.Space(6);
+            GUILayout.Label($"Frequency: {TrialPlan.ReferenceFrequenciesHz[_selectedFrequencyIndex]:0} Hz");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("<")) _selectedFrequencyIndex = (_selectedFrequencyIndex - 1 + TrialPlan.ReferenceFrequenciesHz.Length) % TrialPlan.ReferenceFrequenciesHz.Length;
+            if (GUILayout.Button(">")) _selectedFrequencyIndex = (_selectedFrequencyIndex + 1) % TrialPlan.ReferenceFrequenciesHz.Length;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(6);
             GUILayout.Label("Inject outcome (active session only):");
             var flow = GameFlowController.Instance;
             bool sessionRunning = flow != null && flow.Engine != null && flow.Engine.IsRunning;
+            float freq = TrialPlan.ReferenceFrequenciesHz[_selectedFrequencyIndex];
             GUI.enabled = sessionRunning;
-            if (GUILayout.Button("Correct Detection")) flow.InjectDevOutcome(TrialOutcome.CorrectDetection, _selectedChannel);
-            if (GUILayout.Button("Miss")) flow.InjectDevOutcome(TrialOutcome.Miss, _selectedChannel);
-            if (GUILayout.Button("False Positive")) flow.InjectDevOutcome(TrialOutcome.FalsePositive, _selectedChannel);
-            if (GUILayout.Button("Correct Rejection")) flow.InjectDevOutcome(TrialOutcome.CorrectRejection, _selectedChannel);
+            if (GUILayout.Button("Correct Detection")) flow.InjectDevOutcome(TrialOutcome.CorrectDetection, _selectedChannel, freq);
+            if (GUILayout.Button("Miss")) flow.InjectDevOutcome(TrialOutcome.Miss, _selectedChannel, freq);
+            if (GUILayout.Button("False Positive")) flow.InjectDevOutcome(TrialOutcome.FalsePositive, _selectedChannel, freq);
+            if (GUILayout.Button("Correct Rejection")) flow.InjectDevOutcome(TrialOutcome.CorrectRejection, _selectedChannel, freq);
+            // Real sessions (especially with "Long session" dev-speed on, 10x trials) can take
+            // minutes to finish on their own - this lets a hand-injected batch of outcomes above
+            // reach Results immediately, without waiting out the rest of the real trial loop.
+            if (GUILayout.Button("Force Complete Session")) flow.Engine.CompleteSession();
             GUI.enabled = true;
 
             GUILayout.Space(10);

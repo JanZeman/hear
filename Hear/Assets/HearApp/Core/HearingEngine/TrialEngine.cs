@@ -211,7 +211,7 @@ namespace HearApp.Core.HearingEngine
         /// cref="LastAwardedPoints"/> on a CorrectDetection.</param>
         public IEnumerator ProcessTrial(TrialOutcome outcome, EarChannel channel, float frequencyHz = 0f)
         {
-            CurrentResult.Record(outcome, channel);
+            CurrentResult.Record(outcome, channel, frequencyHz);
             // Progress itself now advances continuously in Update(), not here - see BeginSession.
             if (outcome == TrialOutcome.CorrectDetection)
                 LastAwardedPoints = PointsForFrequency(frequencyHz);
