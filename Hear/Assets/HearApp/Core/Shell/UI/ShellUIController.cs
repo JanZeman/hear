@@ -304,6 +304,17 @@ namespace HearApp.Core.Shell.UI
 
         private void OnStateChanged(GameFlowController.ShellState state)
         {
+            // _root's background must be transparent during Playing, or this UI Toolkit overlay
+            // (which composites on top of the scene Camera) paints solid Pearl0 over the whole
+            // screen and the world's own Camera - sprites, ambient creatures, the capture gag,
+            // everything - never becomes visible at all. Found while testing the Tide Troubles
+            // capture gag on-device: the HUD progress bar rendered, but the entire world behind it
+            // was just flat white the whole session. Every other state keeps the opaque Pearl0
+            // backdrop, since those screens have no Camera under them to reveal.
+            _root.style.backgroundColor = state == GameFlowController.ShellState.Playing
+                ? Color.clear
+                : VisualTokens.Colors.Pearl0;
+
             _navHost.style.display = state is GameFlowController.ShellState.Playing or GameFlowController.ShellState.Splash
                 ? DisplayStyle.None
                 : DisplayStyle.Flex;

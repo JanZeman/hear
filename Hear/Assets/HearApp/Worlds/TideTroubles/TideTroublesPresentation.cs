@@ -20,9 +20,15 @@ namespace HearApp.Worlds.TideTroubles
     {
         private Camera _camera;
         private readonly List<Transform> _ambientCreatures = new();
+        // Creatures mid-gag are excluded from AmbientLoop's random bobbing (see AmbientLoop) -
+        // both coroutines animating the same transform's position/scale at once looked glitchy.
+        private readonly HashSet<Transform> _capturedNow = new();
         private ParticleSystem _captureParticles;
         private AudioSource _audioSource;
         private AudioClip _gagChimeClip;
+        private GameObject _net;
+        private GameObject _launcherLeft;
+        private GameObject _launcherRight;
 
         private float _sessionProgress;
 
@@ -39,6 +45,7 @@ namespace HearApp.Worlds.TideTroubles
 
             BuildHarborDock(_camera);
             SpawnAmbientCreatures(_camera);
+            BuildCaptureGagRig(_camera);
 
             _captureParticles = BuildParticles();
             _audioSource = gameObject.AddComponent<AudioSource>();
@@ -75,20 +82,61 @@ namespace HearApp.Worlds.TideTroubles
             Debug.Log($"[TideTroubles] Session complete: {result}");
         }
 
+        // Comic capture gag, per docs/07-world-tide-troubles.md's
+        // "tap accepted -> launch net -> auto-select target -> gag animation", choreographed as
+        // five beats (design discussion 2026-09-25): anticipation -> launch -> hit-stop ->
+        // exaggerated reaction -> release. ~0.75s total, well inside TrialEngine's 3s
+        // listening-safe timeout. All placeholder-shape "greybox" motion (squash/stretch,
+        // position lerp, camera shake) - no final art yet, only timing/choreography.
         private IEnumerator CaptureGag(EarChannel channel)
         {
-            // Autonomous capture: pick a target preferentially on the classified side (post-
-            // classification lateralization only), otherwise any ambient creature - the player's
-            // actual tap location never matters.
             Transform target = PickTarget(channel);
-            Vector3 pos = target != null ? target.position : Vector3.zero;
+            if (target == null)
+            {
+                RaiseListeningSafe();
+                yield break;
+            }
 
-            _captureParticles.transform.position = pos;
+            _capturedNow.Add(target);
+            Vector3 targetPos = target.position;
+            Transform launcher = GetLauncher(channel, targetPos);
+
+            // 1. Anticipation: the launcher squashes down before firing - a comic "wind-up" read.
+            // No relation to tone timing; this whole sequence only starts after classification.
+            yield return Squash(launcher, 0.12f);
+
+            // 2. Launch: net flies from the launcher to the target.
+            _net.SetActive(true);
+            _net.transform.position = launcher.position;
+            yield return FlyTo(_net.transform, launcher.position, targetPos, 0.18f);
+
+            // 3. Hit-stop: a beat of held stillness sells the impact - classic comic timing.
+            yield return new WaitForSeconds(0.06f);
+
+            // 4. Exaggerated reaction + the actual reward feedback (particles/chime/shake).
+            _captureParticles.transform.position = targetPos;
             _captureParticles.Emit(24);
             _audioSource.PlayOneShot(_gagChimeClip);
+            var shake = StartCoroutine(CameraShake(0.15f, 0.12f));
+            yield return SquashStretchPop(target, 0.25f);
+            yield return shake;
 
-            yield return new WaitForSeconds(0.35f); // disruptive phase duration
+            // 5. Release: net retracts, everything settles back to ambient.
+            _net.SetActive(false);
+            _capturedNow.Remove(target);
+            yield return new WaitForSeconds(0.15f);
+
             RaiseListeningSafe();
+        }
+
+        /// <summary>Left/Right channel launches from the matching side - reinforcing the
+        /// ear-aware lateralization <see cref="PickTarget"/> already applies to which creature
+        /// gets caught. Combined has no channel bias, so it launches from whichever side is
+        /// closer to the auto-selected target instead.</summary>
+        private Transform GetLauncher(EarChannel channel, Vector3 targetPos)
+        {
+            bool useLeft = channel == EarChannel.Left || (channel == EarChannel.Combined && targetPos.x < 0f);
+            return (useLeft ? _launcherLeft : _launcherRight).transform;
         }
 
         private Transform PickTarget(EarChannel channel)
@@ -116,9 +164,81 @@ namespace HearApp.Worlds.TideTroubles
             {
                 yield return new WaitForSeconds(Random.Range(0.6f, 1.8f));
                 if (_ambientCreatures.Count == 0) continue;
-                var creature = _ambientCreatures[Random.Range(0, _ambientCreatures.Count)];
+                // Skip creatures currently mid-gag: their transform is already being animated by
+                // CaptureGag, and layering the idle bob on top of that looked glitchy.
+                var idle = _ambientCreatures.FindAll(c => !_capturedNow.Contains(c));
+                if (idle.Count == 0) continue;
+                var creature = idle[Random.Range(0, idle.Count)];
                 StartCoroutine(BobCreature(creature));
             }
+        }
+
+        // --- Capture gag choreography helpers (greybox motion, no final art) ---
+
+        private static IEnumerator Squash(Transform t, float duration)
+        {
+            Vector3 baseScale = t.localScale;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = elapsed / duration;
+                float dip = Mathf.Sin(p * Mathf.PI) * 0.3f; // down then back up
+                t.localScale = new Vector3(baseScale.x * (1f + dip * 0.5f), baseScale.y * (1f - dip), baseScale.z);
+                yield return null;
+            }
+            t.localScale = baseScale;
+        }
+
+        private static IEnumerator FlyTo(Transform t, Vector3 from, Vector3 to, float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = Mathf.Clamp01(elapsed / duration);
+                float eased = p * p; // ease-in: slow start, fast whip at the end reads as a throw
+                t.position = Vector3.Lerp(from, to, eased);
+                yield return null;
+            }
+            t.position = to;
+        }
+
+        private static IEnumerator SquashStretchPop(Transform t, float duration)
+        {
+            Vector3 baseScale = t.localScale;
+            Quaternion baseRot = t.rotation;
+            // Small per-catch variation (direction/amount) so repeated gags never look identical -
+            // this world's whole raison d'etre is comic variety, per docs/07's mood description.
+            float spin = Random.Range(-25f, 25f);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float p = elapsed / duration;
+                // Overshoot-and-settle: pop bigger than base, then bounce back - the "caught!" beat.
+                float pop = Mathf.Sin(p * Mathf.PI) * 0.5f * (1f - p * 0.5f);
+                t.localScale = baseScale * (1f + pop);
+                t.rotation = baseRot * Quaternion.Euler(0f, 0f, spin * Mathf.Sin(p * Mathf.PI));
+                yield return null;
+            }
+            t.localScale = baseScale;
+            t.rotation = baseRot;
+        }
+
+        private IEnumerator CameraShake(float duration, float magnitude)
+        {
+            Vector3 basePos = _camera.transform.position;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float damper = 1f - elapsed / duration;
+                Vector2 offset = Random.insideUnitCircle * magnitude * damper;
+                _camera.transform.position = basePos + new Vector3(offset.x, offset.y, 0f);
+                yield return null;
+            }
+            _camera.transform.position = basePos;
         }
 
         private static IEnumerator BobCreature(Transform t)
@@ -166,6 +286,26 @@ namespace HearApp.Worlds.TideTroubles
                     0f);
                 _ambientCreatures.Add(obj.transform);
             }
+        }
+
+        /// <summary>Placeholder rig for the capture gag: two dockside "launchers" (left/right, for
+        /// ear-aware lateralization) and one reusable "net" that flies between them and whichever
+        /// creature gets caught. No real net/launcher/creature art yet - once this choreography is
+        /// validated on-device, it needs a designer handoff for real assets (see .agents/roadmap).</summary>
+        private void BuildCaptureGagRig(Camera cam)
+        {
+            float halfHeight = 5f;
+            float halfWidth = halfHeight * (cam.aspect > 0 ? cam.aspect : 1.6f);
+            float dockY = -halfHeight + 0.9f;
+
+            _launcherLeft = CreateColorQuad("LauncherLeft", new Color(0.45f, 0.32f, 0.2f), 0.5f, 0.5f);
+            _launcherLeft.transform.position = new Vector3(-halfWidth * 0.85f, dockY, 0f);
+
+            _launcherRight = CreateColorQuad("LauncherRight", new Color(0.45f, 0.32f, 0.2f), 0.5f, 0.5f);
+            _launcherRight.transform.position = new Vector3(halfWidth * 0.85f, dockY, 0f);
+
+            _net = CreateColorQuad("Net", new Color(0.95f, 0.95f, 0.9f), 0.4f, 0.4f);
+            _net.SetActive(false);
         }
 
         private static GameObject CreateColorQuad(string name, Color color, float width, float height)
