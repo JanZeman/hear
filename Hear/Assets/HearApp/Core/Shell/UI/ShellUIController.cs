@@ -242,13 +242,18 @@ namespace HearApp.Core.Shell.UI
             _nav.Apply(width);
 
             bool compact = breakpoint == ShellBreakpoint.Compact;
-            bool onHome = _flow != null && _flow.State == GameFlowController.ShellState.WorldSelector;
+            // Results also carries its own full-bleed background (world art or the neutral aurora
+            // gradient - see ResultsScreenBuilder) now, same as WorldSelector - human feedback
+            // 2026-09-26 ("Bottom nav bar musi zustat skleneny... proc ma bile pozadi?") after it
+            // regressed to the plain opaque treatment once Results grew a real background to float
+            // over.
+            bool navFloats = _flow != null && _flow.State is GameFlowController.ShellState.WorldSelector or GameFlowController.ShellState.Results;
 
-            // Compact Home must float the bottom nav as a translucent overlay on top of the
-            // full-bleed world art rather than reserving its own opaque flex row underneath it -
-            // otherwise the "overlay" tint in ResponsiveNavBar just blends into _root's own plain
-            // background instead of the scene, per docs/00-home-design-freeze.md section 5.
-            bool navOverlay = compact && onHome;
+            // Compact Home/Results must float the bottom nav as a translucent overlay on top of
+            // the full-bleed background rather than reserving its own opaque flex row underneath
+            // it - otherwise the "overlay" tint in ResponsiveNavBar just blends into _root's own
+            // plain background instead of the scene, per docs/00-home-design-freeze.md section 5.
+            bool navOverlay = compact && navFloats;
             _navHost.style.position = navOverlay ? Position.Absolute : Position.Relative;
             _navHost.style.left = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
             _navHost.style.right = navOverlay ? 0 : new StyleLength(StyleKeyword.Auto);
@@ -288,10 +293,11 @@ namespace HearApp.Core.Shell.UI
 
             // The quiet brand mark belongs above a sidebar/rail, not repeated above a bottom nav
             // bar (confirmed looking wrong - a stray logo floating in blank space - on a real
-            // folded-phone screenshot in Compact mode), and never on Home (see OnStateChanged).
+            // folded-phone screenshot in Compact mode), and never on Home/Results, which each
+            // carry their own prominent header logo (see OnStateChanged).
             if (_navLogo != null && _flow != null)
             {
-                _navLogo.style.display = (compact || onHome) ? DisplayStyle.None : DisplayStyle.Flex;
+                _navLogo.style.display = (compact || navFloats) ? DisplayStyle.None : DisplayStyle.Flex;
             }
 
             _navHost.RemoveFromHierarchy();
@@ -426,13 +432,24 @@ namespace HearApp.Core.Shell.UI
             _navHost.style.display = state is GameFlowController.ShellState.Playing or GameFlowController.ShellState.Splash
                 ? DisplayStyle.None
                 : DisplayStyle.Flex;
-            _nav?.SetOverlayMode(state == GameFlowController.ShellState.WorldSelector);
+            // Results carries its own full-bleed background now too (see ResultsScreenBuilder),
+            // same as WorldSelector - the glass nav treatment belongs on both, not just Home.
+            bool navFloats = state is GameFlowController.ShellState.WorldSelector or GameFlowController.ShellState.Results;
+            _nav?.SetOverlayMode(navFloats);
 
-            // Home now carries its own prominent logo+claim at the top (per the v1.0 GOLDEN
-            // board) - showing the small quiet nav-sidebar mark at the same time would duplicate
-            // the brand moment, so it only appears on the other shell screens.
+            // Home/Results each carry their own prominent header logo - showing the small quiet
+            // nav-sidebar mark at the same time would duplicate the brand moment, so it only
+            // appears on the other shell screens. Compact-aware too: this assignment fires on
+            // every real state change (unlike ApplyBreakpointLayout's copy of this same rule,
+            // which only re-runs on an actual breakpoint change) so it must not contradict that
+            // one - a stale Flex written here previously won out on a phone that never changes
+            // breakpoint, which is exactly how the mark ended up wrongly visible on Results
+            // (human report 2026-09-26, screenshot showing it floating above the nav bar).
             if (_navLogo != null)
-                _navLogo.style.display = state == GameFlowController.ShellState.WorldSelector ? DisplayStyle.None : DisplayStyle.Flex;
+            {
+                bool compactNow = ResponsiveNavBar.BreakpointForWidth(_root.resolvedStyle.width) == ShellBreakpoint.Compact;
+                _navLogo.style.display = (compactNow || navFloats) ? DisplayStyle.None : DisplayStyle.Flex;
+            }
 
             switch (state)
             {
