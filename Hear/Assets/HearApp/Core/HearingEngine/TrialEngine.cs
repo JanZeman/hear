@@ -277,9 +277,11 @@ namespace HearApp.Core.HearingEngine
         /// See roadmap 009.</summary>
         private static int PointsForFrequency(float hz)
         {
-            int basePoints = Mathf.RoundToInt(hz / 50f);
-            int jitter = UnityEngine.Random.Range(-9, 10);
-            return Mathf.Max(1, basePoints + jitter);
+            const float minHz = 1000f, maxHz = 16000f;
+            float t = Mathf.InverseLerp(minHz, maxHz, hz);
+            int basePoints = Mathf.RoundToInt(Mathf.Lerp(5f, 22f, t));
+            int jitter = UnityEngine.Random.Range(-3, 4);
+            return Mathf.Clamp(basePoints + jitter, 1, 25);
         }
     }
 }

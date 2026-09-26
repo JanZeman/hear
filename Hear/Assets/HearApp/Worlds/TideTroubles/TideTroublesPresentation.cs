@@ -91,6 +91,7 @@ namespace HearApp.Worlds.TideTroubles
         private AudioSource _audioSource;
         private AudioClip _gagChimeClip;
         private GameObject _net;
+        private Vector3 _netBaseScale;
         private GameObject _launcherLeft;
         private GameObject _launcherRight;
         private Transform _dog;
@@ -182,10 +183,13 @@ namespace HearApp.Worlds.TideTroubles
             // No relation to tone timing; this whole sequence only starts after classification.
             yield return Squash(launcher, 0.12f);
 
-            // 2. Launch: net flies from the launcher to the target.
+            // 2. Launch: net flies from the launcher to the target, unfurling from a tight bunch
+            // to a fully spread net as it travels (human request 2026-09-26: "vystřelí se chomáč
+            // sítě a doletí rozprostřená síť" - no new art needed, just scale the existing sprite
+            // up over the flight).
             _net.SetActive(true);
             _net.transform.position = launcher.position;
-            yield return FlyTo(_net.transform, launcher.position, targetPos, 0.18f);
+            yield return FlyAndSpreadNet(launcher.position, targetPos, 0.18f);
 
             // 3. Hit-stop: a beat of held stillness sells the impact - classic comic timing.
             yield return new WaitForSeconds(0.06f);
@@ -208,6 +212,7 @@ namespace HearApp.Worlds.TideTroubles
 
             // 5. Release: net retracts, everything settles back to ambient.
             _net.SetActive(false);
+            _net.transform.localScale = _netBaseScale;
             fish.Renderer.sprite = TideTroublesArt.FishIdle(fish.Species);
             _capturedNow.Remove(fish.Transform);
             yield return new WaitForSeconds(0.15f);
@@ -365,18 +370,27 @@ namespace HearApp.Worlds.TideTroubles
             t.localScale = baseScale;
         }
 
-        private static IEnumerator FlyTo(Transform t, Vector3 from, Vector3 to, float duration)
+        /// <summary>Flies the net from the launcher to the target while scaling it up from a
+        /// tight bunch to a fully spread net over the flight - reads as the net unfurling in the
+        /// air rather than flying already-open (human request 2026-09-26).</summary>
+        private IEnumerator FlyAndSpreadNet(Vector3 from, Vector3 to, float duration)
         {
+            Transform t = _net.transform;
+            Vector3 bunchedScale = _netBaseScale * 0.45f;
+            Vector3 spreadScale = _netBaseScale * 1.7f;
+            t.localScale = bunchedScale;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float p = Mathf.Clamp01(elapsed / duration);
-                float eased = p * p; // ease-in: slow start, fast whip at the end reads as a throw
+                float eased = p * p; // matches FlyTo's throw-whip easing
                 t.position = Vector3.Lerp(from, to, eased);
+                t.localScale = Vector3.Lerp(bunchedScale, spreadScale, p); // linear: steady unfurl
                 yield return null;
             }
             t.position = to;
+            t.localScale = spreadScale;
         }
 
         private static IEnumerator SquashStretchPop(Transform t, float duration)
@@ -598,6 +612,7 @@ namespace HearApp.Worlds.TideTroubles
             _launcherRight.transform.position = new Vector3(halfWidth * 0.8f, dockY, 0f);
 
             _net = CreateSprite("Net", TideTroublesArt.NetLoose, sortingOrder: 8, scale: 1.1f);
+            _netBaseScale = _net.transform.localScale;
             _net.SetActive(false);
         }
 
