@@ -60,8 +60,8 @@ namespace HearApp.Core.HearingEngine
         /// (on strike 3) aborts.</summary>
         public event Action<int> FranticTappingStrike;
 
-        // More sensitive than the original 8-taps/2.5s (human feedback 2026-09-26: "az po
-        // opravdu hodne kliknuti" - it only fired after way too many taps).
+        // More sensitive than the original 8-taps/2.5s (human feedback 2026-09-26: it only
+        // triggered after a truly excessive number of taps).
         private const int FranticTapCountThreshold = 5;
         private const float FranticTapWindowSeconds = 1.8f;
 

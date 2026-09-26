@@ -686,7 +686,7 @@ namespace HearApp.Core.Shell.UI
                     paddingTop = VisualTokens.Spacing.L, paddingBottom = VisualTokens.Spacing.L,
                     paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
                     marginBottom = VisualTokens.Spacing.M,
-                    // Root cause of the "silene zmatecna" overlap (human report 2026-09-26,
+                    // Root cause of the confusing/chaotic overlap of illegible card text (human report 2026-09-26,
                     // confirmed via a logged layout dump on a Galaxy S9+): UI Toolkit's default
                     // flex-shrink is 1, so once the stacked cards' natural total height exceeds
                     // the ScrollView's own viewport height, every card gets flex-shrunk to fit
@@ -761,7 +761,7 @@ namespace HearApp.Core.Shell.UI
 
         // Plain auto-height Labels in a Column flex layout measured with the WRONG (far too
         // short, sometimes near-zero) intrinsic height on-device - confirmed on a Galaxy S9+
-        // (human report 2026-09-26: "silene zmatecna", every card's rows painting on top of each
+        // (human report 2026-09-26: a mess of overlapping text, every card's rows painting on top of each
         // other instead of stacking) while this exact page's Buttons (which get real height from
         // their own padding, not text measurement) laid out fine. Root cause not chased further
         // (likely this runtime UI Toolkit build's text-shaping/measurement, per the "No ICU data

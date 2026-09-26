@@ -39,7 +39,7 @@ namespace HearApp.Core.Shell
         // Dev-speed settings (primitive Settings screen, human request 2026-09-25): skip the
         // never-blocking headphone-choice and micro-instruction screens so starting a session
         // drops straight into play. PlayerPrefs-backed, default true (both skipped) since the
-        // request was specifically "abychom to mohli rychleji testovat".
+        // request was specifically to enable faster testing.
         private const string SkipHeadphoneChoiceKey = "Settings.SkipHeadphoneChoice";
         private const string SkipMicroInstructionKey = "Settings.SkipMicroInstruction";
 
@@ -87,7 +87,7 @@ namespace HearApp.Core.Shell
 
             // Unity's built-in URP Rendering Debugger runtime overlay - not something this app
             // uses, but it ships enabled in Development builds and can pop up over the game
-            // (human report 2026-09-25: "ta debug screen... trochu mi překáží").
+            // (human report 2026-09-25: that debug screen is in the way).
             if (DebugManager.instance != null)
                 DebugManager.instance.enableRuntimeUI = false;
 

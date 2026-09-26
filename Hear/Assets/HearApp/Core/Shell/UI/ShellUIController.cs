@@ -740,7 +740,7 @@ namespace HearApp.Core.Shell.UI
             // deliberate deviation from the board. Built the same way as the nav icon's glow (many
             // closely-spaced layers from a smooth exponential falloff, not a handful of
             // hand-tuned rings - see ResponsiveNavBar.AddItem's notes on why that matters), tuned
-            // even more subtle than the nav icon per "opravdu musi byt jen velice subtilni".
+            // even more subtle than the nav icon, per feedback that it must be extremely delicate.
             var playRow = new VisualElement { style = { alignItems = Align.Center } };
             _playGlowLayers = new VisualElement[PlayGlowLayerCount];
             for (int i = 0; i < PlayGlowLayerCount; i++)
@@ -952,7 +952,7 @@ namespace HearApp.Core.Shell.UI
                 // layout bug of ours. `logoH` above is sized to the FULL canvas so the Image
                 // element displays the asset undistorted, so positioning the claim off `logoH`
                 // put it under that invisible padding instead of under the real glyph - human
-                // feedback 2026-09-25 ("claim je spatne umisteny... patri pod logo"). Pull the
+                // feedback 2026-09-25 (the claim positioning is wrong; it belongs under the logo). Pull the
                 // claim up by that baked-in padding so `claimGap` measures from the actual visible
                 // wordmark bottom, matching the sketch's tight "claim directly under logo" look.
                 const float LogoVisibleContentBottomFrac = 0.6419f;
@@ -970,8 +970,8 @@ namespace HearApp.Core.Shell.UI
             // board's 852x1846/0.462-aspect mockup) is gone: on this device's much taller
             // 968x2376/0.407 aspect it pinned the card far too close to the claim while leaving
             // a huge unused band (~200 logical units, measured) for `_bottomSpacer` to swallow
-            // below Play - human feedback 2026-09-25 ("strasne moc prostoru... uplne prazdno" /
-            // "claim... temer se nedotyka karuselu"). Same aspect-mismatch bug class already fixed
+            // below Play - human feedback 2026-09-25 (way too much empty space / the claim barely
+            // touches the carousel). Same aspect-mismatch bug class already fixed
             // once for the nav bar. Fix: anchor the card a comfortable fixed gap under the claim,
             // then let the real leftover space (computed from actual content, not a mockup ratio)
             // grow the carousel itself - capped, so it reads as "a bigger carousel" rather than an
@@ -989,7 +989,8 @@ namespace HearApp.Core.Shell.UI
             float dotsGap = screenH * Golden.CardToDotsOfScreenH;
             // Only a placeholder for the slack/short-screen math below - overwritten further down
             // once the card's final (possibly grown) height is known, per human direction
-            // 2026-09-25 ("Play moc prilepeny k teckam... do poloviny zbyvajiciho prostoru").
+            // 2026-09-25 (the Play button sticks too close to the dots; it should float somewhere
+            // around the midpoint of the remaining space).
             float playGap = screenH * Golden.DotsToPlayOfScreenH;
             float belowCard = dotsGap + dotDiameter + playGap + playH + navReserve;
 
@@ -1139,8 +1140,8 @@ namespace HearApp.Core.Shell.UI
             RefreshHomeBackground();
 
             // Companion + shadow: anchored to the Play button's own corner, not a screen-normalized
-            // companion.json placement - human direction 2026-09-25 ("maskota bych vzdy prilepil k
-            // tomu tlacitku... jakoby byl v rohu toho tlacitka, nebo z nej vyrustal"). A
+            // companion.json placement - human direction 2026-09-25 (the mascot should be glued to
+            // that button, as if sitting in its corner or growing out of it). A
             // screen-normalized position happened to look right only by coincidence of where Play
             // used to sit; now that Play's own vertical position is content-driven (see the "Play
             // vertical position" block above), anchoring off Play directly keeps the two glued
@@ -1469,7 +1470,7 @@ namespace HearApp.Core.Shell.UI
 
             // Radius must be <= half the bar's own height (3) or UI Toolkit renders a pointed/
             // mitered corner instead of a rounded cap - VisualTokens.Radius.S (10) on a 6px-tall
-            // bar did exactly that (reported on-device 2026-09-25: "špičatej konec").
+            // bar did exactly that (reported on-device 2026-09-25: a pointed corner).
             const float barHeight = 6f;
             const float barRadius = barHeight / 2f;
             var track = new VisualElement

@@ -184,8 +184,8 @@ namespace HearApp.Worlds.TideTroubles
             yield return Squash(launcher, 0.12f);
 
             // 2. Launch: net flies from the launcher to the target, unfurling from a tight bunch
-            // to a fully spread net as it travels (human request 2026-09-26: "vystřelí se chomáč
-            // sítě a doletí rozprostřená síť" - no new art needed, just scale the existing sprite
+            // to a fully spread net as it travels (human request 2026-09-26: shoot a tight bundle
+            // of net that arrives fully spread) - no new art needed, just scale the existing sprite
             // up over the flight).
             _net.SetActive(true);
             _net.transform.position = launcher.position;
