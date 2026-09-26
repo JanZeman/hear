@@ -91,6 +91,7 @@ namespace HearApp.Core.Shell.UI
             var content = scroll.contentContainer;
 
             content.Add(BuildHeader());
+            content.Add(BuildNonMedicalReminder());
 
             var recentForTrend = SessionHistoryStore.Recent(TrendWindow);
             float overallAge = SessionHistoryStore.OverallHearingAge(recentForTrend);
@@ -148,6 +149,7 @@ namespace HearApp.Core.Shell.UI
                 }
             };
             content.Add(BuildHeader());
+            content.Add(BuildNonMedicalReminder());
 
             // The card group is only ever a few hundred px tall on a phone-height screen, so it is
             // wrapped in its own flexGrow:1/Center container instead of just stacking top-down -
@@ -221,6 +223,16 @@ namespace HearApp.Core.Shell.UI
 
             content.Add(centerGroup);
             screen.Add(content);
+        }
+
+        public static VisualElement BuildNonMedicalReminder()
+        {
+            var reminder = MakeCard();
+            var label = MakeLabel("HEAR is not a medical device.", VisualTokens.Type.Body,
+                VisualTokens.Colors.Ink700);
+            label.style.whiteSpace = WhiteSpace.Normal;
+            reminder.Add(label);
+            return reminder;
         }
 
         // ---------------------------------------------------------------- Summary cards

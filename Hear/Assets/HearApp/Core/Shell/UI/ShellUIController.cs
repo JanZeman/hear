@@ -430,6 +430,7 @@ namespace HearApp.Core.Shell.UI
                 : VisualTokens.Colors.Pearl0;
 
             _navHost.style.display = state is GameFlowController.ShellState.Playing or GameFlowController.ShellState.Splash
+                or GameFlowController.ShellState.NonMedicalNotice
                 ? DisplayStyle.None
                 : DisplayStyle.Flex;
             // Results carries its own full-bleed background now too (see ResultsScreenBuilder),
@@ -455,6 +456,7 @@ namespace HearApp.Core.Shell.UI
             {
                 case GameFlowController.ShellState.Splash: ShowSplashScreen(); break;
                 case GameFlowController.ShellState.WorldSelector: ShowWorldSelectorScreen(); break;
+                case GameFlowController.ShellState.NonMedicalNotice: ShowNonMedicalNoticeScreen(); break;
                 case GameFlowController.ShellState.HeadphoneChoice: ShowHeadphoneChoiceScreen(); break;
                 case GameFlowController.ShellState.MicroInstruction: ShowMicroInstructionScreen(); break;
                 case GameFlowController.ShellState.Playing: ShowPlayingHud(); break;
@@ -1398,6 +1400,27 @@ namespace HearApp.Core.Shell.UI
             screen.Add(speakerButton);
         }
 
+        private void ShowNonMedicalNoticeScreen()
+        {
+            var screen = NewScreen();
+            screen.Add(MakeLabel("Before your first game", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
+
+            var notice = MakeLabel(
+                "HEAR is not a medical device and cannot diagnose hearing conditions. It is an experimental game prototype.",
+                VisualTokens.Type.Body, VisualTokens.Colors.Ink700, VisualTokens.Spacing.M, VisualTokens.Spacing.XL);
+            notice.style.maxWidth = 360;
+            notice.style.minHeight = VisualTokens.Type.Body.Size * 5f;
+            notice.style.flexShrink = 0;
+            notice.style.whiteSpace = WhiteSpace.Normal;
+            notice.style.unityTextAlign = TextAnchor.MiddleCenter;
+            screen.Add(notice);
+
+            var acknowledgeButton = MakePrimaryButton("OK", () => _flow.AcknowledgeNonMedicalNotice());
+            acknowledgeButton.style.width = 160;
+            acknowledgeButton.style.maxWidth = Length.Percent(85);
+            screen.Add(acknowledgeButton);
+        }
+
         // ---------------------------------------------------------------- Micro instruction
 
         private void ShowMicroInstructionScreen()
@@ -1764,6 +1787,7 @@ namespace HearApp.Core.Shell.UI
                     }
                 };
                 invalidScreen.Add(invalidatedBody);
+                invalidScreen.Add(ResultsScreenBuilder.BuildNonMedicalReminder());
 
                 var backEarly = MakeSecondaryButton("Back to Worlds", () => _flow.ReturnToSelectorFromResults());
                 backEarly.style.width = 200;

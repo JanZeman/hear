@@ -5,6 +5,7 @@ session-start context.
 
 | Date | Fix | Area | Source | Related |
 | --- | --- | --- | --- | --- |
+| 2026-09-26 | [Restore River scene entry on mobile](river-scene-entry-errors.md) | River world | Internal | Roadmap 003 |
 
 ## Rules
 

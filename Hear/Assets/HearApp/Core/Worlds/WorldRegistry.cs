@@ -31,7 +31,7 @@ namespace HearApp.Core.Worlds
         {
             new WorldEntry("tide-troubles", "Tide Troubles", "Listen. React. Enjoy.", "TideTroublesWorld"),
             new WorldEntry("paper-garden", "The Paper Garden", "Listen. Watch. Create.", "PaperGardenWorld"),
-            new WorldEntry("river-journey", "River Journey", "Listen. Explore. Progress.", "RiverJourneyWorld"),
+            new WorldEntry("river-journey", "River of Echoes", "Listen. Explore. Progress.", "RiverJourneyWorld"),
         };
     }
 }
