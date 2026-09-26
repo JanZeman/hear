@@ -67,7 +67,6 @@ namespace HearApp.Core.HearingEngine
 
         private IWorldPresentation _world;
         private TonePlayer _tonePlayer;
-        private int _totalPlanned;
         private bool _tapReceived;
         private bool _abortRequested;
         private int _franticStrikeCount;
@@ -113,15 +112,16 @@ namespace HearApp.Core.HearingEngine
         }
 
         /// <summary>Attaches a world and resets session state. Call once per world entry.</summary>
-        public void BeginSession(IWorldPresentation world, WorldContext context, int totalPlannedTrials)
+        /// <param name="targetSessionSeconds">Every world's session now runs for exactly this
+        /// long (human request 2026-09-26: "at v jakemkoli svete tvrva presne 30 sekund"),
+        /// cycling through the trial plan as many times as it takes rather than stopping once a
+        /// fixed trial count is exhausted - see <see cref="RunSession"/>. The progress bar tracks
+        /// real elapsed time against this exact value, not an estimate.</param>
+        public void BeginSession(IWorldPresentation world, WorldContext context, float targetSessionSeconds)
         {
             _world = world ?? throw new ArgumentNullException(nameof(world));
             CurrentResult = new SessionResult();
-            _totalPlanned = Mathf.Max(1, totalPlannedTrials);
-            // Rough per-trial average (idle wait + a partial active window, since most trials end
-            // early on a tap rather than running the full window) - only used to pace the
-            // continuous progress bar, not for anything measurement-accurate.
-            _estimatedTotalSeconds = _totalPlanned * ((MinIdleSeconds + MaxIdleSeconds) / 2f + ActiveWindowSeconds * 0.5f);
+            _estimatedTotalSeconds = Mathf.Max(1f, targetSessionSeconds);
             _sessionElapsedSeconds = 0f;
             Progress = 0f;
             _abortRequested = false;
@@ -170,14 +170,28 @@ namespace HearApp.Core.HearingEngine
             _world.CompleteSession(CurrentResult);
         }
 
-        /// <summary>Runs the real audio-driven trial loop against the given plan.</summary>
+        /// <summary>Runs the real audio-driven trial loop, cycling through the plan (reshuffled
+        /// each lap) for exactly <see cref="_estimatedTotalSeconds"/> real seconds - the plan
+        /// itself is just one small pool of trial specs to draw from, not a fixed session length
+        /// anymore (human request 2026-09-26). The final trial in progress is allowed to finish
+        /// normally rather than being cut off mid-tone/mid-gag, so a session may run a little past
+        /// the target by however long one trial takes.</summary>
         public IEnumerator RunSession(List<TrialSpec> plan)
         {
-            foreach (var spec in plan)
+            int i = 0;
+            while (_sessionElapsedSeconds < _estimatedTotalSeconds)
             {
-                if (_abortRequested) yield break; // AbortSessionFranticTapping already completed things
+                if (_abortRequested) yield break; // AbortSessionFranticTapping/UserQuit already completed things
+
+                if (i >= plan.Count)
+                {
+                    Shuffle(plan);
+                    i = 0;
+                }
+                var spec = plan[i++];
 
                 yield return new WaitForSeconds(UnityEngine.Random.Range(MinIdleSeconds, MaxIdleSeconds));
+                if (_abortRequested) yield break; // could have been aborted during the wait above
 
                 _tapReceived = false;
                 if (!spec.IsCatchTrial)
@@ -199,6 +213,17 @@ namespace HearApp.Core.HearingEngine
 
             if (!_abortRequested)
                 CompleteSession();
+        }
+
+        // Fisher-Yates, matching TrialPlan.BuildDefault's own shuffle - re-shuffled each time the
+        // plan wraps so a long session's repeats don't read as an obviously looping pattern.
+        private static void Shuffle(List<TrialSpec> plan)
+        {
+            for (int i = plan.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (plan[i], plan[j]) = (plan[j], plan[i]);
+            }
         }
 
         /// <summary>

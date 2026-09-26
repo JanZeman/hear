@@ -31,24 +31,18 @@ namespace HearApp.Core.HearingEngine
         // same frequency set a real session actually uses, instead of duplicating this list.
         public static readonly float[] ReferenceFrequenciesHz = { 1000f, 2000f, 4000f, 8000f, 12000f, 16000f };
 
-        /// <param name="repeatCount">Repeats the reference-frequency set this many times (catch
-        /// trials scale proportionally, below). Dev-only "10x longer session" setting (human
-        /// request 2026-09-25, so playtesting a world doesn't need re-triggering the whole shell
-        /// flow every ~8 trials); always 1 for real sessions.</param>
-        public static List<TrialSpec> BuildDefault(AudioOutputMode mode, System.Random rng, int repeatCount = 1)
+        // The engine now cycles this pool of trials against a wall-clock session length rather
+        // than running it once through (see TrialEngine.RunSession), so this only ever needs to
+        // build one shuffled lap - no repeat-count knob here anymore.
+        public static List<TrialSpec> BuildDefault(AudioOutputMode mode, System.Random rng)
         {
             var plan = new List<TrialSpec>();
-            int idx = 0;
-            for (int rep = 0; rep < repeatCount; rep++)
+            for (int i = 0; i < ReferenceFrequenciesHz.Length; i++)
             {
-                for (int i = 0; i < ReferenceFrequenciesHz.Length; i++)
-                {
-                    EarChannel channel = mode == AudioOutputMode.Headphones
-                        ? (idx % 2 == 0 ? EarChannel.Left : EarChannel.Right)
-                        : EarChannel.Combined;
-                    plan.Add(new TrialSpec(false, channel, ReferenceFrequenciesHz[i]));
-                    idx++;
-                }
+                EarChannel channel = mode == AudioOutputMode.Headphones
+                    ? (i % 2 == 0 ? EarChannel.Left : EarChannel.Right)
+                    : EarChannel.Combined;
+                plan.Add(new TrialSpec(false, channel, ReferenceFrequenciesHz[i]));
             }
 
             int catchCount = Mathf.Max(1, Mathf.RoundToInt(plan.Count * 0.2f));

@@ -1421,12 +1421,14 @@ namespace HearApp.Core.Shell.UI
 
             // Top inset must clear the safe area (notch / Dynamic Island / camera cutout) instead
             // of a fixed spacing token - reported sitting under the cutout on-device 2026-09-25.
+            // Extra margin bumped from Spacing.M to Spacing.XL the same day: the safe-area inset
+            // alone still collided with the OS status bar on some phones.
             var hudRoot = new VisualElement
             {
                 style =
                 {
                     position = Position.Absolute,
-                    top = GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M,
+                    top = GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.XL,
                     left = VisualTokens.Spacing.M, right = VisualTokens.Spacing.M,
                     flexDirection = FlexDirection.Row, alignItems = Align.Center
                 },

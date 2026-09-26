@@ -56,14 +56,19 @@ namespace HearApp.Core.Shell
             set { PlayerPrefs.SetInt(SkipMicroInstructionKey, value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
-        /// <summary>Runs a session with 10x the trials (human request 2026-09-25: re-triggering
-        /// the whole shell flow every ~8 trials was slowing down playtesting a world). Remove
-        /// once the real worlds don't need this much iteration anymore.</summary>
+        /// <summary>Runs a 10x longer session (human request 2026-09-25: re-triggering the whole
+        /// shell flow every ~30s was slowing down playtesting a world). Remove once the real
+        /// worlds don't need this much iteration anymore.</summary>
         public bool LongSession
         {
             get => PlayerPrefs.GetInt(LongSessionKey, 1) == 1;
             set { PlayerPrefs.SetInt(LongSessionKey, value ? 1 : 0); PlayerPrefs.Save(); }
         }
+
+        /// <summary>Every world's session runs for exactly this long (human request 2026-09-26:
+        /// "at v jakemkoli svete tvrva presne 30 sekund") - not a trial count, a wall-clock
+        /// target the engine cycles trials against (see TrialEngine.RunSession).</summary>
+        private const float SessionDurationSeconds = 30f;
 
         public ShellState State { get; private set; } = ShellState.Splash;
         public int SelectedWorldIndex { get; private set; }
@@ -171,8 +176,9 @@ namespace HearApp.Core.Shell
             }
 
             var context = new WorldContext(OutputMode, Environment.TickCount);
-            var plan = TrialPlan.BuildDefault(OutputMode, new System.Random(), repeatCount: LongSession ? 10 : 1);
-            Engine.BeginSession(_activeWorld, context, plan.Count);
+            var plan = TrialPlan.BuildDefault(OutputMode, new System.Random());
+            float targetDuration = LongSession ? SessionDurationSeconds * 10f : SessionDurationSeconds;
+            Engine.BeginSession(_activeWorld, context, targetDuration);
 
             SetState(ShellState.Playing);
             yield return StartCoroutine(Engine.RunSession(plan));
