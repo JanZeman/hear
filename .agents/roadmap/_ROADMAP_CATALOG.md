@@ -90,6 +90,7 @@ actually applies, and writing that word - never an invented synonym.
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
 | 001 | [Home screen 1:1 visual parity](001-home-screen-visual-parity.md) | Vertical slice | Building/screenshotting on connected Galaxy Z Fold |
+| 003 | [All three worlds playable end-to-end](003-worlds-playable-end-to-end.md) | Vertical slice | River visual refinement and device behavior are in progress |
 | 010 | [Results screen v1](010-results-screen-v1.md) | Vertical slice | Foundation built, critical ScrollView flex-shrink layout bug found+fixed; post-session context re-verification still open |
 
 ---
@@ -99,7 +100,6 @@ actually applies, and writing that word - never an invented synonym.
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
 | 002 | [Shell navigation functional end-to-end](002-shell-navigation-functional.md) | Vertical slice | Depends on: - |
-| 003 | [All three worlds playable end-to-end](003-worlds-playable-end-to-end.md) | Vertical slice | Depends on: - |
 | 004 | [Secondary screens visual polish](004-secondary-screens-visual-polish.md) | Vertical slice | Depends on: -; lower priority than 001-003 |
 | 005 | [Show status bar, hide only nav bar](005-immersive-os-chrome.md) | Vertical slice | Depends on: -; nav-hide done+verified, status-bar-visible unresolved, iOS unverified |
 | 006 | [Integrate Inter font](006-integrate-inter-font.md) | Vertical slice | Depends on: -; needs sourcing font files |

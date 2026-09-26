@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Hear.Editor
 {
@@ -61,6 +62,7 @@ namespace Hear.Editor
             bool development = true)
         {
             ConfigurePlayerSettings(target);
+            EnsureGltfShadersIncluded();
 
             var scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
@@ -93,6 +95,52 @@ namespace Hear.Editor
             }
 
             Debug.Log($"Hear {target} development build created at {outputPath}.");
+        }
+
+        // glTFast's Shader Graph shaders (used by the River of Echoes canoeist model, a runtime-
+        // loaded glTF) render as solid magenta unless explicitly kept out of build-time shader
+        // stripping. Hand-editing ProjectSettings/GraphicsSettings.asset's guid list directly did
+        // not take effect (found 2026-09-26), so this instead loads the actual Shader assets and
+        // adds them via SerializedObject - the same mechanism the "Always Included Shaders"
+        // Inspector list uses, guaranteed to encode the right fileID/guid/type.
+        private static void EnsureGltfShadersIncluded()
+        {
+            var shaderPaths = new[]
+            {
+                "Packages/com.unity.cloud.gltfast/Runtime/Shader/glTF-pbrMetallicRoughness.shadergraph",
+                "Packages/com.unity.cloud.gltfast/Runtime/Shader/glTF-unlit.shadergraph",
+            };
+
+            var graphicsSettingsObject = GraphicsSettings.GetGraphicsSettings();
+            var so = new SerializedObject(graphicsSettingsObject);
+            var shadersProp = so.FindProperty("m_AlwaysIncludedShaders");
+
+            foreach (var path in shaderPaths)
+            {
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+                if (shader == null)
+                {
+                    Debug.LogWarning($"[HearDevelopmentBuild] Could not load shader at '{path}' to always-include it.");
+                    continue;
+                }
+
+                bool alreadyIncluded = false;
+                for (int i = 0; i < shadersProp.arraySize; i++)
+                {
+                    if (shadersProp.GetArrayElementAtIndex(i).objectReferenceValue == shader)
+                    {
+                        alreadyIncluded = true;
+                        break;
+                    }
+                }
+                if (alreadyIncluded) continue;
+
+                shadersProp.InsertArrayElementAtIndex(shadersProp.arraySize);
+                shadersProp.GetArrayElementAtIndex(shadersProp.arraySize - 1).objectReferenceValue = shader;
+            }
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.SaveAssets();
         }
 
         private static void ConfigurePlayerSettings(BuildTarget target)
@@ -134,8 +182,11 @@ namespace Hear.Editor
                         NamedBuildTarget.Standalone,
                         "com.janzeman.hear");
                     PlayerSettings.fullScreenMode = FullScreenMode.Windowed;
-                    PlayerSettings.defaultScreenWidth = 1280;
-                    PlayerSettings.defaultScreenHeight = 800;
+                    // Small and narrow-ish on purpose (human request 2026-09-26: the previous
+                    // default filled a 27" monitor's whole height) and roughly portrait, matching
+                    // this app's actual mobile presentation instead of an arbitrary landscape size.
+                    PlayerSettings.defaultScreenWidth = 480;
+                    PlayerSettings.defaultScreenHeight = 854;
                     PlayerSettings.resizableWindow = true;
                     break;
 

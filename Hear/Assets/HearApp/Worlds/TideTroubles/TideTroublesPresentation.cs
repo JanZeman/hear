@@ -50,9 +50,11 @@ namespace HearApp.Worlds.TideTroubles
         {
 #if UNITY_IOS && !UNITY_EDITOR
             _HearLightHaptic();
-#else
+#elif UNITY_IOS || UNITY_ANDROID
             Handheld.Vibrate();
 #endif
+            // No-op on desktop targets (Handheld isn't available on Standalone at all - it's used
+            // for local macOS dev-QA builds, see DevAutoQA.cs).
         }
 
         private sealed class FishInstance

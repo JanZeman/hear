@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using GLTFast;
 using HearApp.Core.HearingEngine;
 using HearApp.Core.Worlds;
 using UnityEngine;
@@ -18,6 +19,16 @@ namespace HearApp.Worlds.RiverJourney
         private const float JourneyDurationSeconds = 30f;
         private const float JourneyStartZ = 2f;
         private const float JourneyEndZ = 96f;
+        // The dock's landing lane sits between its posts (x 5.2..8.6, see BuildVillage) and the
+        // chief waits at x=6.8 - the path previously topped out at x=4.5, well short of the dock,
+        // so "almost docking" (acceptance criterion 9/12) never actually read as arriving anywhere
+        // near the village. Widened so the final beat visually lines up with the dock and chief.
+        private const float PathStartX = -1.4f;
+        // The dock deck's planks span roughly x=4.8..9.0 (see BuildVillage) - 6.4 drove the canoe
+        // visually onto/through the dock instead of stopping beside it (found via local portrait
+        // screenshot QA, 2026-09-26: the arrival frame showed the boat sitting on the pier deck).
+        // 4.3 lands just short of the inner posts, alongside the dock in open water.
+        private const float PathEndX = 4.3f;
 
         private sealed class Villager
         {
@@ -29,10 +40,150 @@ namespace HearApp.Worlds.RiverJourney
             public bool IsChief;
         }
 
+        private void BuildSunsetSky()
+        {
+            const int textureHeight = 64;
+            var texture = new Texture2D(1, textureHeight, TextureFormat.RGB24, false)
+            {
+                name = "RiverSunsetGradient",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var colors = new Color[textureHeight];
+            Color horizon = new(0.87f, 0.56f, 0.43f);
+            Color coral = new(0.76f, 0.43f, 0.46f);
+            Color dusk = new(0.42f, 0.34f, 0.48f);
+            Color zenith = new(0.18f, 0.22f, 0.35f);
+            for (int i = 0; i < textureHeight; i++)
+            {
+                float t = i / (float)(textureHeight - 1);
+                colors[i] = t < 0.34f
+                    ? Color.Lerp(horizon, coral, Mathf.SmoothStep(0f, 1f, t / 0.34f))
+                    : t < 0.7f
+                        ? Color.Lerp(coral, dusk, Mathf.SmoothStep(0f, 1f, (t - 0.34f) / 0.36f))
+                        : Color.Lerp(dusk, zenith, Mathf.SmoothStep(0f, 1f, (t - 0.7f) / 0.3f));
+            }
+            texture.SetPixels(colors);
+            texture.Apply(false, true);
+            _ownedTextures.Add(texture);
+
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+                throw new InvalidOperationException("The URP Lit shader is unavailable.");
+            var material = new Material(shader);
+            material.SetColor("_BaseColor", Color.black);
+            material.SetTexture("_EmissionMap", texture);
+            material.SetColor("_EmissionColor", Color.white);
+            material.EnableKeyword("_EMISSION");
+            // Double-sided: the quad's front face already faces the camera's approach direction
+            // without rotation (Unity's default Quad reads correctly for a camera behind it
+            // looking forward, same orientation as this scene's camera/canoe travel). A 180-degree
+            // spin here previously turned the gradient away from the camera, so URP's default
+            // backface culling hid it entirely - on-device this showed as a flat solid color (the
+            // camera's clear color) instead of the sunset gradient (found 2026-09-26). Culling is
+            // disabled outright so this can't silently regress again from a future orientation change.
+            material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+            _ownedMaterials.Add(material);
+
+            CreateMeshObject(
+                transform,
+                "SunsetSky",
+                Resources.GetBuiltinResource<Mesh>("Quad.fbx"),
+                new Vector3(0f, -45f, 176f),
+                new Vector3(240f, 400f, 1f),
+                material);
+        }
+
+        private void BuildWaterReflections()
+        {
+            var vertices = new List<Vector3>(120);
+            var triangles = new List<int>(180);
+            for (int i = 0; i < 36; i++)
+            {
+                float progress = i / 35f;
+                float z = 14f + progress * 110f;
+                float x = Mathf.Sin(i * 1.91f) * Mathf.Lerp(3.8f, 1.4f, progress);
+                float length = Mathf.Lerp(1.5f, 0.35f, progress) * (0.6f + (i % 4) * 0.16f);
+                float width = Mathf.Lerp(0.07f, 0.025f, progress);
+                int start = vertices.Count;
+                vertices.Add(new Vector3(x - width, -0.12f, z - length * 0.5f));
+                vertices.Add(new Vector3(x - width, -0.12f, z + length * 0.5f));
+                vertices.Add(new Vector3(x + width, -0.12f, z + length * 0.5f));
+                vertices.Add(new Vector3(x + width, -0.12f, z - length * 0.5f));
+                triangles.Add(start);
+                triangles.Add(start + 1);
+                triangles.Add(start + 2);
+                triangles.Add(start);
+                triangles.Add(start + 2);
+                triangles.Add(start + 3);
+            }
+
+            var mesh = new Mesh { name = "RiverSunsetReflections" };
+            mesh.SetVertices(vertices);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            _generatedMeshes.Add(mesh);
+            var reflectionMaterial = CreateMaterial(
+                new Color(0.91f, 0.65f, 0.47f),
+                0.15f,
+                0f);
+            CreateMeshObject(
+                transform,
+                "RiverSunsetReflections",
+                mesh,
+                Vector3.zero,
+                Vector3.one,
+                reflectionMaterial);
+        }
+
+        private Material CreateWaterMaterial()
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+                throw new InvalidOperationException("The URP Lit shader is unavailable.");
+
+            const int textureSize = 128;
+            var texture = new Texture2D(textureSize, textureSize, TextureFormat.RGB24, false)
+            {
+                name = "RiverWaterPattern",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Repeat
+            };
+            var pixels = new Color[textureSize * textureSize];
+            Color deepWater = new(0.025f, 0.13f, 0.19f);
+            Color lightWater = new(0.12f, 0.36f, 0.4f);
+            for (int y = 0; y < textureSize; y++)
+            {
+                float v = y / (float)textureSize;
+                for (int x = 0; x < textureSize; x++)
+                {
+                    float u = x / (float)textureSize;
+                    float broadWave = Mathf.Sin(v * Mathf.PI * 8f + Mathf.Sin(u * Mathf.PI * 4f) * 0.7f);
+                    float fineWave = Mathf.Sin(v * Mathf.PI * 30f + u * Mathf.PI * 6f);
+                    float brightness = Mathf.Clamp01(0.36f + broadWave * 0.34f + fineWave * 0.1f);
+                    pixels[y * textureSize + x] = Color.Lerp(deepWater, lightWater, brightness);
+                }
+            }
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            _ownedTextures.Add(texture);
+
+            var material = new Material(shader);
+            material.SetColor("_BaseColor", Color.white);
+            material.SetTexture("_BaseMap", texture);
+            material.SetTextureScale("_BaseMap", new Vector2(1.5f, 8f));
+            material.SetFloat("_Smoothness", 0.84f);
+            material.SetFloat("_Metallic", 0.08f);
+            _ownedMaterials.Add(material);
+            return material;
+        }
+
         private readonly Dictionary<Color32, Material> _materials = new();
         private readonly Dictionary<int, Mesh> _coneMeshes = new();
         private readonly List<Material> _ownedMaterials = new();
         private readonly List<Mesh> _generatedMeshes = new();
+        private readonly List<Texture2D> _ownedTextures = new();
         private readonly List<Villager> _villagers = new();
         private readonly List<Light> _fireLights = new();
 
@@ -42,6 +193,7 @@ namespace HearApp.Worlds.RiverJourney
         private Transform _canoeHull;
         private Transform _paddle;
         private Transform _water;
+        private Material _waterMaterial;
         private Transform _villageDetails;
         private Transform _dock;
         private Transform _villagerGroup;
@@ -82,6 +234,9 @@ namespace HearApp.Worlds.RiverJourney
             foreach (var mesh in _generatedMeshes)
                 if (mesh != null)
                     Destroy(mesh);
+            foreach (var texture in _ownedTextures)
+                if (texture != null)
+                    Destroy(texture);
         }
 
         public override void Initialize(WorldContext context)
@@ -141,6 +296,9 @@ namespace HearApp.Worlds.RiverJourney
                 }
             }
 
+            if (_waterMaterial != null)
+                _waterMaterial.SetTextureOffset("_BaseMap", new Vector2(0f, Time.time * 0.008f));
+
             UpdateJourneyScene();
             UpdateCamera(deltaTime);
             UpdateVillagers();
@@ -149,12 +307,16 @@ namespace HearApp.Worlds.RiverJourney
         private void BuildLighting()
         {
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.43f, 0.39f, 0.42f);
+            RenderSettings.ambientLight = new Color(0.34f, 0.32f, 0.39f);
             RenderSettings.ambientIntensity = 1f;
             RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.006f;
-            RenderSettings.fogColor = new Color(0.55f, 0.40f, 0.43f);
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogStartDistance = 70f;
+            RenderSettings.fogEndDistance = 320f;
+            // Matches the sky gradient's coral/dusk midpoint (see BuildSunsetSky) rather than a
+            // flat cool gray, so the distant haze reads as warm sunset mist instead of a mismatched
+            // patch where fog meets sky.
+            RenderSettings.fogColor = new Color(0.59f, 0.385f, 0.47f);
 
             var lightObject = new GameObject("RiverOfEchoesSun");
             lightObject.transform.SetParent(transform, false);
@@ -173,12 +335,16 @@ namespace HearApp.Worlds.RiverJourney
             _camera = cameraObject.AddComponent<Camera>();
             _camera.orthographic = false;
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.backgroundColor = new Color(0.77f, 0.49f, 0.46f);
+            _camera.backgroundColor = new Color(0.18f, 0.22f, 0.35f);
             _camera.nearClipPlane = 0.1f;
-            _camera.farClipPlane = 180f;
+            _camera.farClipPlane = 230f;
             _camera.fieldOfView = 50f;
             cameraObject.AddComponent<AudioListener>();
-            cameraObject.AddComponent<CoreSafeSquareFit>();
+            // Default portrait FOV widening (see CoreSafeSquareFit) balloons past 90 degrees for a
+            // phone aspect, which for a camera sitting just above the water reads as a fisheye lens
+            // dominated by foreground - narrowed so the horizon/village get real screen space
+            // instead (found via local portrait screenshot QA, 2026-09-26).
+            cameraObject.AddComponent<CoreSafeSquareFit>().ConfigurePerspectiveCoreVerticalFov(32f);
         }
 
         private void BuildBackdropAndRiver()
@@ -197,14 +363,18 @@ namespace HearApp.Worlds.RiverJourney
             }
 
             _water = CreatePrimitive(
-                PrimitiveType.Plane,
+                PrimitiveType.Quad,
                 transform,
                 "RiverSurface",
                 new Vector3(0f, -0.14f, 57f),
-                new Vector3(1.8f, 1f, 15f),
+                new Vector3(20f, 160f, 1f),
                 new Color(0.16f, 0.31f, 0.38f));
+            _water.localRotation = Quaternion.Euler(90f, 0f, 0f);
             var waterRenderer = _water.GetComponent<Renderer>();
-            waterRenderer.sharedMaterial = CreateMaterial(new Color(0.16f, 0.31f, 0.38f), 0.78f, 0.22f);
+            _waterMaterial = CreateWaterMaterial();
+            waterRenderer.sharedMaterial = _waterMaterial;
+            BuildSunsetSky();
+            BuildWaterReflections();
 
             CreatePrimitive(
                 PrimitiveType.Plane,
@@ -294,9 +464,9 @@ namespace HearApp.Worlds.RiverJourney
 
             _villageDetails = new GameObject("VillageDetails").transform;
             _villageDetails.SetParent(transform, false);
-            CreateTipi(_villageDetails, new Vector3(8.8f, 0f, 103f), 3.3f, new Color(0.68f, 0.49f, 0.32f));
-            CreateTipi(_villageDetails, new Vector3(11.4f, 0f, 106f), 3.8f, new Color(0.72f, 0.56f, 0.38f));
-            CreateTipi(_villageDetails, new Vector3(9.4f, 0f, 110f), 2.9f, new Color(0.56f, 0.42f, 0.34f));
+            CreateTipi(_villageDetails, new Vector3(8.8f, 0f, 103f), 5.2f, new Color(0.68f, 0.49f, 0.32f));
+            CreateTipi(_villageDetails, new Vector3(11.4f, 0f, 106f), 5.8f, new Color(0.72f, 0.56f, 0.38f));
+            CreateTipi(_villageDetails, new Vector3(9.4f, 0f, 110f), 4.7f, new Color(0.56f, 0.42f, 0.34f));
             CreateBanner(_villageDetails, new Vector3(7.9f, 0f, 105f), new Color(0.25f, 0.36f, 0.37f));
             CreateBanner(_villageDetails, new Vector3(12.7f, 0f, 101f), new Color(0.62f, 0.33f, 0.24f));
             CreateFire(_villageDetails, new Vector3(10f, 0f, 100f));
@@ -360,6 +530,7 @@ namespace HearApp.Worlds.RiverJourney
         {
             _canoe = new GameObject("CanoeRoot").transform;
             _canoe.SetParent(transform, false);
+            _canoe.localScale = Vector3.one * 1.3f;
 
             _canoeHull = CreateMeshObject(
                 _canoe,
@@ -367,16 +538,16 @@ namespace HearApp.Worlds.RiverJourney
                 BuildCanoeHullMesh(),
                 new Vector3(0f, 0f, 0f),
                 Vector3.one,
-                new Color(0.39f, 0.25f, 0.18f));
+                new Color(0.48f, 0.31f, 0.2f));
             _hullRestRotation = _canoeHull.localRotation;
 
             for (int side = -1; side <= 1; side += 2)
             {
                 var rail = CreatePrimitive(
                     PrimitiveType.Cylinder, _canoe, $"CanoeGunwale_{side}",
-                    new Vector3(side * 0.39f, 0.2f, 0f),
-                    new Vector3(0.055f, 0.84f, 0.055f),
-                    new Color(0.69f, 0.48f, 0.28f));
+                    new Vector3(side * 0.45f, 0.2f, 0f),
+                    new Vector3(0.08f, 1.4f, 0.08f),
+                    new Color(0.82f, 0.59f, 0.34f));
                 rail.localRotation = Quaternion.Euler(90f, 0f, 0f);
             }
             CreatePrimitive(
@@ -384,7 +555,7 @@ namespace HearApp.Worlds.RiverJourney
                 new Vector3(0f, 0.32f, -0.15f), new Vector3(0.62f, 0.09f, 0.22f),
                 new Color(0.55f, 0.37f, 0.24f));
 
-            CreateCanoeist();
+            CreateCanoeistModel();
             _paddle = CreatePrimitive(
                 PrimitiveType.Cylinder, _canoe, "PaddleShaft",
                 new Vector3(0f, 1.05f, -0.12f), new Vector3(0.045f, 1.05f, 0.045f),
@@ -401,28 +572,30 @@ namespace HearApp.Worlds.RiverJourney
             _rightSplash = CreateSplashSystem(_canoe, "PaddleSplashRight", new Vector3(0.78f, -0.09f, 0.28f));
         }
 
-        private void CreateCanoeist()
+        // Rebuilt from a single flat-colored capsule+sphere ("read as a blob from behind" - human
+        // feedback 2026-09-26) into a small readable silhouette: a distinct waist wrap breaks up
+        // the skin-tone mass, a neck gap separates head from torso instead of them merging into one
+        // tube, and a headband + crown feathers give the single most recognizable cue from a rear
+        // three-quarter camera, matching the storyboard reference's iconic silhouette.
+        // Every hand-built attempt (capsule stacks, a lofted custom mesh) still read as "hodne
+        // spatne" (human feedback 2026-09-26) - procedural primitive geometry has a real ceiling
+        // for a recognizable human figure. This instead loads an actual modeled/rigged/textured
+        // character: a free CC0 Quaternius model (Assets/StreamingAssets/Models/canoeist.glb,
+        // downloaded from poly.pizza - public domain, no attribution required, free for commercial
+        // use) via the glTFast runtime importer (added to Packages/manifest.json), which fits this
+        // project's "everything built at runtime in code, no Editor-authored assets" convention
+        // since glTFast loads and instantiates at runtime rather than needing an Editor import step.
+        private void CreateCanoeistModel()
         {
-            CreatePrimitive(
-                PrimitiveType.Capsule, _canoe, "CanoeistBody",
-                new Vector3(0f, 0.92f, -0.35f), new Vector3(0.34f, 0.56f, 0.28f),
-                new Color(0.44f, 0.34f, 0.27f));
-            CreatePrimitive(
-                PrimitiveType.Sphere, _canoe, "CanoeistHead",
-                new Vector3(0f, 1.72f, -0.28f), new Vector3(0.22f, 0.27f, 0.22f),
-                new Color(0.48f, 0.34f, 0.25f));
-            CreatePrimitive(
-                PrimitiveType.Capsule, _canoe, "CanoeistHair",
-                new Vector3(0f, 1.63f, -0.45f), new Vector3(0.2f, 0.25f, 0.16f),
-                new Color(0.18f, 0.14f, 0.13f));
-            for (int side = -1; side <= 1; side += 2)
-            {
-                var arm = CreatePrimitive(
-                    PrimitiveType.Capsule, _canoe, $"CanoeistArm_{side}",
-                    new Vector3(side * 0.33f, 1.02f, -0.2f), new Vector3(0.12f, 0.4f, 0.12f),
-                    new Color(0.48f, 0.34f, 0.25f));
-                arm.localRotation = Quaternion.Euler(0f, 0f, side * 28f);
-            }
+            var root = new GameObject("CanoeistModel");
+            root.transform.SetParent(_canoe, false);
+            root.transform.localPosition = new Vector3(0f, 0.08f, -0.25f);
+            root.transform.localScale = Vector3.one * 0.62f;
+
+            var gltf = root.AddComponent<CanoeistGltfAsset>();
+            gltf.StreamingAsset = true;
+            gltf.Url = "Models/canoeist.glb";
+            gltf.LoadOnStartup = true;
         }
 
         private void CreateTipi(Transform parent, Vector3 position, float height, Color color)
@@ -633,7 +806,8 @@ namespace HearApp.Worlds.RiverJourney
                 float bob = Mathf.Sin(Time.time * 1.65f) * 0.045f;
                 _canoe.position = pathPosition + Vector3.up * bob;
                 float t = _journeyProgress;
-                Vector3 forward = new Vector3(5.2f * 6f * t * (1f - t), 0f, JourneyEndZ - JourneyStartZ).normalized;
+                float xTangent = (PathEndX - PathStartX) * 6f * t * (1f - t); // derivative of the smoothstep drift in PathPosition
+                Vector3 forward = new Vector3(xTangent, 0f, JourneyEndZ - JourneyStartZ).normalized;
                 _canoe.rotation = Quaternion.LookRotation(forward, Vector3.up);
             }
 
@@ -659,8 +833,21 @@ namespace HearApp.Worlds.RiverJourney
         {
             if (_camera == null || _canoe == null) return;
 
-            Vector3 desiredPosition = _canoe.position + new Vector3(-1.4f, 3.1f, -7.4f);
-            Vector3 lookTarget = _canoe.position + new Vector3(0.3f, 1.65f, 14f);
+            // Pulled back/up and leveled out (was -8.2/3.3 back/up looking -0.5 below canoe height):
+            // local portrait screenshot QA showed the old framing was so close and downward-tilted
+            // that the canoeist filled most of the frame and the bottom half was flat, featureless
+            // dark water - sky, mountains, and the village almost never made it into shot (found
+            // 2026-09-26). A first pass (5.2 up / 0.4 look-height) fixed the canoe's size but kept
+            // an 8-degree downward pitch that, combined with the portrait aspect's much wider
+            // vertical FOV (see CoreSafeSquareFit), still buried the horizon near the top of frame -
+            // the look target's height is now much closer to the camera's own (a ~3-degree pitch)
+            // so the horizon sits closer to center and sky/mountains/village get real screen space.
+            // Leveled to a near-zero pitch (was a 3.3-degree downward tilt): even that modest tilt,
+            // combined with this world's necessarily wide vista FOV, was still pushing the horizon
+            // well past the frame's midline and burying it in foreground water (found via local
+            // portrait screenshot QA, 2026-09-26 - iteration 3 on this camera).
+            Vector3 desiredPosition = _canoe.position + new Vector3(-1.6f, 3.6f, -12.5f);
+            Vector3 lookTarget = _canoe.position + new Vector3(2f, 3.5f, 26f);
             float blend = 1f - Mathf.Exp(-deltaTime * 3.5f);
             if (!_cameraInitialized)
             {
@@ -729,7 +916,7 @@ namespace HearApp.Worlds.RiverJourney
 
         private static Vector3 PathPosition(float progress)
         {
-            float x = Mathf.Lerp(-0.6f, 4.5f, Mathf.SmoothStep(0f, 1f, progress));
+            float x = Mathf.Lerp(PathStartX, PathEndX, Mathf.SmoothStep(0f, 1f, progress));
             float z = Mathf.Lerp(JourneyStartZ, JourneyEndZ, progress);
             return new Vector3(x, 0.06f, z);
         }
@@ -786,19 +973,31 @@ namespace HearApp.Worlds.RiverJourney
             Vector3 scale,
             Color color)
         {
-            var gameObject = GameObject.CreatePrimitive(type);
-            gameObject.name = name;
+            var gameObject = new GameObject(name);
+            var meshFilter = gameObject.AddComponent<MeshFilter>();
+            meshFilter.sharedMesh = Resources.GetBuiltinResource<Mesh>(BuiltinMeshName(type));
+            if (meshFilter.sharedMesh == null)
+                throw new InvalidOperationException($"Unity built-in mesh for '{type}' is unavailable.");
+            var renderer = gameObject.AddComponent<MeshRenderer>();
             gameObject.transform.SetParent(parent, false);
             gameObject.transform.localPosition = position;
             gameObject.transform.localScale = scale;
-            var collider = gameObject.GetComponent<Collider>();
-            if (collider != null) collider.enabled = false;
-            var renderer = gameObject.GetComponent<Renderer>();
             renderer.sharedMaterial = GetMaterial(color);
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             return gameObject.transform;
         }
+
+        private static string BuiltinMeshName(PrimitiveType type) => type switch
+        {
+            PrimitiveType.Sphere => "Sphere.fbx",
+            PrimitiveType.Capsule => "Capsule.fbx",
+            PrimitiveType.Cylinder => "Cylinder.fbx",
+            PrimitiveType.Cube => "Cube.fbx",
+            PrimitiveType.Plane => "Plane.fbx",
+            PrimitiveType.Quad => "Quad.fbx",
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported primitive mesh.")
+        };
 
         private Transform CreateCone(
             Transform parent,
@@ -824,6 +1023,17 @@ namespace HearApp.Worlds.RiverJourney
             Vector3 scale,
             Color color)
         {
+            return CreateMeshObject(parent, name, mesh, position, scale, GetMaterial(color));
+        }
+
+        private Transform CreateMeshObject(
+            Transform parent,
+            string name,
+            Mesh mesh,
+            Vector3 position,
+            Vector3 scale,
+            Material material)
+        {
             var gameObject = new GameObject(name);
             gameObject.transform.SetParent(parent, false);
             gameObject.transform.localPosition = position;
@@ -831,7 +1041,7 @@ namespace HearApp.Worlds.RiverJourney
             var filter = gameObject.AddComponent<MeshFilter>();
             filter.sharedMesh = mesh;
             var renderer = gameObject.AddComponent<MeshRenderer>();
-            renderer.sharedMaterial = GetMaterial(color);
+            renderer.sharedMaterial = material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             renderer.receiveShadows = false;
             return gameObject.transform;
@@ -903,7 +1113,7 @@ namespace HearApp.Worlds.RiverJourney
         private Mesh BuildCanoeHullMesh()
         {
             float[] z = { -1.55f, -1.15f, 0f, 1.15f, 1.55f };
-            float[] width = { 0.06f, 0.36f, 0.47f, 0.36f, 0.06f };
+            float[] width = { 0.06f, 0.42f, 0.56f, 0.42f, 0.06f };
             float[] bottom = { 0.03f, -0.18f, -0.21f, -0.18f, 0.03f };
             float[] top = { 0.06f, 0.12f, 0.15f, 0.12f, 0.06f };
             var vertices = new List<Vector3>(z.Length * 4);

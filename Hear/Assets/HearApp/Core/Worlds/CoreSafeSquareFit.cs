@@ -32,6 +32,18 @@ namespace HearApp.Core.Worlds
             Apply();
         }
 
+        /// <summary>Overrides the perspective base FOV after construction - a 3D world with a lot
+        /// of near-camera ground/water (e.g. a river seen from just above the surface) can find the
+        /// default's portrait-widened FOV (the formula below deliberately balloons vertical FOV as
+        /// aspect narrows) reads as a fisheye/wide-angle distortion up close, burying the horizon
+        /// and dominating the frame with foreground rather than revealing more of the vista. Lets
+        /// that world pick a narrower base without changing the shared default for others.</summary>
+        public void ConfigurePerspectiveCoreVerticalFov(float degrees)
+        {
+            perspectiveCoreVerticalFovDeg = degrees;
+            if (_camera != null) Apply();
+        }
+
         private void LateUpdate()
         {
             if (Screen.width != _lastWidth || Screen.height != _lastHeight)
