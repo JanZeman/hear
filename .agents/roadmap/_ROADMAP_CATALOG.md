@@ -90,6 +90,7 @@ actually applies, and writing that word - never an invented synonym.
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
 | 001 | [Home screen 1:1 visual parity](001-home-screen-visual-parity.md) | Vertical slice | Building/screenshotting on connected Galaxy Z Fold |
+| 010 | [Results screen v1](010-results-screen-v1.md) | Vertical slice | Foundation built, critical ScrollView flex-shrink layout bug found+fixed; post-session context re-verification still open |
 
 ---
 

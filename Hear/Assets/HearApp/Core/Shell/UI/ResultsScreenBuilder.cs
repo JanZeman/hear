@@ -157,7 +157,9 @@ namespace HearApp.Core.Shell.UI
                     backgroundImage = WorldArt.Icon("play"), unityBackgroundImageTintColor = Color.white
                 }
             });
-            playBtn.Add(new Label("Play your first world") { style = { color = Color.white, fontSize = VisualTokens.Type.BodyStrong.Size, unityFontStyleAndWeight = VisualTokens.Type.BodyStrong.Style } });
+            var playBtnLabel = new Label("Play your first world") { style = { color = Color.white, fontSize = VisualTokens.Type.BodyStrong.Size, unityFontStyleAndWeight = VisualTokens.Type.BodyStrong.Style } };
+            ApplyLineHeight(playBtnLabel, VisualTokens.Type.BodyStrong.Size);
+            playBtn.Add(playBtnLabel);
             centerGroup.Add(playBtn);
 
             var infoCard = MakeCard();
@@ -565,7 +567,19 @@ namespace HearApp.Core.Shell.UI
                     borderBottomLeftRadius = VisualTokens.Radius.L, borderBottomRightRadius = VisualTokens.Radius.L,
                     paddingTop = VisualTokens.Spacing.L, paddingBottom = VisualTokens.Spacing.L,
                     paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
-                    marginBottom = VisualTokens.Spacing.M
+                    marginBottom = VisualTokens.Spacing.M,
+                    // Root cause of the "silene zmatecna" overlap (human report 2026-09-26,
+                    // confirmed via a logged layout dump on a Galaxy S9+): UI Toolkit's default
+                    // flex-shrink is 1, so once the stacked cards' natural total height exceeds
+                    // the ScrollView's own viewport height, every card gets flex-shrunk to fit
+                    // instead of the ScrollView actually scrolling - rows with no text content of
+                    // their own (the big-number row, progress bars, tab rows) got crushed to
+                    // literally 0px while plain Labels (which happened to already need
+                    // flex-shrink:0 for a different, now-superseded fix) refused to shrink and
+                    // painted over their now-collapsed siblings. Cards refusing to shrink is what
+                    // actually matters - once a card keeps its natural height, nothing inside it
+                    // is ever squeezed in the first place.
+                    flexShrink = 0
                 }
             };
         }
@@ -580,7 +594,7 @@ namespace HearApp.Core.Shell.UI
 
         private static Label MakeLabel(string text, VisualTokens.TypeStyle style, Color color, float marginTop = 0f, float marginBottom = 0f)
         {
-            return new Label(text)
+            var label = new Label(text)
             {
                 style =
                 {
@@ -588,6 +602,29 @@ namespace HearApp.Core.Shell.UI
                     marginTop = marginTop, marginBottom = marginBottom, whiteSpace = WhiteSpace.Normal
                 }
             };
+            ApplyLineHeight(label, style.Size);
+            return label;
+        }
+
+        // Plain auto-height Labels in a Column flex layout measured with the WRONG (far too
+        // short, sometimes near-zero) intrinsic height on-device - confirmed on a Galaxy S9+
+        // (human report 2026-09-26: "silene zmatecna", every card's rows painting on top of each
+        // other instead of stacking) while this exact page's Buttons (which get real height from
+        // their own padding, not text measurement) laid out fine. Root cause not chased further
+        // (likely this runtime UI Toolkit build's text-shaping/measurement, per the "No ICU data
+        // provided" warning logcat shows on every launch) - worked around by giving every label an
+        // explicit height from its own font size instead of trusting auto-measurement, the same
+        // "don't rely on intrinsic sizing" defensive pattern the rest of the shell already uses
+        // (Home's cards are all explicitly positioned/sized, never auto-height).
+        private static void ApplyLineHeight(VisualElement el, int fontSize)
+        {
+            // minHeight, not height: a floor for whatever the (apparently unreliable) auto
+            // measurement returns, without capping genuinely-wrapped multi-line captions - those
+            // already measured correctly even on the affected device (confirmed: the empty
+            // state's two-line caption rendered fine there), so only the collapsing-to-near-zero
+            // failure needs a rescue, not a hard cap.
+            el.style.minHeight = fontSize * 1.45f;
+            el.style.flexShrink = 0;
         }
 
         private static void StyleUtilityButton(Button b, bool destructive)
