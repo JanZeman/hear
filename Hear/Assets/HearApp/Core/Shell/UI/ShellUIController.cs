@@ -27,8 +27,8 @@ namespace HearApp.Core.Shell.UI
         // the same colour, so the bar reads as one continuous panel reaching the true screen edge
         // regardless of whether the OS's own nav bar happens to be shown or auto-hidden at that
         // moment - see ApplyBreakpointLayout. Human feedback 2026-09-25: with the gap left bare,
-        // it looked fine only when the OS bar happened to be visible and filled it; empty
-        // otherwise ("je-li schovany, tak tam neni 'nic' a to vypada blbe").
+        // it looked fine only when the OS bar happened to be visible and filled it; when the OS
+        // bar was hidden, the gap read as empty/broken.
         private VisualElement _navBackdropExtension;
         private ResponsiveNavBar _nav;
         private VisualElement _hudProgressFill;
@@ -70,9 +70,9 @@ namespace HearApp.Core.Shell.UI
         // The GOLDEN board's Play pill itself has NO glow (measured across its left edge on
         // sources/HEAR-App-UI-Home.png: a razor-sharp edge, no halo) - re-added anyway on human
         // direction 2026-09-25 as a deliberate deviation. History: max 6px/peak 0.05 invisible;
-        // max 10px/peak 0.12 "moc viditelne"; max 7px/peak 0.07 (x2) still invisible; max 11px/
-        // peak 0.10 finally visible, BUT now called "moc rozplizly"/"tlusty pruh" - a wide soft
-        // band, not the "jen tenky prouzek, par pixelu" wanted. The lesson across all five rounds:
+        // max 10px/peak 0.12 too visible; max 7px/peak 0.07 (x2) still invisible; max 11px/
+        // peak 0.10 finally visible, BUT now called too blurry/a thick band, not the thin
+        // few-pixel sliver wanted. The lesson across all five rounds:
         // spread (padding) and strength (alpha) are independent knobs, and matching feedback to
         // the wrong one is what produced this many rounds. "Thin but visible" means BOTH small
         // padding AND enough alpha at once, not a trade-off between them - previous rounds each
@@ -81,11 +81,11 @@ namespace HearApp.Core.Shell.UI
         // cropped/zoomed screenshot, which exaggerates a few-percent alpha edge into visibility -
         // on the real device at normal size (and further softened by scrcpy's video compression)
         // human feedback was that it was invisible again. Keeps the narrow pad-3 spread's small
-        // physical footprint isolated - the "tlusty pruh" this whole tuning problem chases came
+        // physical footprint isolated - the thick-band look this whole tuning problem chases came
         // from spread, not alpha - but roughly doubles peak alpha so the ring survives real
         // on-screen viewing and lossy mirroring, not just a zoomed still. Confirmed on the human's
         // own device/scrcpy view as visible and roughly right - round 7 is a small width-only
-        // trim ("nepatrne uzsi"), alpha untouched so it does not slip back toward invisible.
+        // trim (slightly narrower), alpha untouched so it does not slip back toward invisible.
         private VisualElement[] _playGlowLayers;
         private const int PlayGlowLayerCount = 10;
         private const float PlayGlowMaxPadding = 3.3f;
@@ -121,14 +121,14 @@ namespace HearApp.Core.Shell.UI
             // not computed from the texture): wordmark came out at 0.322 with 0.457 here, and the
             // claim at 0.383 against the board's 0.358.
             public const float BrandLogoOfScreenW = 0.393f;
-            // Enlarged ("vetsi pismo, at je citelne") and re-anchored on human direction
+            // Enlarged (bigger font, for readability) and re-anchored on human direction
             // 2026-09-25. ClaimTopOfScreenH (an absolute position measured against the GOLDEN
             // board's 852x1846/0.462 aspect) is gone: on this device's much taller 968x2376/0.407
             // aspect, screenH * 0.1901 landed far below the logo instead of hugging it - the same
             // aspect-mismatch bug already fixed once for the nav bar (see this file's notes). The
             // claim now sits a fixed small gap under the logo, full stop, matching the sketch's
             // "claim directly under the logo" placement regardless of device aspect.
-            // Dialed back on human direction 2026-09-25: 0.048 read as "moc velkymi pismeny".
+            // Dialed back on human direction 2026-09-25: 0.048 read as too large a font.
             public const float ClaimFontOfScreenW = 0.040f;
             public const float ClaimGapOfScreenH = 0.0141f;
 
@@ -160,7 +160,7 @@ namespace HearApp.Core.Shell.UI
             public const float PeekCenterRiseOfActiveH = 0.028f;
 
             // Play pill: x=245..606, y=1280..1375, fully rounded. Enlarged ~15% on human
-            // direction 2026-09-25 ("Play tlacitko by melo byt vetsi"), aspect unchanged.
+            // direction 2026-09-25 (asked for a bigger Play button), aspect unchanged.
             public const float PlayWidthOfScreenW = 0.49f;
             public const float PlayHeightOverWidth = 0.2652f;
             public const float PlayFontOfPlayW = 0.115f;
@@ -175,9 +175,9 @@ namespace HearApp.Core.Shell.UI
             // Bottom nav: icon 51px wide, cell centre y=1693.
             public const float NavIconOfScreenW = 0.0599f;
             // NavCenterOfScreenH (0.9171) removed 2026-09-25: matching the GOLDEN board's nav
-            // position left a large dead gap below the panel on this device (human feedback,
-            // "kolik prazdneho prostoru tam v takove situaci je") - nav position now derives from
-            // the real safe-area inset instead (see ApplyBreakpointLayout).
+            // position left a large dead gap below the panel on this device (human feedback: too
+            // much empty space there) - nav position now derives from the real safe-area inset
+            // instead (see ApplyBreakpointLayout).
         }
 
         private void Awake()
@@ -244,9 +244,9 @@ namespace HearApp.Core.Shell.UI
             bool compact = breakpoint == ShellBreakpoint.Compact;
             // Results also carries its own full-bleed background (world art or the neutral aurora
             // gradient - see ResultsScreenBuilder) now, same as WorldSelector - human feedback
-            // 2026-09-26 ("Bottom nav bar musi zustat skleneny... proc ma bile pozadi?") after it
-            // regressed to the plain opaque treatment once Results grew a real background to float
-            // over.
+            // 2026-09-26 (the nav bar must stay glass; why did it get a plain white background?)
+            // after it regressed to the plain opaque treatment once Results grew a real background
+            // to float over.
             bool navFloats = _flow != null && _flow.State is GameFlowController.ShellState.WorldSelector or GameFlowController.ShellState.Results;
 
             // Compact Home/Results must float the bottom nav as a translucent overlay on top of
@@ -261,8 +261,8 @@ namespace HearApp.Core.Shell.UI
             // was matched via `Mathf.Max(safeArea, goldenBoardOffset)` - on this device the
             // Golden-board term won that max (~47 logical units) against the real safe-area inset,
             // leaving a large dead gap below the panel that read as wasted/empty space regardless
-            // of the backdrop-extension's colour fix, per human feedback 2026-09-25 ("kolik
-            // prazdneho prostoru tam v takove situaci je"). Dropped the Golden-board term entirely:
+            // of the backdrop-extension's colour fix, per human feedback 2026-09-25 (too much
+            // empty space there). Dropped the Golden-board term entirely:
             // the panel now sits as close to the true bottom as the real OS safe area allows, plus
             // a small fixed breathing margin, rather than an aesthetic offset tuned to a static
             // reference mockup that this device's proportions don't match.
@@ -519,8 +519,9 @@ namespace HearApp.Core.Shell.UI
         // taller) - VisualTokens.Radius.Pill (999) vastly exceeds half that, and UI Toolkit in
         // this Unity version doesn't clamp an oversized corner radius to the element's own size;
         // it renders a degenerate/warped shape instead of a rounded pill (same root cause as the
-        // progress bar's "spicaty konec" and the points badge's ellipse, fixed the same way
-        // earlier - human feedback repeated it here 2026-09-26: "proc tak casto delas elipsy").
+        // progress bar's pointed-end look and the points badge's ellipse, fixed the same way
+        // earlier - human feedback repeated it here 2026-09-26, asking why this same ellipse shape
+        // kept recurring).
         // Every MakePrimaryButton/MakeSecondaryButton call site gets the fix at once.
         private const float ButtonCornerRadius = 20f;
 
@@ -532,7 +533,8 @@ namespace HearApp.Core.Shell.UI
             button.style.unityFontStyleAndWeight = VisualTokens.Type.Label.Style;
             // No default Theme Style Sheet in this project, so Button's normal (theme-provided)
             // centered text alignment doesn't apply - left unset, the label sits top-left inside
-            // the button box (reported 2026-09-26: "Continue... moc nahore a moc vlevo").
+            // the button box (reported 2026-09-26: the "Continue" label sat too high and too far
+            // left).
             button.style.unityTextAlign = TextAnchor.MiddleCenter;
             button.style.borderTopLeftRadius = ButtonCornerRadius;
             button.style.borderTopRightRadius = ButtonCornerRadius;
@@ -1365,7 +1367,10 @@ namespace HearApp.Core.Shell.UI
             return Mathf.Max(0f, PhysicalToLogical(topPhysical));
         }
 
-        private static float GetBottomSafeAreaInsetLogical()
+        /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to reserve
+        /// space above the floating glass nav for its ScrollView, exactly as this class already
+        /// does for Home's carousel (see UpdateCarouselForCurrentSize's navReserve).</summary>
+        internal static float GetBottomSafeAreaInsetLogical()
         {
             var safeArea = Screen.safeArea;
             return Mathf.Max(0f, PhysicalToLogical(safeArea.y));

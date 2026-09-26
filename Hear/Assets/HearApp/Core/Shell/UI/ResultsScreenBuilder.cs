@@ -49,11 +49,44 @@ namespace HearApp.Core.Shell.UI
 
             screen.Add(BuildBackground(worldId));
 
-            var scroll = new ScrollView(ScrollViewMode.Vertical) { style = { flexGrow = 1 } };
+            // The glass nav floats over this screen's own background now, which means it can only
+            // show that background through its translucency - not scrolled card content sliding
+            // past underneath it. Two fix attempts so far (content-side bottom padding; then
+            // flexGrow + marginBottom on the ScrollView itself) both failed to stop content from
+            // showing through at mid-scroll positions - only the final rested-at-the-end position
+            // looked right. Now trying explicit absolute positioning (top/left/right/bottom) so
+            // the ScrollView's own rendered box - and therefore its clip rect - is pinned above the
+            // nav unambiguously, instead of relying on flex layout to propagate a shrink downward.
+            bool compact = ResponsiveNavBar.BreakpointForWidth(screen.resolvedStyle.width) == ShellBreakpoint.Compact;
+            // Exactly the nav's own top edge (its bottom offset plus its own height, matching
+            // ShellUIController.ApplyBreakpointLayout's navBottom/_navHost math) - no added
+            // breathing-room term, per human direction: the card should end flush against the
+            // glass panel with no visible gap, not float above it.
+            float navReserve = compact
+                ? ShellUIController.GetBottomSafeAreaInsetLogical() + 4f + ResponsiveNavBar.CompactBarHeight
+                : VisualTokens.Spacing.L + ShellUIController.GetBottomSafeAreaInsetLogical();
+
+            // The box-size fix alone (absolute position + explicit bottom=navReserve, confirmed
+            // correct via a layout dump: scroll.layout.height was exactly screen.height minus
+            // navReserve) still let content paint past that box - ScrollView's own outer element
+            // does not clip to its box by default, only its internal viewport does something with
+            // scroll range, not visual clipping. Overflow.Hidden here is what actually stops
+            // anything rendering outside this element's box, regardless of ScrollView's own box
+            // being sized correctly.
+            var scroll = new ScrollView(ScrollViewMode.Vertical)
+            {
+                style =
+                {
+                    position = Position.Absolute, left = 0, right = 0, top = 0, bottom = navReserve,
+                    overflow = Overflow.Hidden
+                }
+            };
             scroll.contentContainer.style.paddingLeft = VisualTokens.Spacing.L;
             scroll.contentContainer.style.paddingRight = VisualTokens.Spacing.L;
             scroll.contentContainer.style.paddingTop = VisualTokens.Spacing.XXL;
-            scroll.contentContainer.style.paddingBottom = VisualTokens.Spacing.XXXL;
+            // No bottom padding here: the scroll box itself already ends exactly at the nav's top
+            // edge (navReserve above), so any padding here would just reopen the gap that was
+            // just closed.
             screen.Add(scroll);
             var content = scroll.contentContainer;
 
@@ -94,12 +127,24 @@ namespace HearApp.Core.Shell.UI
         {
             screen.Add(BuildBackground(null));
 
+            // Same glass-nav reservation as the populated Build() path (see its own comment) -
+            // the empty state has no ScrollView, but its centered card group could still land low
+            // enough on a short screen to sit under the floating nav without this.
+            bool compact = ResponsiveNavBar.BreakpointForWidth(screen.resolvedStyle.width) == ShellBreakpoint.Compact;
+            // Exactly the nav's own top edge (its bottom offset plus its own height, matching
+            // ShellUIController.ApplyBreakpointLayout's navBottom/_navHost math) - no added
+            // breathing-room term, per human direction: the card should end flush against the
+            // glass panel with no visible gap, not float above it.
+            float navReserve = compact
+                ? ShellUIController.GetBottomSafeAreaInsetLogical() + 4f + ResponsiveNavBar.CompactBarHeight
+                : VisualTokens.Spacing.L + ShellUIController.GetBottomSafeAreaInsetLogical();
+
             var content = new VisualElement
             {
                 style =
                 {
                     flexGrow = 1, paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
-                    paddingTop = VisualTokens.Spacing.XXL, paddingBottom = VisualTokens.Spacing.XXL
+                    paddingTop = VisualTokens.Spacing.XXL, paddingBottom = navReserve + VisualTokens.Spacing.L
                 }
             };
             content.Add(BuildHeader());
