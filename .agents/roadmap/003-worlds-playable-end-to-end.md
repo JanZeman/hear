@@ -31,3 +31,11 @@ shared `TrialEngine` contract described in `Hear/README.md`.
   shader's GUID added there too, plus whatever is trying to add a `MeshCollider` investigated
   separately. Not fixed - found incidentally while verifying the Results screen (roadmap 010) and
   logged here rather than chased, since it's this item's scope, not that one's.
+- 2026-09-26: River of Echoes now replaces the placeholder presentation in the existing River
+  Journey world. The URP Lit shader was added to `m_AlwaysIncludedShaders`, and the Unity iOS
+  development build succeeds. The signed iOS app was installed and cold-launched to the world
+  selector without a startup error. The old URP Lit console message was visible only in the
+  still-running pre-update process; it disappeared after a targeted cold launch. The River scene
+  itself has not been entered, so shader availability and the reported `MeshCollider` error remain
+  unverified at runtime. No explicit non-medical disclosure or player acknowledgement was found
+  in `Hear/Assets`, so no hearing session was started.

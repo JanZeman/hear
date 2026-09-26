@@ -11,9 +11,10 @@ using UnityEngine.SceneManagement;
 namespace HearApp.Core.Shell
 {
     /// <summary>
-    /// Owns navigation/state for the whole app: splash -> world selector -> headphone/speaker
-    /// choice -> micro-instruction -> play -> results, plus additively loading/unloading the
-    /// selected world's scene and wiring it to the (single, persistent) <see cref="TrialEngine"/>.
+    /// Owns navigation/state for the whole app: splash -> world selector -> first-play non-medical
+    /// notice -> headphone/speaker choice -> micro-instruction -> play -> results, plus additively
+    /// loading/unloading the selected world's scene and wiring it to the (single, persistent)
+    /// <see cref="TrialEngine"/>.
     /// This is Game Shell responsibility per docs/06 - it never touches trial timing or
     /// classification itself, only asks the engine to run a plan against whichever world is loaded.
     /// </summary>
@@ -23,6 +24,7 @@ namespace HearApp.Core.Shell
         {
             Splash,
             WorldSelector,
+            NonMedicalNotice,
             HeadphoneChoice,
             MicroInstruction,
             Playing,
@@ -42,6 +44,9 @@ namespace HearApp.Core.Shell
         // request was specifically "abychom to mohli rychleji testovat".
         private const string SkipHeadphoneChoiceKey = "Settings.SkipHeadphoneChoice";
         private const string SkipMicroInstructionKey = "Settings.SkipMicroInstruction";
+        private const string NonMedicalNoticeAcknowledgedKey = "Safety.NonMedicalNoticeAcknowledged";
+
+        private Action _pendingEntryAfterNonMedicalNotice;
 
         public bool SkipHeadphoneChoice
         {
@@ -124,6 +129,11 @@ namespace HearApp.Core.Shell
         /// <summary>Player tapped Play (or the active carousel card) for the currently selected world.</summary>
         public void RequestPlaySelectedWorld()
         {
+            RequireNonMedicalNotice(ContinuePlaySelectedWorld);
+        }
+
+        private void ContinuePlaySelectedWorld()
+        {
             if (!SkipHeadphoneChoice)
             {
                 SetState(ShellState.HeadphoneChoice);
@@ -135,6 +145,40 @@ namespace HearApp.Core.Shell
                 StartCoroutine(EnterWorldRoutine());
             else
                 SetState(ShellState.MicroInstruction);
+        }
+
+        private void RequireNonMedicalNotice(Action continuation)
+        {
+            if (PlayerPrefs.GetInt(NonMedicalNoticeAcknowledgedKey, 0) == 1)
+            {
+                continuation();
+                return;
+            }
+
+            _pendingEntryAfterNonMedicalNotice = continuation;
+            SetState(ShellState.NonMedicalNotice);
+        }
+
+        public void AcknowledgeNonMedicalNotice()
+        {
+            if (State != ShellState.NonMedicalNotice)
+            {
+                Debug.LogError("[GameFlowController] Non-medical notice acknowledged outside its screen.");
+                return;
+            }
+
+            if (_pendingEntryAfterNonMedicalNotice == null)
+            {
+                Debug.LogError("[GameFlowController] Non-medical notice has no pending session entry.");
+                SetState(ShellState.WorldSelector);
+                return;
+            }
+
+            PlayerPrefs.SetInt(NonMedicalNoticeAcknowledgedKey, 1);
+            PlayerPrefs.Save();
+            var continuation = _pendingEntryAfterNonMedicalNotice;
+            _pendingEntryAfterNonMedicalNotice = null;
+            continuation();
         }
 
         /// <summary>Player picked Headphones or Speaker on the (never-blocking) headphone-choice screen.</summary>
@@ -152,6 +196,12 @@ namespace HearApp.Core.Shell
 
         private IEnumerator EnterWorldRoutine()
         {
+            if (PlayerPrefs.GetInt(NonMedicalNoticeAcknowledgedKey, 0) != 1)
+            {
+                RequireNonMedicalNotice(() => StartCoroutine(EnterWorldRoutine()));
+                yield break;
+            }
+
             var entry = WorldRegistry.Worlds[SelectedWorldIndex];
             var loadOp = SceneManager.LoadSceneAsync(entry.SceneName, LoadSceneMode.Additive);
             yield return loadOp;
@@ -201,15 +251,15 @@ namespace HearApp.Core.Shell
             SetState(ShellState.Results);
         }
 
-        /// <summary>Dev-only shortcut: skip splash/selector/headphone-choice/instruction and jump straight
-        /// into a world session, so world presentation can be iterated on without replaying the whole shell flow.</summary>
+        /// <summary>Dev-only shortcut: skip splash/selector/headphone-choice/instruction and jump
+        /// straight into a world session, while preserving the required non-medical notice.</summary>
         public void StartDevSession(int worldIndex, AudioOutputMode mode)
         {
             if (_loadedWorldScene.IsValid())
                 SceneManager.UnloadSceneAsync(_loadedWorldScene);
             SelectWorld(worldIndex);
             OutputMode = mode;
-            StartCoroutine(EnterWorldRoutine());
+            RequireNonMedicalNotice(() => StartCoroutine(EnterWorldRoutine()));
         }
 
         /// <summary>Dev-only: inject a classified outcome directly into the running session's active world,
