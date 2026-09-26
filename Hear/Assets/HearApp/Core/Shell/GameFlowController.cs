@@ -42,7 +42,6 @@ namespace HearApp.Core.Shell
         // request was specifically "abychom to mohli rychleji testovat".
         private const string SkipHeadphoneChoiceKey = "Settings.SkipHeadphoneChoice";
         private const string SkipMicroInstructionKey = "Settings.SkipMicroInstruction";
-        private const string LongSessionKey = "Settings.LongSession";
 
         public bool SkipHeadphoneChoice
         {
@@ -54,15 +53,6 @@ namespace HearApp.Core.Shell
         {
             get => PlayerPrefs.GetInt(SkipMicroInstructionKey, 1) == 1;
             set { PlayerPrefs.SetInt(SkipMicroInstructionKey, value ? 1 : 0); PlayerPrefs.Save(); }
-        }
-
-        /// <summary>Runs a 10x longer session (human request 2026-09-25: re-triggering the whole
-        /// shell flow every ~30s was slowing down playtesting a world). Remove once the real
-        /// worlds don't need this much iteration anymore.</summary>
-        public bool LongSession
-        {
-            get => PlayerPrefs.GetInt(LongSessionKey, 1) == 1;
-            set { PlayerPrefs.SetInt(LongSessionKey, value ? 1 : 0); PlayerPrefs.Save(); }
         }
 
         /// <summary>Every world's session runs for exactly this long (human request 2026-09-26:
@@ -177,8 +167,7 @@ namespace HearApp.Core.Shell
 
             var context = new WorldContext(OutputMode, Environment.TickCount);
             var plan = TrialPlan.BuildDefault(OutputMode, new System.Random());
-            float targetDuration = LongSession ? SessionDurationSeconds * 10f : SessionDurationSeconds;
-            Engine.BeginSession(_activeWorld, context, targetDuration);
+            Engine.BeginSession(_activeWorld, context, SessionDurationSeconds);
 
             SetState(ShellState.Playing);
             yield return StartCoroutine(Engine.RunSession(plan));

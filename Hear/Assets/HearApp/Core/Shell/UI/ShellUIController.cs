@@ -1796,11 +1796,6 @@ namespace HearApp.Core.Shell.UI
                 v => _flow.SkipMicroInstruction = v);
             skipInstructions.style.marginTop = VisualTokens.Spacing.M;
             screen.Add(skipInstructions);
-
-            var longSession = MakeCheckboxRow("Run session 10x longer (dev)", _flow.LongSession,
-                v => _flow.LongSession = v);
-            longSession.style.marginTop = VisualTokens.Spacing.M;
-            screen.Add(longSession);
         }
 
         // Hand-built instead of UI Toolkit's built-in Toggle: this project has no default Theme

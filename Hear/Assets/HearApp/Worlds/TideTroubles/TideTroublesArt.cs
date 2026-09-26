@@ -105,9 +105,47 @@ namespace HearApp.Worlds.TideTroubles
         private static Sprite _ringGold, _celebrationBurst;
         private static Sprite _companionIdle, _companionHappy;
 
-        private static Sprite[] FishGrid() => _fishGrid ??= MakeUniformGrid(FishSheet, cols: 3, rows: 3, cellW: 482, cellH: 362);
-        private static Sprite[] SeagullGrid() => _seagullGrid ??= MakeUniformGrid(SeagullSheet, cols: 4, rows: 2, cellW: 362, cellH: 543);
-        private static Sprite[] DogGrid() => _dogGrid ??= MakeUniformGrid(DogSheet, cols: 4, rows: 2, cellW: 362, cellH: 543);
+        // Fish/seagull/dog are curated picks, not a uniform grid: the sheets lay each pose out at
+        // its own size and position (not evenly spaced), so a uniform 482x362 / 362x543 slice cut
+        // into fins, wings and tails on several poses (reported 2026-09-26: "u hodně z nich vidím
+        // špatný ořez"). Rects below were measured from each sheet's actual non-transparent pixel
+        // bounds (per pose, plus a few px of padding) rather than assuming equal cell sizes.
+        private static Sprite[] FishGrid() => _fishGrid ??= new[]
+        {
+            MakeSprite(FishSheet, 77, 83, 409, 229),
+            MakeSprite(FishSheet, 631, 21, 246, 355),
+            MakeSprite(FishSheet, 1051, 124, 373, 251),
+            MakeSprite(FishSheet, 118, 430, 396, 247),
+            MakeSprite(FishSheet, 601, 393, 293, 328),
+            MakeSprite(FishSheet, 1055, 448, 364, 271),
+            MakeSprite(FishSheet, 154, 738, 319, 262),
+            MakeSprite(FishSheet, 587, 723, 337, 337),
+            MakeSprite(FishSheet, 1046, 805, 378, 253),
+        };
+
+        private static Sprite[] SeagullGrid() => _seagullGrid ??= new[]
+        {
+            MakeSprite(SeagullSheet, 34, 76, 304, 391),
+            MakeSprite(SeagullSheet, 341, 218, 382, 241),
+            MakeSprite(SeagullSheet, 731, 244, 292, 261),
+            MakeSprite(SeagullSheet, 1014, 224, 425, 221),
+            MakeSprite(SeagullSheet, 24, 554, 330, 357),
+            MakeSprite(SeagullSheet, 355, 659, 388, 246),
+            MakeSprite(SeagullSheet, 746, 673, 294, 290),
+            MakeSprite(SeagullSheet, 1021, 667, 403, 232),
+        };
+
+        private static Sprite[] DogGrid() => _dogGrid ??= new[]
+        {
+            MakeSprite(DogSheet, 32, 86, 333, 428),
+            MakeSprite(DogSheet, 384, 88, 397, 428),
+            MakeSprite(DogSheet, 769, 149, 378, 379),
+            MakeSprite(DogSheet, 1153, 88, 269, 429),
+            MakeSprite(DogSheet, 32, 621, 437, 378),
+            MakeSprite(DogSheet, 465, 529, 338, 481),
+            MakeSprite(DogSheet, 803, 607, 294, 388),
+            MakeSprite(DogSheet, 1138, 584, 281, 428),
+        };
 
         private static Sprite[] SplashPicks() => _splashPicks ??= new[]
         {
@@ -126,16 +164,6 @@ namespace HearApp.Worlds.TideTroubles
         {
             var tex = Load(relativePath);
             return tex == null ? null : Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), ppu);
-        }
-
-        private static Sprite[] MakeUniformGrid(Texture2D tex, int cols, int rows, int cellW, int cellH)
-        {
-            var result = new Sprite[cols * rows];
-            int i = 0;
-            for (int r = 0; r < rows; r++)
-                for (int c = 0; c < cols; c++)
-                    result[i++] = MakeSprite(tex, c * cellW, r * cellH, cellW, cellH);
-            return result;
         }
 
         // All sheets (fish/seagull/dog/companion/buoy/launcher/splash/effects) ship at this
