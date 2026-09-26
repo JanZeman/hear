@@ -26,16 +26,52 @@ recent sessions, context extras, utility actions), plus a dedicated empty state 
 - [x] Wording rules followed: no "Good job"/"Nice job", no age-group comparison (app has no age
       input), "Stable estimate" only once the reliable-session threshold is truly met.
 - [x] Critical layout bug (see Notes) found and fixed on a real device with a classic aspect ratio.
-- [ ] Full walkthrough on-device of the post-session context specifically (verified Overall
-      extensively; post-session shares the same fixed code path but hasn't been re-screenshotted
-      since the layout fix).
-- [ ] `Full hearing profile`'s Left/Right/Both tab interactivity re-verified after the layout fix.
+- [x] Full walkthrough on-device of both contexts after the layout fix (Overall extensively;
+      post-session via a real Tide Troubles session) - both clean, no overlap.
+- [x] `Full hearing profile`'s Left/Right/Both tab interactivity re-verified after the layout fix,
+      and unified with the preview section (see Notes) so both are interactive.
+- [x] Closer design-fidelity pass against the approved board (see Notes): brand header, info-dot
+      affordance, colored stat/utility accents.
 - [ ] Per-world "context extra" content is still generic (session detection-rate stats) rather than
       real per-world mechanics (e.g. Tide Troubles' actual fish-caught count) - the engine doesn't
       track those; documented as an honest gap, not faked data.
+- [ ] Y-axis loudness labels ("Louder/Normal/Quieter sounds") deliberately not reproduced - this
+      engine measures detection rate at one fixed volume, not a threshold, so those labels would
+      overstate precision. A standing, deliberate deviation from the approved board, not a gap.
 
 ## Notes
 
+- 2026-09-26: Design-fidelity pass after human review ("k finalni verzi jak byla v handoff to ale
+  ma stale silene daleko"), closing the gap against `previews/results-scroll-board-approved.png`
+  as far as practical without fabricated art or dishonest data:
+  - **Brand header**: every context now shows "Results" + a small `WorldArt.LogoOnDark` lockup +
+    "Your hearing journey", matching every column of the approved board (previously just the bare
+    "Results" title). Hit the exact same flex-shrink-collapses-to-0 bug this item's main fix
+    already covers, in a new spot - the header itself lacked `flexShrink:0`, so it got crushed by
+    the same ScrollView-viewport mechanism once it became a second multi-child stack. Fixed the
+    same way.
+  - **Hearing profile preview**: was a stripped-down, non-interactive, axis-less glimpse; the
+    approved board's preview and full sections are near-identical (same tabs, same axis). Unified
+    both into one `BuildHearingProfileSection` builder - preview is now shorter but equally
+    interactive.
+  - **Info-dot affordance**: added a small drawn "i" circle (not a Unicode "ⓘ" glyph - text-shaping
+    reliability is already a proven risk area in this file) beside titles the approved board marks
+    with one (Overall hearing age, This session, Hearing profile, Measurement quality).
+  - **Colored accents**: the approved board's per-row colored icons (fish/leaf/target stats,
+    lightbulb/trash/refresh utility rows) have no matching art in this codebase - added small
+    colored dots in their place for some visual rhythm rather than either inventing icon art or
+    leaving those rows plain. Found and fixed a related bug while wiring these in: `Button.text`
+    creates its own internal label lazily, which fights `Insert()`'s ordering - a dot inserted at
+    index 0 still rendered *after* the button's text. Fixed by not using `Button.text` at all for
+    these two rows, building the [dot, Label] children by hand instead (the same pattern the empty
+    state's Play button already used successfully).
+  - Verified on the S9+: both Overall and a real post-session (Tide Troubles) render cleanly with
+    all of the above, no regressions from the layout fix.
+  - Unrelated bug noticed, not fixed (out of this item's scope): selecting River Journey and
+    tapping Play throws `InvalidOperationException: The URP Lit shader is unavailable` and a
+    `MeshCollider` component error, logged to an in-app dev console - the same category of
+    build-stripping issue as the earlier Tide Troubles particle-shader bug (roadmap 001), just for
+    a different shader/world. Worth its own roadmap item if not already tracked under 003.
 - 2026-09-26: Critical bug found and fixed: human reported the Results screen as "silene zmatecna"
   (extremely confusing/unusable) on a newly-connected classic-aspect-ratio phone (Galaxy S9+,
   1080x2220). Screenshots showed every card's text overlapping illegibly. Root-caused via a

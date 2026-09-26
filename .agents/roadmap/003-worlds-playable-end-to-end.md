@@ -21,3 +21,13 @@ shared `TrialEngine` contract described in `Hear/README.md`.
       paddle bump/impulse fires on `CorrectDetection`.
 
 ## Notes
+
+- 2026-09-26: River Journey blocks on entry on a Galaxy S9+ (Android, real device, not Editor):
+  tapping Play throws `InvalidOperationException: The URP Lit shader is unavailable` plus a
+  `MeshCollider` "component doesn't exist" error, shown in an in-app dev console; the shell stays
+  visually on World Selector underneath. Same build-shader-stripping category already found and
+  fixed once for Tide Troubles' particle shader (see roadmap 001's notes on
+  `ProjectSettings/GraphicsSettings.asset`'s `m_AlwaysIncludedShaders`) - likely needs the URP Lit
+  shader's GUID added there too, plus whatever is trying to add a `MeshCollider` investigated
+  separately. Not fixed - found incidentally while verifying the Results screen (roadmap 010) and
+  logged here rather than chased, since it's this item's scope, not that one's.

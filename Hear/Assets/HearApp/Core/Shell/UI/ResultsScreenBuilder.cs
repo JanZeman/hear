@@ -57,7 +57,7 @@ namespace HearApp.Core.Shell.UI
             screen.Add(scroll);
             var content = scroll.contentContainer;
 
-            content.Add(MakeLabel("Results", VisualTokens.Type.Title, Color.white, 0, VisualTokens.Spacing.L));
+            content.Add(BuildHeader());
 
             var recentForTrend = SessionHistoryStore.Recent(TrendWindow);
             float overallAge = SessionHistoryStore.OverallHearingAge(recentForTrend);
@@ -102,7 +102,7 @@ namespace HearApp.Core.Shell.UI
                     paddingTop = VisualTokens.Spacing.XXL, paddingBottom = VisualTokens.Spacing.XXL
                 }
             };
-            content.Add(MakeLabel("Results", VisualTokens.Type.Title, Color.white, 0, VisualTokens.Spacing.L));
+            content.Add(BuildHeader());
 
             // The card group is only ever a few hundred px tall on a phone-height screen, so it is
             // wrapped in its own flexGrow:1/Center container instead of just stacking top-down -
@@ -183,7 +183,7 @@ namespace HearApp.Core.Shell.UI
         private static VisualElement BuildOverallSummaryCard(float overallAge, int reliableCount)
         {
             var card = MakeCard();
-            card.Add(MakeLabel("Overall hearing age", VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink700));
+            card.Add(TitleWithInfoDot("Overall hearing age"));
             card.Add(BigNumberRow(Mathf.RoundToInt(overallAge)));
 
             bool stable = reliableCount >= BaselineReliableSessionsTarget;
@@ -209,7 +209,7 @@ namespace HearApp.Core.Shell.UI
             var topRow = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween } };
 
             var left = new VisualElement { style = { flexShrink = 1 } };
-            left.Add(MakeLabel("This session", VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink700));
+            left.Add(TitleWithInfoDot("This session"));
             left.Add(BigNumberRow(Mathf.RoundToInt(latest.HearingAgeEstimate)));
             topRow.Add(left);
 
@@ -275,18 +275,19 @@ namespace HearApp.Core.Shell.UI
 
         // ---------------------------------------------------------------- Hearing profile
 
-        private static VisualElement BuildHearingProfilePreview(IReadOnlyList<FrequencyTrialRecord> trials)
-        {
-            var card = MakeCard();
-            card.Add(ChevronHeader("Hearing profile (preview)"));
-            card.Add(BuildFrequencyChart(trials, EarChannel.Combined, height: 64, showAxis: false));
-            return card;
-        }
+        // Preview and full sections are visually near-identical in the approved board - the same
+        // tab-toggle, axis-labelled chart, just shorter above the fold - so both call this one
+        // builder instead of the preview being a stripped-down, non-interactive glimpse.
+        private static VisualElement BuildHearingProfilePreview(IReadOnlyList<FrequencyTrialRecord> trials) =>
+            BuildHearingProfileSection("Hearing profile (preview)", trials, chartHeight: 90, withInfoDot: true);
 
-        private static VisualElement BuildFullHearingProfileCard(IReadOnlyList<FrequencyTrialRecord> trials)
+        private static VisualElement BuildFullHearingProfileCard(IReadOnlyList<FrequencyTrialRecord> trials) =>
+            BuildHearingProfileSection("Full hearing profile", trials, chartHeight: 140, withInfoDot: false);
+
+        private static VisualElement BuildHearingProfileSection(string title, IReadOnlyList<FrequencyTrialRecord> trials, float chartHeight, bool withInfoDot)
         {
             var card = MakeCard();
-            card.Add(ChevronHeader("Full hearing profile"));
+            card.Add(ChevronHeader(title, withInfoDot));
 
             var tabRow = new VisualElement { style = { flexDirection = FlexDirection.Row, marginTop = VisualTokens.Spacing.S, marginBottom = VisualTokens.Spacing.XS } };
             var chartHost = new VisualElement();
@@ -296,7 +297,7 @@ namespace HearApp.Core.Shell.UI
             void Rebuild()
             {
                 chartHost.Clear();
-                chartHost.Add(BuildFrequencyChart(trials, selected, height: 140, showAxis: true));
+                chartHost.Add(BuildFrequencyChart(trials, selected, height: chartHeight, showAxis: true));
             }
 
             void Restyle()
@@ -378,7 +379,7 @@ namespace HearApp.Core.Shell.UI
         private static VisualElement BuildMeasurementQualityCard(HearingAgeEstimator.QualitySummary summary)
         {
             var card = MakeCard();
-            card.Add(ChevronHeader("Measurement quality"));
+            card.Add(ChevronHeader("Measurement quality", withInfoDot: true));
             Color color = summary.Level switch
             {
                 HearingAgeEstimator.QualityLevel.Reliable => GoodGreen,
@@ -465,16 +466,26 @@ namespace HearApp.Core.Shell.UI
             card.Add(ChevronHeader("Today's session"));
 
             var row = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween, marginTop = VisualTokens.Spacing.S } };
-            row.Add(StatColumn(latest.CorrectDetections.ToString(), "Detected"));
-            row.Add(StatColumn($"{Mathf.RoundToInt(latest.DetectionRate * 100f)}%", "Reaction rate"));
-            row.Add(StatColumn(latest.Misses.ToString(), "Missed"));
+            row.Add(StatColumn(latest.CorrectDetections.ToString(), "Detected", VisualTokens.Colors.AuroraBlue));
+            row.Add(StatColumn($"{Mathf.RoundToInt(latest.DetectionRate * 100f)}%", "Reaction rate", GoodGreen));
+            row.Add(StatColumn(latest.Misses.ToString(), "Missed", AttentionAmber));
             card.Add(row);
             return card;
         }
 
-        private static VisualElement StatColumn(string value, string label)
+        // Small colored dot above each number, echoing the approved board's colored per-stat
+        // icons (fish/combo/target-style glyphs this codebase has no matching art for).
+        private static VisualElement StatColumn(string value, string label, Color accent)
         {
             var col = new VisualElement { style = { alignItems = Align.Center } };
+            col.Add(new VisualElement
+            {
+                style =
+                {
+                    width = 8, height = 8, backgroundColor = accent, marginBottom = VisualTokens.Spacing.XS,
+                    borderTopLeftRadius = 4, borderTopRightRadius = 4, borderBottomLeftRadius = 4, borderBottomRightRadius = 4
+                }
+            });
             col.Add(MakeLabel(value, VisualTokens.Type.Headline, VisualTokens.Colors.Ink900));
             col.Add(MakeLabel(label, VisualTokens.Type.Caption, VisualTokens.Colors.Slate400));
             return col;
@@ -483,7 +494,11 @@ namespace HearApp.Core.Shell.UI
         private static VisualElement BuildAboutResultsCard()
         {
             var card = MakeCard();
-            card.Add(ChevronHeader("About your results"));
+            var header = ChevronHeader("About your results");
+            // Small amber "lightbulb" accent dot - approved board leads this row with a lightbulb
+            // icon this codebase has no matching art for.
+            header.Children().First().Insert(0, ColorDot(AttentionAmber, marginRight: true));
+            card.Add(header);
             card.Add(MakeLabel(
                 "Based on your tone-detection pattern across frequencies, not a clinical diagnosis. Estimates improve as you play more sessions.",
                 VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, VisualTokens.Spacing.S));
@@ -494,22 +509,80 @@ namespace HearApp.Core.Shell.UI
         {
             var card = MakeCard();
             card.Add(MakeLabel("Clear all results and start fresh.", VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, 0, VisualTokens.Spacing.S));
-            var btn = new Button(() => { SessionHistoryStore.ClearAll(); onReset(); }) { text = "Reset history" };
+            var btn = new Button(() => { SessionHistoryStore.ClearAll(); onReset(); });
             StyleUtilityButton(btn, destructive: true);
+            // Button.text creates its own internal label lazily, which fought Insert()'s ordering
+            // (the dot kept rendering after the text no matter the insert index) - build the row
+            // by hand instead, the same [icon, label] pattern the empty state's Play button
+            // already uses successfully.
+            btn.style.flexDirection = FlexDirection.Row; btn.style.justifyContent = Justify.Center; btn.style.alignItems = Align.Center;
+            btn.Add(ColorDot(new Color(0.75f, 0.20f, 0.20f, 1f), marginRight: true));
+            var resetLabel = new Label("Reset history") { style = { color = new Color(0.75f, 0.20f, 0.20f, 1f), fontSize = VisualTokens.Type.BodyStrong.Size, unityFontStyleAndWeight = VisualTokens.Type.BodyStrong.Style } };
+            ApplyLineHeight(resetLabel, VisualTokens.Type.BodyStrong.Size);
+            btn.Add(resetLabel);
             card.Add(btn);
             return card;
+        }
+
+        /// <summary>Small colored circle used as a lightweight stand-in for the approved board's
+        /// per-row icons (lightbulb, trash, play) where this codebase has no matching icon art.</summary>
+        private static VisualElement ColorDot(Color color, bool marginRight)
+        {
+            return new VisualElement
+            {
+                style =
+                {
+                    width = 8, height = 8, backgroundColor = color,
+                    marginRight = marginRight ? VisualTokens.Spacing.S : 0f,
+                    borderTopLeftRadius = 4, borderTopRightRadius = 4, borderBottomLeftRadius = 4, borderBottomRightRadius = 4
+                }
+            };
         }
 
         private static VisualElement BuildBackToWorldsUtility(GameFlowController flow)
         {
             var card = MakeCard();
-            var btn = new Button(() => flow.ReturnToSelectorFromResults()) { text = "Back to Worlds" };
+            var btn = new Button(() => flow.ReturnToSelectorFromResults());
             StyleUtilityButton(btn, destructive: false);
+            btn.style.flexDirection = FlexDirection.Row; btn.style.justifyContent = Justify.Center; btn.style.alignItems = Align.Center;
+            btn.Add(ColorDot(Color.white, marginRight: true));
+            var backLabel = new Label("Back to Worlds") { style = { color = Color.white, fontSize = VisualTokens.Type.BodyStrong.Size, unityFontStyleAndWeight = VisualTokens.Type.BodyStrong.Style } };
+            ApplyLineHeight(backLabel, VisualTokens.Type.BodyStrong.Size);
+            btn.Add(backLabel);
             card.Add(btn);
             return card;
         }
 
         // ---------------------------------------------------------------- Shared building blocks
+
+        /// <summary>"Results" page title plus the small centered HEAR lockup + "Your hearing
+        /// journey" tagline every context in the approved board carries at the top - previously
+        /// just the bare title. Uses the on-dark full lockup (Home reserves the no-claim variant
+        /// for itself; this screen isn't Home, so the with-claim-less-but-full mark reads fine at
+        /// a small size on a dark/atmospheric background).</summary>
+        private static VisualElement BuildHeader()
+        {
+            var container = new VisualElement { style = { marginBottom = VisualTokens.Spacing.L, flexShrink = 0 } };
+            container.Add(MakeLabel("Results", VisualTokens.Type.Title, Color.white, 0, VisualTokens.Spacing.M));
+
+            var brand = new VisualElement { style = { alignItems = Align.Center } };
+            var logoTex = WorldArt.LogoOnDark;
+            if (logoTex != null)
+            {
+                const float logoW = 110f;
+                brand.Add(new VisualElement
+                {
+                    style =
+                    {
+                        width = logoW, height = logoW * logoTex.height / logoTex.width,
+                        backgroundImage = new StyleBackground(logoTex), unityBackgroundScaleMode = ScaleMode.ScaleToFit
+                    }
+                });
+            }
+            brand.Add(MakeLabel("Your hearing journey", VisualTokens.Type.Caption, new Color(1f, 1f, 1f, 0.82f), VisualTokens.Spacing.XS));
+            container.Add(brand);
+            return container;
+        }
 
         private static VisualElement BuildBackground(string worldId)
         {
@@ -584,12 +657,47 @@ namespace HearApp.Core.Shell.UI
             };
         }
 
-        private static VisualElement ChevronHeader(string title)
+        private static VisualElement ChevronHeader(string title, bool withInfoDot = false)
         {
             var row = new VisualElement { style = { flexDirection = FlexDirection.Row, justifyContent = Justify.SpaceBetween, alignItems = Align.Center } };
-            row.Add(MakeLabel(title, VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink900));
+            var titleRow = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            titleRow.Add(MakeLabel(title, VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink900));
+            if (withInfoDot) titleRow.Add(InfoDot());
+            row.Add(titleRow);
             row.Add(MakeLabel(">", VisualTokens.Type.Body, VisualTokens.Colors.Slate400));
             return row;
+        }
+
+        private static VisualElement TitleWithInfoDot(string title)
+        {
+            var row = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            row.Add(MakeLabel(title, VisualTokens.Type.BodyStrong, VisualTokens.Colors.Ink700));
+            row.Add(InfoDot());
+            return row;
+        }
+
+        /// <summary>Small "i" info-circle glyph the approved board shows beside several card
+        /// titles (Overall hearing age, This session, Hearing profile, Measurement quality) - a
+        /// plain drawn circle+label rather than a font glyph (Unicode "ⓘ" risks the same
+        /// unreliable text-shaping category of bug already found and fixed once in this file).</summary>
+        private static VisualElement InfoDot()
+        {
+            var dot = new VisualElement
+            {
+                style =
+                {
+                    width = 15, height = 15, marginLeft = VisualTokens.Spacing.XS,
+                    borderTopLeftRadius = 8, borderTopRightRadius = 8, borderBottomLeftRadius = 8, borderBottomRightRadius = 8,
+                    borderTopWidth = 1, borderBottomWidth = 1, borderLeftWidth = 1, borderRightWidth = 1,
+                    borderTopColor = VisualTokens.Colors.Slate400, borderBottomColor = VisualTokens.Colors.Slate400,
+                    borderLeftColor = VisualTokens.Colors.Slate400, borderRightColor = VisualTokens.Colors.Slate400,
+                    alignItems = Align.Center, justifyContent = Justify.Center
+                }
+            };
+            var i = new Label("i") { style = { fontSize = 10, color = VisualTokens.Colors.Slate400, unityTextAlign = TextAnchor.MiddleCenter } };
+            i.style.height = 12;
+            dot.Add(i);
+            return dot;
         }
 
         private static Label MakeLabel(string text, VisualTokens.TypeStyle style, Color color, float marginTop = 0f, float marginBottom = 0f)
