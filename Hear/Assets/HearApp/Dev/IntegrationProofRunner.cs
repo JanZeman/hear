@@ -41,7 +41,10 @@ namespace HearApp.Dev
 
                 var engine = gameObject.AddComponent<TrialEngine>();
                 var sequence = MockSequenceDriver.GetDefaultSequence();
-                engine.BeginSession(world, new WorldContext(AudioOutputMode.Headphones, 12345), sequence.Count);
+                // This proof drives ProcessTrial directly below rather than RunSession, so the
+                // target-duration argument only affects Progress bookkeeping, not correctness -
+                // any positive value works; BeginSession no longer takes a trial count.
+                engine.BeginSession(world, new WorldContext(AudioOutputMode.Headphones, 12345), targetSessionSeconds: 30f);
 
                 foreach (var (outcome, channel) in sequence)
                     yield return StartCoroutine(engine.ProcessTrial(outcome, channel));
