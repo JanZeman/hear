@@ -609,6 +609,56 @@ namespace HearApp.Core.Shell.UI
             };
         }
 
+        // Back navigation (human request 2026-09-27: "na kazdou hru (a obecne pro kazdou
+        // podstranku) udelej vlevo nahore sipku pro navigaci na predchozi stranku") - a plain "<-"
+        // glyph rather than a new icon asset, consistent with how the HUD's star is already a
+        // Label glyph, not an image (see ShowPlayingHud). `glassy` matches the pause button's dark
+        // translucent chip treatment for screens that sit over arbitrary art/world content
+        // (Playing, Results); every other screen sits on the plain Pearl0 background and just
+        // needs a plain dark arrow.
+        private static VisualElement MakeBackButton(bool glassy, System.Action onClick)
+        {
+            var button = new VisualElement
+            {
+                style =
+                {
+                    width = 40, height = 40, alignItems = Align.Center, justifyContent = Justify.Center,
+                    flexShrink = 0
+                }
+            };
+            if (glassy)
+            {
+                button.style.backgroundColor = new Color(0f, 0f, 0f, 0.35f);
+                button.style.borderTopLeftRadius = 999; button.style.borderTopRightRadius = 999;
+                button.style.borderBottomLeftRadius = 999; button.style.borderBottomRightRadius = 999;
+            }
+            var arrow = MakeLabel("←", new VisualTokens.TypeStyle(22, 700), glassy ? Color.white : VisualTokens.Colors.Ink900);
+            button.Add(arrow);
+            button.RegisterCallback<ClickEvent>(_ => onClick());
+            return button;
+        }
+
+        /// <summary>Adds a top-left back button to a screen built via <see cref="NewScreen"/> or
+        /// similar - positioned as a corner overlay so it doesn't disturb that screen's own
+        /// (usually centered) content layout. Not used by <see cref="ShowPlayingHud"/>, which
+        /// weaves its back button directly into the existing HUD row instead (see there).</summary>
+        private void AddTopLeftBackButton(VisualElement screen, bool glassy, System.Action onClick)
+        {
+            var backButton = MakeBackButton(glassy, onClick);
+            backButton.style.position = Position.Absolute;
+            backButton.style.top = GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M;
+            backButton.style.left = VisualTokens.Spacing.M;
+            screen.Add(backButton);
+        }
+
+        /// <summary>Shared "go back to Home" action for every subpage's back button except
+        /// Playing (which must also abort the running session first - see ShowPlayingHud).
+        /// Despite its name (kept from its original single call site), ReturnToSelectorFromResults
+        /// is GameFlowController's general "unload any loaded world scene and show WorldSelector"
+        /// path, safe to call from a screen with no world loaded at all (NonMedicalNotice,
+        /// HeadphoneChoice, MicroInstruction, Settings) as well as from Results.</summary>
+        private void GoBackToHome() => _flow.ReturnToSelectorFromResults();
+
         // ---------------------------------------------------------------- Splash
 
         private void ShowSplashScreen()
@@ -1384,6 +1434,7 @@ namespace HearApp.Core.Shell.UI
         private void ShowHeadphoneChoiceScreen()
         {
             var screen = NewScreen();
+            AddTopLeftBackButton(screen, glassy: false, GoBackToHome);
             screen.Add(MakeIcon("headphones", 56, VisualTokens.Colors.AuroraBlue));
             screen.Add(MakeLabel("Headphones recommended", VisualTokens.Type.Title, VisualTokens.Colors.Ink900, VisualTokens.Spacing.M));
             screen.Add(MakeLabel("More precise; left and right can be tested separately.", VisualTokens.Type.Body, VisualTokens.Colors.Ink700, VisualTokens.Spacing.S, VisualTokens.Spacing.XL));
@@ -1403,6 +1454,7 @@ namespace HearApp.Core.Shell.UI
         private void ShowNonMedicalNoticeScreen()
         {
             var screen = NewScreen();
+            AddTopLeftBackButton(screen, glassy: false, GoBackToHome);
             screen.Add(MakeLabel("Before your first game", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
 
             var notice = MakeLabel(
@@ -1426,6 +1478,7 @@ namespace HearApp.Core.Shell.UI
         private void ShowMicroInstructionScreen()
         {
             var screen = NewScreen();
+            AddTopLeftBackButton(screen, glassy: false, GoBackToHome);
             screen.Add(MakeLabel("Tap when you hear the tone.", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
             var continueButton = MakePrimaryButton("Got it", () => _flow.ConfirmMicroInstruction());
             continueButton.style.marginTop = VisualTokens.Spacing.XL;
@@ -1463,6 +1516,18 @@ namespace HearApp.Core.Shell.UI
                 },
                 pickingMode = PickingMode.Ignore
             };
+
+            // Back button (human request 2026-09-27) sits first in the row, ahead of the star -
+            // the row narrows to make room for it: margin, back, margin, star+bar, margin, pause,
+            // margin. Direct quit (no confirmation), mirroring the pause menu's "Quit to Home"
+            // exactly - a stray tap here is no worse than a stray tap on Resume vs. Quit there.
+            var backButton = MakeBackButton(glassy: true, () =>
+            {
+                _flow.Engine.AbortSessionUserQuit();
+                GoBackToHome();
+            });
+            backButton.style.marginRight = VisualTokens.Spacing.S;
+            hudRoot.Add(backButton);
 
             _hudPointsBadge = new VisualElement
             {
@@ -1773,6 +1838,7 @@ namespace HearApp.Core.Shell.UI
             if (_flow.Engine != null && _flow.Engine.SessionInvalidatedByFranticTapping)
             {
                 var invalidScreen = NewScreen();
+                AddTopLeftBackButton(invalidScreen, glassy: false, GoBackToHome);
                 invalidScreen.Add(MakeLabel("Session ended", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
                 var invalidatedBody = new Label(
                     "We ended this session early because of repeated rapid tapping. Results from " +
@@ -1798,6 +1864,10 @@ namespace HearApp.Core.Shell.UI
 
             var screen = NewScreen(padded: false);
             ResultsScreenBuilder.Build(screen, _flow);
+            // Results carries its own art background (see ResultsScreenBuilder.BuildBackground),
+            // not the plain Pearl0 every other screen sits on - glassy for contrast against it,
+            // same as Playing.
+            AddTopLeftBackButton(screen, glassy: true, GoBackToHome);
         }
 
         // ---------------------------------------------------------------- Settings
@@ -1809,6 +1879,7 @@ namespace HearApp.Core.Shell.UI
         private void ShowSettingsScreen()
         {
             var screen = NewScreen();
+            AddTopLeftBackButton(screen, glassy: false, GoBackToHome);
             screen.Add(MakeLabel("Settings", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
             screen.Add(MakeLabel("Dev speed (more settings later)", VisualTokens.Type.Caption, VisualTokens.Colors.Slate400, VisualTokens.Spacing.S));
 
