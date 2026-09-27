@@ -30,9 +30,6 @@ EditorBuildSettings:
     path: Assets/HearApp/Scenes/EarthWorld.unity
     guid: f78e6cc9bdd8434a895cbcd24450783b
   - enabled: 1
-    path: Assets/HearApp/Scenes/MushroomsWorld.unity
-    guid: e15b7d9cae8b4fea9aa6813c3c15e4a8
-  - enabled: 1
     path: Assets/HearApp/Scenes/MycMurmurWorld.unity
     guid: f510bbe37de0458597b891810d1d0862
   m_configObjects:

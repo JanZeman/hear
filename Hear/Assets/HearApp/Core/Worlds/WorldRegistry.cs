@@ -45,11 +45,13 @@ namespace HearApp.Core.Worlds
             // different free asset pack to see what's worth developing further.
             new WorldEntry("planets", "Planets", "Listen. Try. See.", "PlanetsWorld"),
             new WorldEntry("earth", "Earth", "Listen. Try. See.", "EarthWorld"),
-            new WorldEntry("mushrooms", "Mushrooms", "Listen. Try. See.", "MushroomsWorld"),
             // Dev-only scratch world (human request 2026-09-27, after finding the free "Sleeping
             // Forest" pack's ground textures, glow-capable mushrooms, and firefly effect: "Zaloz
             // toto jako uplne novy svet... snive poeticky nazev" between mushrooms and sound) -
-            // its own dusk-forest world, not a replacement for "mushrooms".
+            // superseded the plain low-poly "Mushrooms" world entirely (human request 2026-09-27:
+            // "Ted Mushrooms svet muzes smazat, zustaneme jen u Mycenia") - Mushrooms' own model/
+            // atlas assets live on under Resources/Worlds/Mushrooms, now reused as imported
+            // variety inside this world (see MycMurmurPresentation.ImportedMushroomSpecies).
             new WorldEntry("myc-murmur", "Mycelium Murmur", "Listen. Try. See.", "MycMurmurWorld"),
         };
     }
