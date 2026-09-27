@@ -63,9 +63,16 @@ namespace HearApp.Worlds.VikingBoat
             _camera.backgroundColor = new Color(0.55f, 0.68f, 0.78f);
             _camera.nearClipPlane = 0.1f;
             _camera.farClipPlane = 300f;
-            _camera.fieldOfView = 42f;
             cameraObject.AddComponent<AudioListener>();
             cameraObject.AddComponent<CoreSafeSquareFit>();
+            // CoreSafeSquareFit.Awake() runs synchronously inside this AddComponent call and
+            // immediately overwrites fieldOfView from its own 50 deg base (portrait-widened per
+            // aspect, landing around 87-90 deg on a typical phone) - a fieldOfView assignment made
+            // before this line is silently dead code (found 2026-09-27 chasing why the "held
+            // shield near bottom edge" math didn't add up: it assumes the actual runtime FOV, not
+            // a value set here and then overridden). That wide FOV happens to be what produced the
+            // close/dramatic framing already confirmed on-device, so left as the class default
+            // rather than narrowed via ConfigurePerspectiveCoreVerticalFov.
             // Position/orientation are driven every frame by Update() (flythrough) instead of
             // set once here.
         }
@@ -138,27 +145,30 @@ namespace HearApp.Worlds.VikingBoat
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
         private const int ShieldVariantCount = 6;
 
-        // Evenly spaced along the same flat midship span used by the flythrough, at the same
-        // rail height/offset already validated by the QA screenshots.
-        private static readonly Vector3[] ShieldSlotPositions =
-        {
-            new(0.9f, -0.5f, -1.7f),
-            new(0.9f, -0.5f, -1.02f),
-            new(0.9f, -0.5f, -0.34f),
-            new(0.9f, -0.5f, 0.34f),
-            new(0.9f, -0.5f, 1.02f),
-            new(0.9f, -0.5f, 1.7f),
-        };
+        // Rail height/offset already validated by the QA screenshots, within the flat midship span
+        // (not the curled bow/stern, which sit outside +-1.7 and would leave a shield floating off
+        // the actual hull surface).
+        private const float ShieldRailX = 0.9f;
+        private const float ShieldRailY = -0.5f;
+        private const float ShieldRailHalfSpan = 1.7f;
+        // Matches the shield's own 0.6 target diameter plus a small gap, so consecutive shields on
+        // the rail don't overlap.
+        private const float ShieldMinSpacing = 0.68f;
+        private const int MaxShields = 6;
+        private readonly List<float> _placedShieldZs = new();
 
         // Held close in front of the camera (child of the camera transform, so it rides along
         // through the flythrough) - originally centred near the player's eye per human direction,
         // moved down toward the bottom edge of the frame on further human direction 2026-09-27 (a
         // HUD-style "held item" look, like a carried weapon in an FPS view, rather than floating
-        // centre-screen) - at 1.0 distance and this camera's 42 deg vertical FOV, the visible
-        // half-height is tan(21 deg) =~ 0.38, so -0.34 sits it right at the bottom edge. Facing the
+        // centre-screen). NOTE the real effective vertical FOV here is NOT the 42 the first attempt
+        // assumed - CoreSafeSquareFit overrides it at runtime to ~87-90 on a typical phone (see
+        // BuildCamera's note), so the visible half-height at 1.0 distance is tan(~44) =~ 0.96, not
+        // tan(21) =~ 0.38 - -0.7 (not the first attempt's -0.34, which only nudged it slightly
+        // below centre) is what actually reads as sitting down at the bottom edge. Facing the
         // camera means the mesh's local-Z normal (see rotation note above) must point along local
         // -Z here, with local Y kept as up: Euler(0, 180, 0) does exactly that.
-        private static readonly Vector3 HeldShieldLocalPosition = new(0f, -0.34f, 1.0f);
+        private static readonly Vector3 HeldShieldLocalPosition = new(0f, -0.7f, 1.0f);
         private static readonly Quaternion HeldShieldLocalRotation = Quaternion.Euler(0f, 180f, 0f);
 
         private GameObject _shieldAsset;
@@ -214,7 +224,7 @@ namespace HearApp.Worlds.VikingBoat
 
         private IEnumerator AttachShieldRoutine()
         {
-            if (_heldShield == null || _shieldsPlaced >= ShieldSlotPositions.Length)
+            if (_heldShield == null || _shieldsPlaced >= MaxShields)
             {
                 RaiseListeningSafe();
                 yield break;
@@ -222,7 +232,28 @@ namespace HearApp.Worlds.VikingBoat
 
             Transform shield = _heldShield;
             _heldShield = null;
-            Vector3 targetPosition = ShieldSlotPositions[_shieldsPlaced++];
+            _shieldsPlaced++;
+
+            // Target Z is wherever the camera currently is (not a pre-baked slot) - with the
+            // flythrough now a long diagonal sweep rather than a short straight track, a fixed slot
+            // list authored for the old camera range meant an early success (camera still near the
+            // start) could get assigned a slot far down the rail, so the shield had to cover a huge
+            // apparent distance and read as flying away from the ship instead of snapping onto it
+            // (human report 2026-09-27: shields landing far from the ship). Nudged forward in
+            // MinSpacing steps past any already-placed shield so they never overlap.
+            float desiredZ = Mathf.Clamp(_camera.transform.position.z, -ShieldRailHalfSpan, ShieldRailHalfSpan);
+            for (int guard = 0; guard < MaxShields; guard++)
+            {
+                bool tooClose = false;
+                foreach (float z in _placedShieldZs)
+                {
+                    if (Mathf.Abs(z - desiredZ) < ShieldMinSpacing) { tooClose = true; break; }
+                }
+                if (!tooClose) break;
+                desiredZ = Mathf.Min(desiredZ + ShieldMinSpacing, ShieldRailHalfSpan);
+            }
+            _placedShieldZs.Add(desiredZ);
+            Vector3 targetPosition = new(ShieldRailX, ShieldRailY, desiredZ);
 
             // Detach from the camera, keeping its current world pose as the flight's start point.
             shield.SetParent(transform, true);
@@ -275,6 +306,69 @@ namespace HearApp.Worlds.VikingBoat
                 Destroy(importedLight.gameObject);
 
             ApplyTextures(instance);
+            BuildRiver();
+        }
+
+        // River/lake terrain (human request 2026-09-27: get the ship onto water) - a free CGTrader
+        // "river lake in middle of mountain" model (river.fbx, no accompanying texture pack: the
+        // download only ships mesh formats plus a bare .mtl with no image, confirmed from the
+        // listing itself), so its two meshes ("Ground" the rocky banks, "river" the water surface)
+        // get plain colour URP Lit materials by name instead of a texture lookup, matching the
+        // no-art-available fallback already used elsewhere (e.g. the Results screen's aurora
+        // gradient) rather than inventing a texture that was never supplied.
+        //
+        // Measured combined bounds (throwaway InspectRiverModel Editor diagnostic, since deleted):
+        // center (0.02, 0.09, 0.03), size (2.28, 0.22, 4.87) - already a similar scale to the ship
+        // (1.65 x 2.39 x 4.58) with no extra import-scale correction needed (Unity's importer
+        // already resolves the source's 100x node scale into these world-space numbers).
+        //
+        // First attempt kept both meshes (the rocky "Ground" banks alongside the flat "river"
+        // water) at 3x scale - on device this put the ship beached on an uneven hillside instead of
+        // afloat, and the actual water patch sat off to one side out of frame, because this is a
+        // natural, irregular lake-in-mountains shape, not a uniform flat plane, and there is no way
+        // to know which patch of its bumpy surface will land at the ship's waterline without
+        // measuring elevation at that exact spot (not exposed by the combined-bounds diagnostic).
+        // Fixed by dropping "Ground" entirely and keeping only the "river" water mesh, scaled up
+        // much further (10x) so the camera's full diagonal travel range only ever sees a small,
+        // effectively-flat fraction of its overall shape - the same trick as using a large enough
+        // flat sample of any irregular surface to avoid its edges or bumps ever entering frame.
+        private const float RiverScale = 10f;
+        private const float RiverWaterlineY = -0.75f;
+
+        private void BuildRiver()
+        {
+            var asset = Resources.Load<GameObject>("Worlds/VikingBoat/Models/River");
+            if (asset == null)
+            {
+                Debug.LogError("[VikingBoat] Could not load River model from Resources.");
+                return;
+            }
+
+            var pivot = new GameObject("River").transform;
+            pivot.SetParent(transform, false);
+            pivot.localPosition = new Vector3(0f, RiverWaterlineY, 0f);
+            pivot.localScale = Vector3.one * RiverScale;
+
+            var instance = Instantiate(asset, pivot, false);
+
+            // Same recurring gotcha as every other imported asset in this world: strip any embedded
+            // camera/light so it doesn't silently composite over ours.
+            foreach (var importedCamera in instance.GetComponentsInChildren<Camera>(true))
+                Destroy(importedCamera.gameObject);
+            foreach (var importedLight in instance.GetComponentsInChildren<Light>(true))
+                Destroy(importedLight.gameObject);
+
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            var riverMaterial = new Material(shader) { color = new Color(0.16f, 0.40f, 0.55f) };
+            riverMaterial.SetFloat("_Smoothness", 0.85f);
+            riverMaterial.SetFloat("_Metallic", 0.15f);
+
+            foreach (var renderer in instance.GetComponentsInChildren<Renderer>())
+            {
+                bool isWater = renderer.name.ToLowerInvariant().Contains("river");
+                if (isWater) renderer.sharedMaterial = riverMaterial;
+                else renderer.enabled = false;
+            }
         }
 
         // The three materials (map_ShipV_001/002/003) each map onto their own BaseColor + Normal
