@@ -10,8 +10,9 @@ namespace HearApp.Worlds.VikingBoat
     /// <summary>
     /// World 5 - Viking Boat. Another scratch space in the same spirit as
     /// <see cref="HearApp.Worlds.Experiment.ExperimentPresentation"/> (human request 2026-09-26:
-    /// "Priprav dalsi svet, nazvi jej Viking Boat. Objekty dodam za chvili") - camera/lighting are
-    /// ready, BuildEnvironment is an empty placeholder until a model/texture pack arrives.
+    /// prepare another world named Viking Boat, with the real objects to follow shortly) -
+    /// camera/lighting are ready, BuildEnvironment is an empty placeholder until a model/texture
+    /// pack arrives.
     ///
     /// When adding the real asset, follow the pattern proven out on the Experiment world's Castle
     /// pass: copy the FBX into Resources/Worlds/VikingBoat/Models, copy any texture pack into
@@ -70,35 +71,51 @@ namespace HearApp.Worlds.VikingBoat
         }
 
         // Flythrough: the camera glides along the hull's side at shield height so each shield on
-        // the gunwale crosses the frame one at a time as we pass it (human request 2026-09-27:
-        // "Dokazes tu lod ... nechat proplout tak, aby se ty stity mihaly jeden po druhem?").
-        // The ship is recentred in BuildEnvironment so its combined bounds sit at local origin;
-        // measured combined size was (1.65, 2.39, 4.58), so half-length along Z is ~2.3m - the
-        // span below adds a margin past both ends so shields visibly enter/exit frame.
-        // Kept within the flat midship section (not the curled bow/stern, which sit outside this
-        // span) so the rail stays level and the shields pass by at a consistent height/spacing.
-        private const float FlythroughHalfSpan = 1.7f;
-        private const float FlythroughSideOffset = 2.6f;
-        private const float FlythroughHeight = -0.5f;
-        private const float FlythroughDuration = 8f;
+        // the gunwale crosses the frame one at a time as we pass it. The ship is recentred in
+        // BuildEnvironment so its combined bounds sit at local origin; measured combined size was
+        // (1.65, 2.39, 4.58), so half-length along Z is ~2.3m - the span below adds a margin past
+        // both ends so shields visibly enter/exit frame. Kept within the flat midship section (not
+        // the curled bow/stern, which sit outside this span) so the rail stays level and the
+        // shields pass by at a consistent height/spacing.
+        //
+        // One single one-way pass across the whole session instead of an 8s back-and-forth loop
+        // (human request 2026-09-27: over the 30s session there should be exactly one flyover from
+        // front to back, from the side) - FlythroughDuration below must track
+        // GameFlowController.SessionDurationSeconds (private to that class, so not referenced
+        // directly; both are 30f by design intent, not coincidence - keep them in sync by hand).
+        //
+        // A straight track parallel to the hull (constant X, varying only Z, always looking
+        // perpendicular across) read on-device as a flat left-to-right pan, not a flight (human
+        // report 2026-09-27: "ta let jde zleva doprava... melo by to jit sikmo" - the flight goes
+        // left-to-right, it should go obliquely). Fixed by moving BOTH X and Z over the course of
+        // the pass - a genuine diagonal approach that swoops in from wide-and-forward of the bow to
+        // close-and-aft of the stern along the port side, plus a forward-biased look target so the
+        // camera visibly banks into its own direction of travel instead of just tracking sideways.
+        // Direction (bow at -Z, stern at +Z) is a best guess pending an on-device look at which end
+        // is actually the bow; if it turns out backwards, swap Start/End below.
+        private static readonly Vector3 FlythroughStart = new(3.0f, -0.2f, -2.6f);
+        private static readonly Vector3 FlythroughEnd = new(0.9f, -0.7f, 2.6f);
+        private const float FlythroughLookAheadZ = 1.1f;
+        private const float FlythroughDuration = 30f;
 
         private void Update()
         {
             if (_camera == null) return;
 
             float elapsed = Time.time - _startTime;
-            float normalized = Mathf.PingPong(elapsed, FlythroughDuration) / FlythroughDuration;
-            float z = Mathf.Lerp(-FlythroughHalfSpan, FlythroughHalfSpan, normalized);
+            float normalized = Mathf.Clamp01(elapsed / FlythroughDuration);
+            Vector3 pos = Vector3.Lerp(FlythroughStart, FlythroughEnd, normalized);
 
-            _camera.transform.position = new Vector3(FlythroughSideOffset, FlythroughHeight, z);
-            _camera.transform.LookAt(new Vector3(-0.4f, FlythroughHeight, z), Vector3.up);
+            _camera.transform.position = pos;
+            _camera.transform.LookAt(new Vector3(-0.4f, pos.y, pos.z + FlythroughLookAheadZ), Vector3.up);
         }
 
-        // Reward shields. Original idea (human, 2026-09-27): "s kazdym uspechem se bud objevi
-        // nebo 'prileti' jeden shield na bok lodi. Hezky velky aby bylo videt jakou ma texturu."
-        // Refined immediately after seeing the first pass (human, same session): "Ty stity mohou
-        // byt videt od zacatku - a hooodne blizko oka uzivatele. A pri 'uspechu' by se mohli
-        // 'pripnout' na lod." - so instead of spawning + cutting the camera away to it, the next
+        // Reward shields. Original idea (human, 2026-09-27): with each success, a shield should
+        // either appear or "fly in" onto the side of the ship - nice and big so its texture is
+        // visible. Refined immediately after seeing the first pass (human, same session): the
+        // shields could instead be visible from the very start, held very close to the player's
+        // eye, and on "success" snap onto the ship - so instead of spawning + cutting the camera
+        // away to it, the next
         // shield to be earned is always held close in view (parented to the camera, so it rides
         // along through the ambient flythrough) and on a correct detection it flies from there
         // over to its slot on the hull and snaps into place; the following variant then appears
@@ -134,10 +151,14 @@ namespace HearApp.Worlds.VikingBoat
         };
 
         // Held close in front of the camera (child of the camera transform, so it rides along
-        // through the flythrough) - "hooodne blizko oka uzivatele". Facing the camera means the
-        // mesh's local-Z normal (see rotation note above) must point along local -Z here, with
-        // local Y kept as up: Euler(0, 180, 0) does exactly that.
-        private static readonly Vector3 HeldShieldLocalPosition = new(0f, -0.1f, 1.0f);
+        // through the flythrough) - originally centred near the player's eye per human direction,
+        // moved down toward the bottom edge of the frame on further human direction 2026-09-27 (a
+        // HUD-style "held item" look, like a carried weapon in an FPS view, rather than floating
+        // centre-screen) - at 1.0 distance and this camera's 42 deg vertical FOV, the visible
+        // half-height is tan(21 deg) =~ 0.38, so -0.34 sits it right at the bottom edge. Facing the
+        // camera means the mesh's local-Z normal (see rotation note above) must point along local
+        // -Z here, with local Y kept as up: Euler(0, 180, 0) does exactly that.
+        private static readonly Vector3 HeldShieldLocalPosition = new(0f, -0.34f, 1.0f);
         private static readonly Quaternion HeldShieldLocalRotation = Quaternion.Euler(0f, 180f, 0f);
 
         private GameObject _shieldAsset;
@@ -286,6 +307,13 @@ namespace HearApp.Worlds.VikingBoat
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             var material = new Material(shader);
+            // Root cause of the hull rendering as completely invisible (confirmed 2026-09-27 via a
+            // throwaway diagnostic dump - mesh, camera, shader and render pipeline all checked out
+            // fine individually, yet nothing drew): this raw .obj's triangle winding comes in
+            // inverted, so every face was being backface-culled from any outside camera angle.
+            // Double-siding the hull material is the pragmatic fix, rather than re-exporting or
+            // flipping winding at import time.
+            material.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
 
             var entry = System.Array.Find(ShipMaterials, e => e.materialName == materialName);
             if (entry.textureBaseName != null)
