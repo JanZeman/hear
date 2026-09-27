@@ -17,27 +17,37 @@ namespace HearApp.Worlds.RiverJourney
 
         protected override void PostInstantiation(IInstantiator instantiator, bool success)
         {
-            // The manual bent-knee pose (guessed hip/knee rotation axes) came out completely wrong
-            // - legs splayed out sideways like insect limbs, not a seated human (human feedback
-            // 2026-09-26: "spis nejaky hmyz nez cloveka"). Reverted rather than keep guessing bone
-            // axes blindly; standing tall with legs mostly hidden inside the canoe hull (see the
-            // root position offset in RiverJourneyPresentation.CreateCanoeistModel) reads far better
-            // than a broken pose.
+            // First seated-pose attempt bent hip/knee bones using a guessed LOCAL rotation axis
+            // (Quaternion.Euler on localRotation) and came out completely wrong - legs splayed out
+            // sideways like insect limbs (human feedback 2026-09-26: "spis nejaky hmyz nez
+            // cloveka"). This retry rotates around a WORLD-space axis instead (this GameObject's own
+            // right vector, i.e. "sideways" for the character, since it isn't independently rotated
+            // from the canoe) via Transform.Rotate(axis, angle, Space.World) - that sidesteps ever
+            // needing to know this rig's internal local bone-axis convention, unlike the local-Euler
+            // approach that failed.
             base.PostInstantiation(instantiator, success);
-            var anim = SceneInstance?.LegacyAnimation;
-            if (anim != null)
-            {
-                string neutral = null;
-                string idle = null;
-                foreach (AnimationState state in anim)
-                {
-                    if (state.name.EndsWith("Idle_Neutral", StringComparison.Ordinal)) neutral = state.name;
-                    else if (state.name.EndsWith("|Idle", StringComparison.Ordinal)) idle = state.name;
-                }
-                if (neutral != null) anim.Play(neutral);
-                else if (idle != null) anim.Play(idle);
-            }
+            SceneInstance?.LegacyAnimation?.Stop();
+            PoseSeated();
             Loaded?.Invoke();
+        }
+
+        private void PoseSeated()
+        {
+            Vector3 hingeAxis = transform.right;
+            foreach (var bone in GetComponentsInChildren<Transform>(true))
+            {
+                switch (bone.name)
+                {
+                    case "UpperLeg.L":
+                    case "UpperLeg.R":
+                        bone.Rotate(hingeAxis, -85f, Space.World);
+                        break;
+                    case "LowerLeg.L":
+                    case "LowerLeg.R":
+                        bone.Rotate(hingeAxis, 95f, Space.World);
+                        break;
+                }
+            }
         }
     }
 }

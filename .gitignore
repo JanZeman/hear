@@ -316,3 +316,9 @@ __pycache__/
 # instead, but keep this as a backstop).
 /*.log
 /*.png
+
+# Raw/reference 3D source material (as-downloaded .obj/.blend/.dae/.fbx/.rar archives) - not
+# read by Unity at build time (only the processed assets under Hear/Assets/.../Resources/Worlds
+# are), and individual files here have run into the hundreds of MB, well past GitHub's per-blob
+# push limit (one such push attempt on 2026-09-27 failed and had to be cleaned out of history).
+sources/3D/

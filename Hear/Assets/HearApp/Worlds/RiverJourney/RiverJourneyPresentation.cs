@@ -532,28 +532,8 @@ namespace HearApp.Worlds.RiverJourney
             _canoe.SetParent(transform, false);
             _canoe.localScale = Vector3.one * 1.3f;
 
-            _canoeHull = CreateMeshObject(
-                _canoe,
-                "CanoeHull",
-                BuildCanoeHullMesh(),
-                new Vector3(0f, 0f, 0f),
-                Vector3.one,
-                new Color(0.48f, 0.31f, 0.2f));
+            _canoeHull = BuildKayakModel();
             _hullRestRotation = _canoeHull.localRotation;
-
-            for (int side = -1; side <= 1; side += 2)
-            {
-                var rail = CreatePrimitive(
-                    PrimitiveType.Cylinder, _canoe, $"CanoeGunwale_{side}",
-                    new Vector3(side * 0.45f, 0.2f, 0f),
-                    new Vector3(0.08f, 1.4f, 0.08f),
-                    new Color(0.82f, 0.59f, 0.34f));
-                rail.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            }
-            CreatePrimitive(
-                PrimitiveType.Cube, _canoe, "CanoeSeat",
-                new Vector3(0f, 0.32f, -0.15f), new Vector3(0.62f, 0.09f, 0.22f),
-                new Color(0.55f, 0.37f, 0.24f));
 
             CreateCanoeistModel();
             _paddle = CreatePrimitive(
@@ -589,13 +569,95 @@ namespace HearApp.Worlds.RiverJourney
         {
             var root = new GameObject("CanoeistModel");
             root.transform.SetParent(_canoe, false);
-            root.transform.localPosition = new Vector3(0f, 0.08f, -0.25f);
-            root.transform.localScale = Vector3.one * 0.62f;
+            // Scaled up ~2x and lowered (human request 2026-09-26: "zkusit asi 2x zvetsit a
+            // 'posadit' na kayak") - a bigger figure sitting low in the hull reads more like it
+            // belongs to this canoe than the smaller standing-tall placement did.
+            root.transform.localPosition = new Vector3(0f, -0.12f, -0.25f);
+            root.transform.localScale = Vector3.one * 1.2f;
 
             var gltf = root.AddComponent<CanoeistGltfAsset>();
             gltf.StreamingAsset = true;
             gltf.Url = "Models/canoeist.glb";
             gltf.LoadOnStartup = true;
+        }
+
+        // Replaces the hand-built hull/gunwale/seat primitives and the "KayakDeck" occlusion-block
+        // hack with a real modeled kayak (human find 2026-09-26: a free low-poly "Wooden Kayak with
+        // Paddle" model from CGTrader, by creator crazyyuan - saved locally to
+        // Assets/HearApp/Resources/Worlds/RiverJourney/Models/Kayak.fbx). Its own closed cockpit
+        // hides the canoeist's standing legs by construction, the same way a real kayak does -
+        // exactly what the deck-block hack was approximating, but for real this time. No texture
+        // pack was available for it, so it's recolored with this world's existing hull brown.
+        //
+        // The source FBX's two meshes (Kayak_LP, Paddle_LPS) both run along their local X axis and
+        // sit offset from the file's root node (measured via a one-off Editor diagnostic, since
+        // there is no Editor GUI in this pipeline to inspect it visually): Kayak_LP world bounds
+        // center (0.22, 0.10, 0.17) size (1.88, 0.17, 0.26). This world's boats run along Z, so the
+        // instantiated hierarchy is recentered to its own local origin, then a pivot wrapping it
+        // supplies the 90-degree turn onto Z, a uniform scale (~1.6x, chosen to land close to the
+        // previous hand-built hull's ~3.1-unit length so the rest of this file's tuned offsets -
+        // camera, paddle, splash positions - stay roughly valid), and the placement inside the canoe
+        // rig. The model's own paddle prop is hidden - the existing procedurally-animated paddle
+        // (see BuildCanoe) already drives the splash/stroke success feedback and stays in use.
+        // Swapped from the kayak to a raft (human request 2026-09-26: "Dej postave raft.fbx
+        // namisto kayaku. To potom nevadi, ze postava stoji.") - a flat raft deck sidesteps the
+        // whole seated-pose problem entirely, since a standing paddler on a raft is completely
+        // normal, unlike a kayak's enclosed cockpit. Free low-poly "Raft stylized" model from
+        // CGTrader (creator slaventina), saved to
+        // Assets/HearApp/Resources/Worlds/RiverJourney/Models/Raft.fbx. Its hierarchy (measured via
+        // a one-off Editor diagnostic, same approach as the kayak): Raft_base (the log deck, world
+        // bounds center (-0.06, 0.18, -0.58) size (1.60, 0.35, 2.55) at scale 1) plus
+        // Raft_base_small/Raft_rope/Raft_sail (the mast, rigging, and sail - hidden here, matching
+        // how the kayak's own paddle prop was hidden in favor of this world's animated paddle) and
+        // Raft_seat (a small bench, kept). Unlike the kayak this mesh is already Z-aligned, so no
+        // corrective rotation is needed, only recentering and scale.
+        private Transform BuildKayakModel()
+        {
+            var raftAsset = Resources.Load<GameObject>("Worlds/RiverJourney/Models/Raft");
+            var pivot = new GameObject("Raft").transform;
+            pivot.SetParent(_canoe, false);
+            pivot.localPosition = new Vector3(0f, -0.12f, 0f);
+            pivot.localScale = Vector3.one * 2f;
+
+            if (raftAsset == null)
+            {
+                Debug.LogError("[RiverOfEchoes] Could not load Raft model from Resources.");
+                return pivot;
+            }
+
+            var instance = Instantiate(raftAsset);
+            instance.transform.SetParent(pivot, false);
+            instance.transform.localPosition = new Vector3(0.06f, -0.18f, 0.58f);
+            instance.transform.localRotation = Quaternion.identity;
+            instance.transform.localScale = Vector3.one;
+
+            foreach (var hiddenPartName in new[] { "Raft_base_small", "Raft_rope", "Raft_sail" })
+            {
+                var part = instance.transform.Find(hiddenPartName);
+                if (part != null) part.gameObject.SetActive(false);
+            }
+
+            // The FBX's own materials (Wood_ends / Wood_bark) reference external .tga/.jpg texture
+            // files by name rather than embedding the image data, and only the mesh was downloaded
+            // at first - it rendered as flat untextured gray (human report 2026-09-26: "nevypada
+            // zdaleka tak dobre jako na webu"). The human then found and downloaded the source
+            // texture pack (Raft.zip) separately; two of those textures are copied in here
+            // (Assets/HearApp/Resources/Worlds/RiverJourney/Textures/) and wired onto fresh URP Lit
+            // materials in the same Wood_ends/Wood_bark slot order the FBX itself uses, since the
+            // imported materials can't resolve the original relative texture paths at runtime.
+            var woodEndsTex = Resources.Load<Texture2D>("Worlds/RiverJourney/Textures/RaftWoodEnds");
+            var woodBarkTex = Resources.Load<Texture2D>("Worlds/RiverJourney/Textures/RaftBark");
+            var woodEndsMat = CreateMaterial(Color.white, 0.15f, 0f);
+            woodEndsMat.mainTexture = woodEndsTex;
+            var woodBarkMat = CreateMaterial(Color.white, 0.15f, 0f);
+            woodBarkMat.mainTexture = woodBarkTex;
+            foreach (var texturedPartName in new[] { "Raft_base", "Raft_seat" })
+            {
+                var renderer = instance.transform.Find(texturedPartName)?.GetComponent<Renderer>();
+                if (renderer != null) renderer.sharedMaterials = new[] { woodEndsMat, woodBarkMat };
+            }
+
+            return pivot;
         }
 
         private void CreateTipi(Transform parent, Vector3 position, float height, Color color)
@@ -1110,52 +1172,5 @@ namespace HearApp.Worlds.RiverJourney
             return mesh;
         }
 
-        private Mesh BuildCanoeHullMesh()
-        {
-            float[] z = { -1.55f, -1.15f, 0f, 1.15f, 1.55f };
-            float[] width = { 0.06f, 0.42f, 0.56f, 0.42f, 0.06f };
-            float[] bottom = { 0.03f, -0.18f, -0.21f, -0.18f, 0.03f };
-            float[] top = { 0.06f, 0.12f, 0.15f, 0.12f, 0.06f };
-            var vertices = new List<Vector3>(z.Length * 4);
-            for (int i = 0; i < z.Length; i++)
-            {
-                vertices.Add(new Vector3(-width[i], bottom[i], z[i]));
-                vertices.Add(new Vector3(width[i], bottom[i], z[i]));
-                vertices.Add(new Vector3(width[i], top[i], z[i]));
-                vertices.Add(new Vector3(-width[i], top[i], z[i]));
-            }
-
-            var triangles = new List<int>();
-            for (int i = 0; i < z.Length - 1; i++)
-            {
-                int a = i * 4;
-                int b = a + 4;
-                AddQuad(triangles, a, b, b + 1, a + 1);
-                AddQuad(triangles, a + 1, b + 1, b + 2, a + 2);
-                AddQuad(triangles, a + 2, b + 2, b + 3, a + 3);
-                AddQuad(triangles, a + 3, b + 3, b, a);
-            }
-            triangles.AddRange(new[] { 0, 2, 1, 0, 3, 2 });
-            int end = (z.Length - 1) * 4;
-            triangles.AddRange(new[] { end, end + 1, end + 2, end, end + 2, end + 3 });
-
-            var mesh = new Mesh { name = "CanoeHull" };
-            mesh.SetVertices(vertices);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-            _generatedMeshes.Add(mesh);
-            return mesh;
-        }
-
-        private static void AddQuad(List<int> triangles, int a, int b, int c, int d)
-        {
-            triangles.Add(a);
-            triangles.Add(c);
-            triangles.Add(b);
-            triangles.Add(a);
-            triangles.Add(d);
-            triangles.Add(c);
-        }
     }
 }

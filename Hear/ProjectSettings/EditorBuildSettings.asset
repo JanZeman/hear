@@ -17,5 +17,20 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/HearApp/Scenes/RiverJourneyWorld.unity
     guid: 95c58f1cc60e14495a649ccba72cb5b6
+  - enabled: 1
+    path: Assets/HearApp/Scenes/ExperimentWorld.unity
+    guid: d0f771741dc24c8fb7995b9cf89e8f6d
+  - enabled: 1
+    path: Assets/HearApp/Scenes/VikingBoatWorld.unity
+    guid: c6c7db15f39640969467622e558dd71b
+  - enabled: 1
+    path: Assets/HearApp/Scenes/PlanetsWorld.unity
+    guid: 48c850e49a7f47ff84b6549513c83550
+  - enabled: 1
+    path: Assets/HearApp/Scenes/EarthWorld.unity
+    guid: f78e6cc9bdd8434a895cbcd24450783b
+  - enabled: 1
+    path: Assets/HearApp/Scenes/MushroomsWorld.unity
+    guid: e15b7d9cae8b4fea9aa6813c3c15e4a8
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

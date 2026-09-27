@@ -32,6 +32,20 @@ namespace HearApp.Core.Worlds
             new WorldEntry("tide-troubles", "Tide Troubles", "Listen. React. Enjoy.", "TideTroublesWorld"),
             new WorldEntry("paper-garden", "The Paper Garden", "Listen. Watch. Create.", "PaperGardenWorld"),
             new WorldEntry("river-journey", "River of Echoes", "Listen. Explore. Progress.", "RiverJourneyWorld"),
+            // Dev-only scratch world for trying out free downloaded 3D environment assets in
+            // isolation (human request 2026-09-26: "Zkusme experimentovat s ruznymi svety.") -
+            // not a real hearing-trial gameplay loop yet.
+            new WorldEntry("experiment", "Experiment", "Listen. Try. See.", "ExperimentWorld"),
+            // Dev-only scratch world, same purpose as "experiment" (human request 2026-09-26:
+            // "Priprav dalsi svet, nazvi jej Viking Boat. Objekty dodam za chvili") - environment
+            // asset arrives separately.
+            new WorldEntry("viking-boat", "Viking Boat", "Listen. Try. See.", "VikingBoatWorld"),
+            // Dev-only scratch worlds (human request 2026-09-27: "vyzkousej na MACU tyto nove
+            // svety: Earth, Mushroooms, Planets. Uvidime, co pujde.") - each a quick pass at a
+            // different free asset pack to see what's worth developing further.
+            new WorldEntry("planets", "Planets", "Listen. Try. See.", "PlanetsWorld"),
+            new WorldEntry("earth", "Earth", "Listen. Try. See.", "EarthWorld"),
+            new WorldEntry("mushrooms", "Mushrooms", "Listen. Try. See.", "MushroomsWorld"),
         };
     }
 }

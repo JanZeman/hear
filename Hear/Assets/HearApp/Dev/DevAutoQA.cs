@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using HearApp.Core.HearingEngine;
 using HearApp.Core.Shell;
 using HearApp.Core.Worlds;
 using UnityEngine;
@@ -75,6 +76,40 @@ namespace HearApp.Dev
             flow.RequestPlaySelectedWorld();
             _navigated = true;
             StartCoroutine(CaptureRoutine(flow));
+
+            string simulateArg = GetArg("-devAutoQASimulateSuccesses");
+            if (int.TryParse(simulateArg, out int successCount) && successCount > 0)
+                StartCoroutine(SimulateSuccessesRoutine(flow, successCount));
+        }
+
+        // Drives a world's real success-feedback presentation (e.g. a reward animation) without
+        // needing to simulate actual timed audio/input - calls the same PresentOutcome a real
+        // trial would, straight on the active world instance, so a QA screenshot can show what a
+        // player would see after N correct detections (added 2026-09-27 to preview VikingBoat's
+        // reward-shield fly-in).
+        private IEnumerator SimulateSuccessesRoutine(GameFlowController flow, int count)
+        {
+            float safety = 0f;
+            while (flow.State != GameFlowController.ShellState.Playing && safety < 10f)
+            {
+                safety += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            var world = FindAnyObjectByType<WorldPresentationBase>();
+            if (world == null)
+            {
+                Debug.LogError("[DevAutoQA] SimulateSuccesses: no active WorldPresentationBase found.");
+                yield break;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                float progress = (i + 1f) / count;
+                world.PresentOutcome(new OutcomePresentationContext(TrialOutcome.CorrectDetection, EarChannel.Left, progress));
+                Debug.Log($"[DevAutoQA] Simulated success {i + 1}/{count}");
+                yield return new WaitForSeconds(3f);
+            }
         }
 
         private IEnumerator CaptureRoutine(GameFlowController flow)
