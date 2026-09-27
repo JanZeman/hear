@@ -1668,9 +1668,10 @@ namespace HearApp.Core.Shell.UI
             };
         }
 
-        /// <summary>Pause button now opens a real menu (Resume / Quit to Home) instead of just
-        /// silently freezing time - human request 2026-09-26: "dovol hru přerušit a navrátit
-        /// se".</summary>
+        /// <summary>Pause button just freezes/resumes time directly - it used to open a menu with
+        /// a "Quit to Home" option, but that's now redundant with the HUD's own back button
+        /// (human observation 2026-09-27: "kdyz mame back button... tak nepotrebujeme ten dialog
+        /// pro pause button"), so the menu is gone; toggling is a single tap either way.</summary>
         private void TogglePause()
         {
             if (_isPaused)
@@ -1682,7 +1683,6 @@ namespace HearApp.Core.Shell.UI
             _isPaused = true;
             Time.timeScale = 0f;
             _pauseIcon.image = WorldArt.Icon("play");
-            ShowPauseMenu();
         }
 
         private void ResumeFromPause()
@@ -1690,33 +1690,6 @@ namespace HearApp.Core.Shell.UI
             _isPaused = false;
             Time.timeScale = 1f;
             _pauseIcon.image = WorldArt.Icon("pause");
-        }
-
-        private void ShowPauseMenu()
-        {
-            var backdrop = BuildModalBackdrop(out var card);
-            card.Add(MakeLabel("Paused", VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, 0f, VisualTokens.Spacing.M));
-
-            var resumeButton = MakePrimaryButton("Resume", () =>
-            {
-                _screenLayer.Remove(backdrop);
-                ResumeFromPause();
-            });
-            resumeButton.style.width = 200;
-            card.Add(resumeButton);
-
-            var quitButton = MakeSecondaryButton("Quit to Home", () =>
-            {
-                _screenLayer.Remove(backdrop);
-                ResumeFromPause(); // clears the paused visual state; the scene is about to unload anyway
-                _flow.Engine.AbortSessionUserQuit();
-                _flow.ReturnToSelectorFromResults();
-            });
-            quitButton.style.marginTop = VisualTokens.Spacing.S;
-            quitButton.style.width = 200;
-            card.Add(quitButton);
-
-            _screenLayer.Add(backdrop);
         }
 
         /// <summary>Frantic/rapid-tapping defense (human request 2026-09-26): strikes 1 and 2

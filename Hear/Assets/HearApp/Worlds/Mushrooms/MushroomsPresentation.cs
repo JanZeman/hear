@@ -35,6 +35,15 @@ namespace HearApp.Worlds.Mushrooms
         private const int MushroomCount = 24;
         private const float PatchRadius = 6f;
 
+        // Mushrooms scatter within this smaller radius around the camera's fixed look target
+        // (0, 0.3, 0), not the full PatchRadius the ground plane uses - a growing mushroom placed
+        // near the patch edge could land outside the camera's FOV cone or right at its border
+        // depending on the orbit's current angle (human report 2026-09-27: "vyrostla... nekde na
+        // kraji nebo 'mimo vysec'"). At the orbit's distance from that look target (~6.2, from
+        // OrbitRadius/OrbitHeight below), this radius keeps every mushroom's angular offset well
+        // inside the ~27.5 deg vertical half-FOV regardless of where the camera currently is.
+        private const float GrowthRadius = 2.5f;
+
         private Camera _camera;
         private Transform _patchCenter;
         private readonly List<Transform> _mushroomSlots = new();
@@ -102,7 +111,7 @@ namespace HearApp.Worlds.Mushrooms
                 var instance = Instantiate(asset, transform);
                 instance.name = $"{species}_{i}";
 
-                Vector2 offset = Random.insideUnitCircle * PatchRadius;
+                Vector2 offset = Random.insideUnitCircle * GrowthRadius;
                 instance.transform.localPosition += new Vector3(offset.x, 0f, offset.y);
                 instance.transform.Rotate(Vector3.up, Random.Range(0f, 360f), Space.World);
                 instance.transform.localScale *= Random.Range(0.85f, 1.3f);
