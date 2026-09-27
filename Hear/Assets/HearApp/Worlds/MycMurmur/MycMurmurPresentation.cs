@@ -103,8 +103,17 @@ namespace HearApp.Worlds.MycMurmur
                 material.EnableKeyword("_NORMALMAP");
                 material.SetTexture("_BumpMap", groundNormal);
                 material.SetTextureScale("_BumpMap", new Vector2(GroundTextureTiling, GroundTextureTiling));
-                material.SetFloat("_BumpScale", 1.6f);
+                // Toned down from 1.6 - combined with the default Lit smoothness (see below) the
+                // strong bump caught the moonlight as bright rippling streaks, reading as a lake's
+                // surface rather than a grassy floor (human report 2026-09-27: "vypada spis jako
+                // voda nez lesni louka").
+                material.SetFloat("_BumpScale", 0.6f);
             }
+            // Never set explicitly before - Lit's default _Smoothness (0.5) is glossy enough on
+            // its own to produce the same "wet ground" specular highlights under the moon light,
+            // the main culprit behind the water look above. Ground/foliage should be matte.
+            material.SetFloat("_Smoothness", 0.1f);
+            material.SetFloat("_Metallic", 0f);
             ground.GetComponent<Renderer>().sharedMaterial = material;
         }
 
