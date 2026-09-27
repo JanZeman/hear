@@ -140,7 +140,8 @@ namespace HearApp.Worlds.VikingBoat
         // outward - while local Y (wide) becomes world Y (vertical) and local X (wide) becomes
         // world Z (along the ship's length).
         private const float ShieldNativeDiameter = 2.15f;
-        private const float ShieldTargetDiameter = 0.6f;
+        // 0.6 * 0.7 (human report 2026-09-27: shields too large, ~70% would be enough).
+        private const float ShieldTargetDiameter = 0.42f;
         private const float ShieldScale = ShieldTargetDiameter / ShieldNativeDiameter;
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
         private const int ShieldVariantCount = 6;
@@ -309,66 +310,70 @@ namespace HearApp.Worlds.VikingBoat
             BuildRiver();
         }
 
-        // River/lake terrain (human request 2026-09-27: get the ship onto water) - a free CGTrader
-        // "river lake in middle of mountain" model (river.fbx, no accompanying texture pack: the
-        // download only ships mesh formats plus a bare .mtl with no image, confirmed from the
-        // listing itself), so its two meshes ("Ground" the rocky banks, "river" the water surface)
-        // get plain colour URP Lit materials by name instead of a texture lookup, matching the
-        // no-art-available fallback already used elsewhere (e.g. the Results screen's aurora
-        // gradient) rather than inventing a texture that was never supplied.
+        // Water under the ship (human request 2026-09-27: get the ship onto water).
         //
-        // Measured combined bounds (throwaway InspectRiverModel Editor diagnostic, since deleted):
-        // center (0.02, 0.09, 0.03), size (2.28, 0.22, 4.87) - already a similar scale to the ship
-        // (1.65 x 2.39 x 4.58) with no extra import-scale correction needed (Unity's importer
-        // already resolves the source's 100x node scale into these world-space numbers).
+        // First attempt imported the free CGTrader "river lake in middle of mountain" model the
+        // human supplied (river.fbx - no texture pack; the download only ships mesh formats plus a
+        // bare, image-less .mtl) directly, scaled up 10x so the camera's travel range would only
+        // ever see a small fraction of its overall shape. That did not hold up on-device (human
+        // report 2026-09-27): this is a natural, IRREGULAR lake blob with real height variation in
+        // its own surface, not a flat plane, and scaling a bumpy, finite-footprint mesh 10x
+        // amplifies both problems - the ship read as underwater in some spots and the water
+        // vanished entirely in others, wherever the enlarged bumps or the lake's actual edge
+        // happened to land relative to the camera. A flat plane primitive sidesteps both issues
+        // outright: perfectly flat by construction, and sized here (20x20 units, comfortably past
+        // the camera's max reach of X=3/Z=+-2.6) so it can never run out under any camera angle.
+        // No metallic - a fully metallic surface (the first attempt's _Metallic=0.15) relies on
+        // real environment reflections to look shiny, and this scene has no reflection probe/skybox
+        // to reflect, so it just read as an unexpectedly dark patch dominating the frame (human
+        // report: "everything got darker") instead of shining. Smoothness alone still gives a
+        // plausible water sheen from the specular highlight off the directional light.
         //
-        // First attempt kept both meshes (the rocky "Ground" banks alongside the flat "river"
-        // water) at 3x scale - on device this put the ship beached on an uneven hillside instead of
-        // afloat, and the actual water patch sat off to one side out of frame, because this is a
-        // natural, irregular lake-in-mountains shape, not a uniform flat plane, and there is no way
-        // to know which patch of its bumpy surface will land at the ship's waterline without
-        // measuring elevation at that exact spot (not exposed by the combined-bounds diagnostic).
-        // Fixed by dropping "Ground" entirely and keeping only the "river" water mesh, scaled up
-        // much further (10x) so the camera's full diagonal travel range only ever sees a small,
-        // effectively-flat fraction of its overall shape - the same trick as using a large enough
-        // flat sample of any irregular surface to avoid its edges or bumps ever entering frame.
-        private const float RiverScale = 10f;
-        private const float RiverWaterlineY = -0.75f;
+        // Second attempt (-0.75) still read as "water inside the ship" (human report 2026-09-27:
+        // "voda je v lodi"). Root cause: the hull is recentred so its combined bounds sit at local
+        // origin (see SourceBoundsCenter/BuildEnvironment), and the measured combined size's Y
+        // component (2.39, see the flythrough comment above) means the hull's own lowest point
+        // (keel) sits at local Y = -1.195, well BELOW -0.75 - so an infinite flat plane at -0.75
+        // sliced straight through the hollow inside of the hull rather than passing under the
+        // keel. The hull has no deck/floor mesh capping that interior and its material is
+        // double-sided (see the _Cull fix below), so the slice was visible poking up inside the
+        // hull walls instead of being hidden behind solid geometry. Moved below the hull's actual
+        // lowest point with a safety margin so the plane can never intersect the mesh at all.
+        //
+        // Third attempt (RiverScale=2) fixed the intersection but read as "water floating with the
+        // ship" instead of a static sea the ship moves relative to (human report 2026-09-27: "voda
+        // musi zustat staticka, ne 'plout' s lodi... trochu premyslej o fyzice"). Root cause, found
+        // via a throwaway InspectPlaneBuiltin Editor diagnostic: Resources.GetBuiltinResource
+        // <Mesh>("Plane.fbx") measures only 1x1 units (bounds extents 0.5/0.5), NOT the 10x10 of
+        // Unity's CreatePrimitive(PrimitiveType.Plane) - so at scale 2 the "sea" was really just a
+        // 2x2 patch, smaller than the hull's own footprint (1.65 x 4.58), i.e. a raft-sized platform
+        // pinned directly under the ship rather than an environment independent of it. Scaled up to
+        // 80x80 (comfortably larger than both the hull and the whole flythrough's X/Z travel range)
+        // so it reads as a vast, fixed sea the camera/ship pass over, not an object riding along
+        // with the ship.
+        private const float RiverScale = 80f;
+        private const float RiverWaterlineY = -1.3f;
 
         private void BuildRiver()
         {
-            var asset = Resources.Load<GameObject>("Worlds/VikingBoat/Models/River");
-            if (asset == null)
-            {
-                Debug.LogError("[VikingBoat] Could not load River model from Resources.");
-                return;
-            }
-
-            var pivot = new GameObject("River").transform;
-            pivot.SetParent(transform, false);
-            pivot.localPosition = new Vector3(0f, RiverWaterlineY, 0f);
-            pivot.localScale = Vector3.one * RiverScale;
-
-            var instance = Instantiate(asset, pivot, false);
-
-            // Same recurring gotcha as every other imported asset in this world: strip any embedded
-            // camera/light so it doesn't silently composite over ours.
-            foreach (var importedCamera in instance.GetComponentsInChildren<Camera>(true))
-                Destroy(importedCamera.gameObject);
-            foreach (var importedLight in instance.GetComponentsInChildren<Light>(true))
-                Destroy(importedLight.gameObject);
+            // Built by hand (MeshFilter + MeshRenderer only) instead of GameObject.CreatePrimitive,
+            // which always also tries to attach a MeshCollider - this app's build strips the
+            // Physics module (unused elsewhere), so that implicit AddComponent<MeshCollider>() call
+            // failed at runtime with "Can't add component because class 'MeshCollider' doesn't
+            // exist!" straight into the on-device dev console (harmless to the visual result, since
+            // the mesh/renderer still got created regardless, but still a real error worth not
+            // shipping). This water plane has no gameplay collision to begin with, so no collider
+            // is needed anyway.
+            var water = new GameObject("River");
+            water.transform.SetParent(transform, false);
+            water.transform.localPosition = new Vector3(0f, RiverWaterlineY, 0f);
+            water.transform.localScale = Vector3.one * RiverScale;
+            water.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Plane.fbx");
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             var riverMaterial = new Material(shader) { color = new Color(0.16f, 0.40f, 0.55f) };
-            riverMaterial.SetFloat("_Smoothness", 0.85f);
-            riverMaterial.SetFloat("_Metallic", 0.15f);
-
-            foreach (var renderer in instance.GetComponentsInChildren<Renderer>())
-            {
-                bool isWater = renderer.name.ToLowerInvariant().Contains("river");
-                if (isWater) renderer.sharedMaterial = riverMaterial;
-                else renderer.enabled = false;
-            }
+            riverMaterial.SetFloat("_Smoothness", 0.75f);
+            water.AddComponent<MeshRenderer>().sharedMaterial = riverMaterial;
         }
 
         // The three materials (map_ShipV_001/002/003) each map onto their own BaseColor + Normal
