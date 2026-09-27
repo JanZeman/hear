@@ -33,15 +33,15 @@ namespace HearApp.Worlds.Mushrooms
         };
 
         private const int MushroomCount = 24;
-        private const float PatchRadius = 6f;
 
-        // Mushrooms scatter within this smaller radius around the camera's fixed look target
-        // (0, 0.3, 0), not the full PatchRadius the ground plane uses - a growing mushroom placed
-        // near the patch edge could land outside the camera's FOV cone or right at its border
-        // depending on the orbit's current angle (human report 2026-09-27: "vyrostla... nekde na
-        // kraji nebo 'mimo vysec'"). At the orbit's distance from that look target (~6.2, from
-        // OrbitRadius/OrbitHeight below), this radius keeps every mushroom's angular offset well
-        // inside the ~27.5 deg vertical half-FOV regardless of where the camera currently is.
+        // Mushrooms scatter within this radius around the camera's fixed look target (0, 0.3, 0)
+        // - a growing mushroom placed too far out could land outside the camera's FOV cone or
+        // right at its border depending on the orbit's current angle (human report 2026-09-27:
+        // "vyrostla... nekde na kraji nebo 'mimo vysec'"). At the orbit's distance from that look
+        // target (~6.2, from OrbitRadius/OrbitHeight below), this radius keeps every mushroom's
+        // angular offset well inside the ~27.5 deg vertical half-FOV regardless of where the
+        // camera currently is. The ground plane itself (see GroundRadius below) is unrelated and
+        // much larger, just to keep its own edge out of view.
         private const float GrowthRadius = 2.5f;
 
         private Camera _camera;
@@ -58,11 +58,23 @@ namespace HearApp.Worlds.Mushrooms
             BuildCamera();
         }
 
+        // Shared between the camera's clear colour and fog, so the ground plane's edge (still
+        // physically there - it's a finite primitive Plane) fades into an exact colour match
+        // instead of being visible as a hard horizon line (human report 2026-09-27, said to apply
+        // to every scene: "u ZADNE ze scen bych nechtel, aby byl videt ten zakladovy ctverec").
+        private static readonly Color SkyColor = new(0.55f, 0.68f, 0.6f);
+
         private void BuildLighting()
         {
             RenderSettings.ambientMode = AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.24f, 0.3f, 0.22f);
             RenderSettings.ambientIntensity = 1f;
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = SkyColor;
+            RenderSettings.fogStartDistance = 7f;
+            RenderSettings.fogEndDistance = 15f;
 
             var lightObject = new GameObject("MushroomsSun");
             lightObject.transform.SetParent(transform, false);
@@ -74,12 +86,16 @@ namespace HearApp.Worlds.Mushrooms
             sun.shadows = LightShadows.Soft;
         }
 
+        // Vastly larger than the mushroom patch or the camera's orbit so its edge sits well past
+        // where fog has already faded it to SkyColor - the plane never visibly ends.
+        private const float GroundRadius = 40f;
+
         private void BuildGround()
         {
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.SetParent(transform, false);
-            ground.transform.localScale = Vector3.one * (PatchRadius * 2.2f / 10f);
+            ground.transform.localScale = Vector3.one * (GroundRadius * 2f / 10f);
             Destroy(ground.GetComponent<Collider>());
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
@@ -171,7 +187,7 @@ namespace HearApp.Worlds.Mushrooms
             _camera = cameraObject.AddComponent<Camera>();
             _camera.orthographic = false;
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.backgroundColor = new Color(0.55f, 0.68f, 0.6f);
+            _camera.backgroundColor = SkyColor;
             _camera.nearClipPlane = 0.05f;
             _camera.farClipPlane = 100f;
             _camera.fieldOfView = 55f;

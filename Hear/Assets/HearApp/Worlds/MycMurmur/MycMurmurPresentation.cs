@@ -39,45 +39,66 @@ namespace HearApp.Worlds.MycMurmur
             BuildCamera();
         }
 
+        // Shared between the camera's clear colour and fog, so the ground plane's edge (still
+        // physically there - it's a finite primitive Plane) fades into an exact colour match
+        // instead of being visible as a hard horizon line (human report 2026-09-27: "u ZADNE ze
+        // scen bych nechtel, aby byl videt ten zakladovy ctverec").
+        private static readonly Color SkyColor = new(0.05f, 0.06f, 0.12f);
+
         private void BuildLighting()
         {
             // Dusk/night mood, matching the pack's own "Sleeping Forest" night variant and
             // setting up the glowing mushrooms/fireflies to actually read against something dark.
+            // Brightened a notch from the first pass (human report: "Podhoubi neni zase tak moc
+            // podhoubi") so the ground texture actually reads instead of sitting near-black.
             RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.10f, 0.11f, 0.18f);
+            RenderSettings.ambientLight = new Color(0.16f, 0.17f, 0.24f);
             RenderSettings.ambientIntensity = 1f;
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogColor = SkyColor;
+            RenderSettings.fogStartDistance = 7f;
+            RenderSettings.fogEndDistance = 15f;
 
             var moonObject = new GameObject("MycMurmurMoon");
             moonObject.transform.SetParent(transform, false);
             moonObject.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
             var moon = moonObject.AddComponent<Light>();
             moon.type = LightType.Directional;
-            moon.color = new Color(0.65f, 0.72f, 0.95f);
-            moon.intensity = 0.55f;
+            moon.color = new Color(0.68f, 0.75f, 0.95f);
+            moon.intensity = 0.75f;
             moon.shadows = LightShadows.Soft;
         }
 
         private const float PatchRadius = 6f;
+
+        // Vastly larger than the mushroom patch or the camera's orbit (see GrowthRadius/
+        // OrbitRadius below) so its edge sits well past where fog has already faded it to
+        // SkyColor - the plane never visibly ends, regardless of camera angle.
+        private const float GroundRadius = 40f;
+        private const float GroundTextureTiling = 22f;
 
         private void BuildGround()
         {
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.SetParent(transform, false);
-            ground.transform.localScale = Vector3.one * (PatchRadius * 2.2f / 10f);
+            ground.transform.localScale = Vector3.one * (GroundRadius * 2f / 10f);
             Destroy(ground.GetComponent<Collider>());
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
-            var material = new Material(shader) { color = new Color(0.55f, 0.6f, 0.5f) };
+            var material = new Material(shader) { color = new Color(0.8f, 0.85f, 0.7f) };
             var groundTex = Resources.Load<Texture2D>("Worlds/MycMurmur/Textures/GroundGrass");
             material.mainTexture = groundTex;
-            material.mainTextureScale = new Vector2(4f, 4f);
+            material.mainTextureScale = new Vector2(GroundTextureTiling, GroundTextureTiling);
             var groundNormal = Resources.Load<Texture2D>("Worlds/MycMurmur/Textures/GroundGrassNormal");
             if (groundNormal != null)
             {
                 material.EnableKeyword("_NORMALMAP");
                 material.SetTexture("_BumpMap", groundNormal);
-                material.SetTextureScale("_BumpMap", new Vector2(4f, 4f));
+                material.SetTextureScale("_BumpMap", new Vector2(GroundTextureTiling, GroundTextureTiling));
+                material.SetFloat("_BumpScale", 1.6f);
             }
             ground.GetComponent<Renderer>().sharedMaterial = material;
         }
@@ -250,7 +271,7 @@ namespace HearApp.Worlds.MycMurmur
             main.loop = true;
             main.startLifetime = new ParticleSystem.MinMaxCurve(4f, 7f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.15f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.09f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.09f, 0.16f);
             main.startColor = new Color(0.95f, 0.85f, 0.35f, 0.85f);
             main.maxParticles = 40;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
@@ -279,11 +300,44 @@ namespace HearApp.Worlds.MycMurmur
                 new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(1f, 0.8f), new GradientAlphaKey(0f, 1f) });
             colorOverLifetime.color = gradient;
 
-            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            // Without a texture, a particle billboard is a flat hard-edged quad - "svetlusky
+            // nejsou svetlusky ale zlute ctverce" (human report 2026-09-27). A soft radial-alpha
+            // dot generated at runtime (no asset needed, consistent with this world's procedural
+            // build) turns it into a proper glowing point instead - but the URP Lit-style manual
+            // "_SURFACE_TYPE_TRANSPARENT" keyword recipe used elsewhere this session for
+            // transparency (Earth's cloud/atmo shells, Saturn's ring) never actually rendered
+            // transparent for any of them either, so this uses Sprites/Default instead: a plain,
+            // always-alpha-blended shader with no keyword configuration needed at all.
+            var shader = Shader.Find("Sprites/Default");
             var material = new Material(shader) { color = new Color(1f, 0.9f, 0.5f) };
+            material.mainTexture = CreateSoftDotTexture(32);
+
             var particleRenderer = particles.GetComponent<ParticleSystemRenderer>();
             particleRenderer.sharedMaterial = material;
             particleRenderer.renderMode = ParticleSystemRenderMode.Billboard;
+        }
+
+        private static Texture2D CreateSoftDotTexture(int size)
+        {
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var center = new Vector2(size - 1, size - 1) * 0.5f;
+            // Distance to the square's own INSCRIBED circle radius (size/2), not to its corner -
+            // using the corner distance left the square's corners themselves only mostly-faded
+            // rather than fully zero, invisible on a small/distant sprite but reading as a hard
+            // square edge once a close-up particle magnified it (human report 2026-09-27, after
+            // the first pass: distant fireflies looked round, near ones still looked square).
+            float radius = size * 0.5f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float t = Mathf.Clamp01(1f - Vector2.Distance(new Vector2(x, y), center) / radius);
+                    float alpha = Mathf.SmoothStep(0f, 1f, t);
+                    texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+                }
+            }
+            texture.Apply();
+            return texture;
         }
 
         private void BuildCamera()
@@ -293,17 +347,20 @@ namespace HearApp.Worlds.MycMurmur
             _camera = cameraObject.AddComponent<Camera>();
             _camera.orthographic = false;
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.backgroundColor = new Color(0.05f, 0.06f, 0.12f);
+            _camera.backgroundColor = SkyColor;
             _camera.nearClipPlane = 0.05f;
             _camera.farClipPlane = 100f;
-            _camera.fieldOfView = 55f;
+            _camera.fieldOfView = 58f;
             cameraObject.AddComponent<AudioListener>();
             cameraObject.AddComponent<CoreSafeSquareFit>();
         }
 
-        // Same gentle orbit as the Mushrooms world's proven "diorama turntable" camera.
-        private const float OrbitRadius = 5.5f;
-        private const float OrbitHeight = 3.2f;
+        // Same gentle orbit as the Mushrooms world's proven "diorama turntable" camera, pulled
+        // in closer/lower (human report 2026-09-27: "Muzeme se do toho sveta mnohem vice
+        // ponorit?") for a more immersive, inside-the-clearing feel rather than a distant
+        // overview.
+        private const float OrbitRadius = 4.8f;
+        private const float OrbitHeight = 2.2f;
         private const float OrbitDegreesPerSecond = 8f;
 
         private void Update()
