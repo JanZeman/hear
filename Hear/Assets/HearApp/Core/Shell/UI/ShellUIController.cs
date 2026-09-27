@@ -616,13 +616,19 @@ namespace HearApp.Core.Shell.UI
         // translucent chip treatment for screens that sit over arbitrary art/world content
         // (Playing, Results); every other screen sits on the plain Pearl0 background and just
         // needs a plain dark arrow.
+        // Human report 2026-09-27: "Velikost leveho zpet tlacitka musi byt stejna jako pause
+        // tlacitka" - shared with the Playing HUD's pause button (see ShowPlayingHud), which is
+        // sized as a real touch target rather than a small icon-sized hit area.
+        private const float BackNavButtonSize = 48f;
+
         private static VisualElement MakeBackButton(bool glassy, System.Action onClick)
         {
             var button = new VisualElement
             {
                 style =
                 {
-                    width = 40, height = 40, alignItems = Align.Center, justifyContent = Justify.Center,
+                    width = BackNavButtonSize, height = BackNavButtonSize,
+                    alignItems = Align.Center, justifyContent = Justify.Center,
                     flexShrink = 0
                 }
             };
@@ -1413,12 +1419,23 @@ namespace HearApp.Core.Shell.UI
             return physicalPx * (96f / dpi);
         }
 
-        private static float GetTopSafeAreaInsetLogical()
+        /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to keep its
+        /// "Results" title below the top-left back button - see <see
+        /// cref="GetTopContentReserveLogical"/>.</summary>
+        internal static float GetTopSafeAreaInsetLogical()
         {
             var safeArea = Screen.safeArea;
             float topPhysical = Screen.height - (safeArea.y + safeArea.height);
             return Mathf.Max(0f, PhysicalToLogical(topPhysical));
         }
+
+        /// <summary>How far down any subpage's own top content (e.g. Results' "Results" title)
+        /// must start to clear the top-left back button - human report 2026-09-27: the title
+        /// "musi jit nize, nikdy nesmi kolidovat s nasim nav barem". Mirrors
+        /// AddTopLeftBackButton's own top offset plus that button's height (kept in
+        /// BackNavButtonSize) and a further breathing-room margin below it.</summary>
+        internal static float GetTopContentReserveLogical() =>
+            GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M + BackNavButtonSize + VisualTokens.Spacing.M;
 
         /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to reserve
         /// space above the floating glass nav for its ScrollView, exactly as this class already
@@ -1503,15 +1520,20 @@ namespace HearApp.Core.Shell.UI
 
             // Top inset must clear the safe area (notch / Dynamic Island / camera cutout) instead
             // of a fixed spacing token - reported sitting under the cutout on-device 2026-09-25.
-            // Extra margin bumped from Spacing.M to Spacing.XL the same day: the safe-area inset
-            // alone still collided with the OS status bar on some phones.
+            // Extra margin bumped again 2026-09-27 (Spacing.XL to XXXL, human report: "Cely jej
+            // posunout nizeji, at 'nenarazi' na obsah nad nimi") - even clear of the safe area
+            // inset, the bar still sat close enough to the OS status bar (clock/signal icons) to
+            // read as touching it.
+            // Side margins bumped from Spacing.M to Spacing.L too (human report, same message:
+            // "Ty horizontalni mezery musi byt vetsi - vsechny"), which - together with the wider
+            // internal gaps below - narrows the progress bar accordingly, exactly as asked.
             var hudRoot = new VisualElement
             {
                 style =
                 {
                     position = Position.Absolute,
-                    top = GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.XL,
-                    left = VisualTokens.Spacing.M, right = VisualTokens.Spacing.M,
+                    top = GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.XXXL,
+                    left = VisualTokens.Spacing.L, right = VisualTokens.Spacing.L,
                     flexDirection = FlexDirection.Row, alignItems = Align.Center
                 },
                 pickingMode = PickingMode.Ignore
@@ -1526,7 +1548,7 @@ namespace HearApp.Core.Shell.UI
                 _flow.Engine.AbortSessionUserQuit();
                 GoBackToHome();
             });
-            backButton.style.marginRight = VisualTokens.Spacing.S;
+            backButton.style.marginRight = VisualTokens.Spacing.M;
             hudRoot.Add(backButton);
 
             _hudPointsBadge = new VisualElement
@@ -1542,7 +1564,7 @@ namespace HearApp.Core.Shell.UI
                     // deliberately full-pill ends.
                     borderTopLeftRadius = VisualTokens.Radius.S, borderTopRightRadius = VisualTokens.Radius.S,
                     borderBottomLeftRadius = VisualTokens.Radius.S, borderBottomRightRadius = VisualTokens.Radius.S,
-                    marginRight = VisualTokens.Spacing.S
+                    marginRight = VisualTokens.Spacing.M
                 },
                 pickingMode = PickingMode.Ignore
             };
@@ -1568,7 +1590,7 @@ namespace HearApp.Core.Shell.UI
                     flexGrow = 1, height = barHeight, backgroundColor = VisualTokens.Colors.Mist100,
                     borderTopLeftRadius = barRadius, borderTopRightRadius = barRadius,
                     borderBottomLeftRadius = barRadius, borderBottomRightRadius = barRadius,
-                    marginRight = VisualTokens.Spacing.S
+                    marginRight = VisualTokens.Spacing.M
                 },
                 pickingMode = PickingMode.Ignore
             };

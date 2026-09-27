@@ -50,9 +50,13 @@ build_ios() {
     DEVELOPMENT_TEAM=9VBQGD32YX \
     build
 
+  # Excludes the Index.noindex mirror under the same DerivedData tree, which also matches a
+  # naive "*/Build/Products/.../Hear.app" glob but is missing Info.plist and fails installation
+  # with "not a valid bundle" (com.apple.dt.CoreDeviceError 3000).
   local app_path
   app_path="$(find "$HOME/Library/Developer/Xcode/DerivedData" \
-    -maxdepth 4 -path "*Unity-iPhone-*/Build/Products/Debug-iphoneos/Hear.app" \
+    -maxdepth 6 -path "*Unity-iPhone-*/Build/Products/Debug-iphoneos/Hear.app" \
+    -not -path "*/Index.noindex/*" \
     -print -quit)"
 
   if [ -z "$app_path" ]; then

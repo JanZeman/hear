@@ -103,8 +103,17 @@ namespace HearApp.Worlds.MycMurmur
                 material.EnableKeyword("_NORMALMAP");
                 material.SetTexture("_BumpMap", groundNormal);
                 material.SetTextureScale("_BumpMap", new Vector2(GroundTextureTiling, GroundTextureTiling));
-                material.SetFloat("_BumpScale", 1.6f);
+                // Toned down from 1.6 - combined with the default Lit smoothness (see below) the
+                // strong bump caught the moonlight as bright rippling streaks, reading as a lake's
+                // surface rather than a grassy floor (human report 2026-09-27: "vypada spis jako
+                // voda nez lesni louka").
+                material.SetFloat("_BumpScale", 0.6f);
             }
+            // Never set explicitly before - Lit's default _Smoothness (0.5) is glossy enough on
+            // its own to produce the same "wet ground" specular highlights under the moon light,
+            // the main culprit behind the water look above. Ground/foliage should be matte.
+            material.SetFloat("_Smoothness", 0.1f);
+            material.SetFloat("_Metallic", 0f);
             ground.GetComponent<Renderer>().sharedMaterial = material;
         }
 
@@ -220,6 +229,14 @@ namespace HearApp.Worlds.MycMurmur
                 Resources.Load<Texture2D>("Worlds/MycMurmur/Textures/MushroomEmissionB"),
                 Resources.Load<Texture2D>("Worlds/MycMurmur/Textures/MushroomEmissionC"),
             };
+
+            // Same atlas the Mushrooms world itself uses for these species (see
+            // MushroomsPresentation.BuildMushrooms) - point-filtered there too, to match its
+            // low-poly look exactly rather than picking up this world's smoother default filtering.
+            Texture2D importedAtlas = Resources.Load<Texture2D>("Worlds/Mushrooms/Textures/MushroomAtlas");
+            if (importedAtlas != null) importedAtlas.filterMode = FilterMode.Point;
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            _importedMushroomMaterial = new Material(shader) { mainTexture = importedAtlas };
         }
 
         private static readonly string[] GrassSpecies = { "GrassA", "GrassB", "GrassC" };
@@ -263,11 +280,36 @@ namespace HearApp.Worlds.MycMurmur
         private static readonly string[] MushroomSpecies = { "Mushroom1", "Mushroom2", "Mushroom3", "MushroomsA", "MushroomsB" };
         private const int MushroomCount = 20;
 
+        // Human request 2026-09-27: "Vezmi houby ze sveta Mushrooms a pouzij je TAKE v Myceliu" -
+        // the Mushrooms world's own 15-species set, brought in as extra variety alongside this
+        // world's native species. Rendered with the same shared-atlas material and camera/light
+        // stripping the Mushrooms world itself uses (see MushroomsPresentation.BuildMushrooms) -
+        // "jinak s nim nakladej uplne stejne" - rather than this world's AO-tint/glow treatment,
+        // which assumes UVs the imported species don't share. Alternated with the native species
+        // by slot parity in BuildMushroomSlots so both sets show up in the same patch.
+        private static readonly string[] ImportedMushroomSpecies =
+        {
+            "amanita", "brown-cap_boletus", "cep", "chanterelle", "green_russule",
+            "honey_mushroom", "milk_mushroom", "moss-fly_mushroom", "oily_mushroom",
+            "orange-cap_boletus", "oyster_mushroom", "purple_russule", "saffron_milk_cap",
+            "umbrella_mushroom", "yellow_mushroom",
+        };
+
+        // "vykresluj o neco mensi nez jsou ty originalni" - a touch smaller than they grow in
+        // their home world, applied on top of the same GrowthScaleMultiplier below.
+        private const float ImportedMushroomScale = 0.75f;
+
+        private Material _importedMushroomMaterial;
+
         // Same camera-centered placement fix proven in the Mushrooms world (human report
         // 2026-09-27: growth must happen "pred ocima uzivatele... ne mimo vysec") - kept within a
         // radius small enough, relative to the orbit's distance from its fixed look target, to
         // stay well inside the FOV cone regardless of the camera's current orbit angle.
         private const float GrowthRadius = 2.5f;
+
+        // Human request 2026-09-27: "Houby at rostou tak o 50% vetsi" - scales up each mushroom's
+        // grown-in size without touching its random per-instance variation range.
+        private const float GrowthScaleMultiplier = 1.5f;
 
         private readonly List<Transform> _mushroomSlots = new();
         private readonly List<Vector3> _mushroomTargetScales = new();
@@ -277,11 +319,17 @@ namespace HearApp.Worlds.MycMurmur
         {
             for (int i = 0; i < MushroomCount; i++)
             {
-                string species = MushroomSpecies[i % MushroomSpecies.Length];
-                var asset = Resources.Load<GameObject>($"Worlds/MycMurmur/Models/{species}");
+                // Alternate native/imported by slot parity so the patch mixes both sets rather
+                // than growing in one block of each.
+                bool imported = i % 2 == 1;
+                string species = imported
+                    ? ImportedMushroomSpecies[(i / 2) % ImportedMushroomSpecies.Length]
+                    : MushroomSpecies[i % MushroomSpecies.Length];
+                string resourcePath = imported ? $"Worlds/Mushrooms/Models/{species}" : $"Worlds/MycMurmur/Models/{species}";
+                var asset = Resources.Load<GameObject>(resourcePath);
                 if (asset == null)
                 {
-                    Debug.LogError($"[MycMurmur] Could not load '{species}' from Resources.");
+                    Debug.LogError($"[MycMurmur] Could not load '{resourcePath}' from Resources.");
                     continue;
                 }
 
@@ -293,13 +341,28 @@ namespace HearApp.Worlds.MycMurmur
                 instance.transform.Rotate(Vector3.up, Random.Range(0f, 360f), Space.World);
                 instance.transform.localScale *= Random.Range(0.85f, 1.3f);
 
-                Color tint = CapPalette[i % CapPalette.Length];
-                bool glow = i % 3 == 0;
-                var material = BuildMushroomMaterial(tint, glow, glow ? _mushroomEmission[(i / 3) % _mushroomEmission.Length] : null);
+                Material material;
+                if (imported)
+                {
+                    // Same embedded-camera/light stripping the Mushrooms world applies to these
+                    // exact models (see MushroomsPresentation.BuildMushrooms).
+                    foreach (var importedCamera in instance.GetComponentsInChildren<Camera>(true))
+                        Destroy(importedCamera.gameObject);
+                    foreach (var importedLight in instance.GetComponentsInChildren<Light>(true))
+                        Destroy(importedLight.gameObject);
+                    material = _importedMushroomMaterial;
+                }
+                else
+                {
+                    Color tint = CapPalette[i % CapPalette.Length];
+                    bool glow = i % 3 == 0;
+                    material = BuildMushroomMaterial(tint, glow, glow ? _mushroomEmission[(i / 3) % _mushroomEmission.Length] : null);
+                }
                 foreach (var renderer in instance.GetComponentsInChildren<Renderer>())
                     renderer.sharedMaterial = material;
 
-                Vector3 targetScale = instance.transform.localScale;
+                Vector3 targetScale = instance.transform.localScale * GrowthScaleMultiplier;
+                if (imported) targetScale *= ImportedMushroomScale;
                 instance.transform.localScale = Vector3.zero;
                 _mushroomSlots.Add(instance.transform);
                 _mushroomTargetScales.Add(targetScale);

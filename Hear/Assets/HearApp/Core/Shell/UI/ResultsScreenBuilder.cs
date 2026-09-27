@@ -83,7 +83,14 @@ namespace HearApp.Core.Shell.UI
             };
             scroll.contentContainer.style.paddingLeft = VisualTokens.Spacing.L;
             scroll.contentContainer.style.paddingRight = VisualTokens.Spacing.L;
-            scroll.contentContainer.style.paddingTop = VisualTokens.Spacing.XXL;
+            // A flat Spacing.XXL never accounted for the safe-area inset or the top-left back
+            // button sitting on top of this screen, so the "Results" title collided with it on
+            // any phone with a real notch/status bar (human report 2026-09-27, with a screenshot:
+            // the title "musi jit nize, nikdy nesmi kolidovat s nasim nav barem").
+            // ShellUIController.GetTopContentReserveLogical() is the same figure Playing's own
+            // HUD bar and AddTopLeftBackButton derive their own top offsets from, so this always
+            // clears the button regardless of device.
+            scroll.contentContainer.style.paddingTop = ShellUIController.GetTopContentReserveLogical();
             // No bottom padding here: the scroll box itself already ends exactly at the nav's top
             // edge (navReserve above), so any padding here would just reopen the gap that was
             // just closed.

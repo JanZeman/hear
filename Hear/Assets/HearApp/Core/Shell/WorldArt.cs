@@ -55,6 +55,16 @@ namespace HearApp.Core.Shell
             ["tide-troubles"] = "Worlds/TideTroubles",
             ["paper-garden"] = "Worlds/PaperGarden",
             ["river-journey"] = "Worlds/RiverJourney",
+            // Dev-scratch worlds previously had no entry here, so every one of them silently fell
+            // back to Tide Troubles' art (human report 2026-09-27: "Ted vsechny vypadaji jako Tide
+            // Troubles") - each now has its own in-game screenshot (captured via DevAutoQA, HUD/
+            // watermark cropped off) reused across all five texture slots below rather than a
+            // proper per-aspect art pass.
+            ["experiment"] = "Worlds/Experiment",
+            ["viking-boat"] = "Worlds/VikingBoat",
+            ["planets"] = "Worlds/Planets",
+            ["earth"] = "Worlds/Earth",
+            ["myc-murmur"] = "Worlds/MycMurmur",
         };
 
         private static readonly Dictionary<string, CompanionPlacement> CompanionPlacements = new()
