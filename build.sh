@@ -52,7 +52,7 @@ build_ios() {
 
   local app_path
   app_path="$(find "$HOME/Library/Developer/Xcode/DerivedData" \
-    -maxdepth 4 -path "*Unity-iPhone-*/Build/Products/Debug-iphoneos/Hear.app" \
+    -maxdepth 6 -path "*Unity-iPhone-*/Build/Products/Debug-iphoneos/Hear.app" \
     -print -quit)"
 
   if [ -z "$app_path" ]; then
