@@ -32,6 +32,8 @@ namespace HearApp.Worlds.MycMurmur
         {
             BuildLighting();
             BuildGround();
+            BuildForestBackdrop();
+            BuildBackgroundTrees();
             LoadMushroomTextures();
             BuildStaticGrass();
             BuildMushroomSlots();
@@ -58,8 +60,11 @@ namespace HearApp.Worlds.MycMurmur
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Linear;
             RenderSettings.fogColor = SkyColor;
-            RenderSettings.fogStartDistance = 7f;
-            RenderSettings.fogEndDistance = 15f;
+            // Pushed out from the first pass (7/15) once background trees arrived at radius
+            // 14-26 - fog ending at 15 hid the whole ring instead of just letting its far edge
+            // fade into mist.
+            RenderSettings.fogStartDistance = 10f;
+            RenderSettings.fogEndDistance = 28f;
 
             var moonObject = new GameObject("MycMurmurMoon");
             moonObject.transform.SetParent(transform, false);
@@ -101,6 +106,108 @@ namespace HearApp.Worlds.MycMurmur
                 material.SetFloat("_BumpScale", 1.6f);
             }
             ground.GetComponent<Renderer>().sharedMaterial = material;
+        }
+
+        // A photographic forest backdrop (human-supplied, 2026-09-27: "Pridal jsem Forest.jpeg" -
+        // a Lumion render preview image saved directly from a listing whose actual download was
+        // Lumion project files, unusable here; a plain photo is far simpler anyway) wrapped around
+        // the whole clearing on the inside of a large cylinder, the same "big emissive quad behind
+        // the scene" trick River of Echoes uses for its sky gradient - emission keeps the photo's
+        // own exposure regardless of this world's dim night lighting, and disabling backface
+        // culling is what makes the inside of the cylinder (the only side the camera ever sees,
+        // since it orbits within it) render at all.
+        // Must sit within the fog's start/end range (see BuildLighting) - placed beyond
+        // fogEndDistance the first time, the backdrop was fully fogged to a flat grey before its
+        // own texture ever reached the camera, so no photo showed at all (human report
+        // 2026-09-27: still just a flat background, no forest visible).
+        private const float BackdropRadius = 20f;
+        private const float BackdropHeight = 14f;
+
+        private void BuildForestBackdrop()
+        {
+            var texture = Resources.Load<Texture2D>("Worlds/MycMurmur/Textures/ForestBackdrop");
+            if (texture == null) return;
+
+            var backdrop = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            backdrop.name = "ForestBackdrop";
+            backdrop.transform.SetParent(transform, false);
+            Destroy(backdrop.GetComponent<Collider>());
+            // The built-in Cylinder primitive is 2 units tall and 1 unit radius by default.
+            backdrop.transform.localScale = new Vector3(BackdropRadius * 2f, BackdropHeight * 0.5f, BackdropRadius * 2f);
+            backdrop.transform.localPosition = new Vector3(0f, BackdropHeight * 0.5f - 1f, 0f);
+
+            // The Lit-shader "black base colour + emissive texture" trick River of Echoes uses
+            // for its sky never actually lit up here - emission wasn't visibly contributing at
+            // all (human report 2026-09-27, after seeing this: "Ta scena je najednou silene
+            // tmava" - a black-based material with no working emission is exactly a big dark
+            // wall). "Universal Render Pipeline/Unlit" would be the obvious fix but Shader.Find
+            // returned null for it in this build (crashed with ArgumentNullException - it's
+            // evidently not among this project's included shader variants). Sprites/Default is
+            // the same fallback that already fixed the firefly billboards: always bundled, no
+            // stripping risk, and just shows a texture regardless of lighting.
+            var shader = Shader.Find("Sprites/Default");
+            var material = new Material(shader) { mainTexture = texture };
+            material.mainTextureScale = new Vector2(3f, 1f);
+            material.SetFloat("_Cull", (float)CullMode.Off);
+            backdrop.GetComponent<Renderer>().sharedMaterial = material;
+        }
+
+        // Ring of background trees, human request 2026-09-27 ("Stale mi vadi to pozadi...
+        // Kdyz najdu les, dokazal bys ho tam dozadu vlozit?") after seeing River of Echoes' own
+        // distant-pine-trees trick - same idea, scattered around the clearing at a radius the fog
+        // (see BuildLighting) partially swallows, so the forest recedes into mist instead of the
+        // scene just stopping. The pack (free "Low Poly Trees Collection", 200 trees) ships as one
+        // FBX with 200 separate already-upright tree children sharing one "tree_color" palette
+        // texture (confirmed via a throwaway InspectTreePack diagnostic) - a real diffuse atlas,
+        // unlike the mushroom pack, so no per-instance tinting is needed here.
+        // Native tree height is ~7 units (a real-world-ish scale) versus this whole clearing's
+        // much smaller diorama scale (mushrooms are ~0.5 units tall) - left at native size the
+        // trees rendered as room-filling giants at only 8-16 units away (human report 2026-09-27,
+        // first pass: looked like huge rocks, not a background forest). TreeScale brings a native
+        // ~7-unit tree down to a ~2-unit one, and the ring sits further out to match.
+        // Kept closer than BackdropRadius (20, see BuildForestBackdrop) - a tree placed beyond it
+        // would be occluded by the backdrop cylinder's own opaque wall.
+        private const int BackgroundTreeCount = 36;
+        private const float TreeRingMinRadius = 10f;
+        private const float TreeRingMaxRadius = 18f;
+        private const float TreeScale = 0.28f;
+
+        private void BuildBackgroundTrees()
+        {
+            var asset = Resources.Load<GameObject>("Worlds/MycMurmur/Models/LowPolyTrees");
+            if (asset == null)
+            {
+                Debug.LogError("[MycMurmur] Could not load LowPolyTrees from Resources.");
+                return;
+            }
+
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            var treeMaterial = new Material(shader) { mainTexture = Resources.Load<Texture2D>("Worlds/MycMurmur/Textures/TreeColor") };
+
+            var instance = Instantiate(asset);
+            var allTrees = new List<Transform>();
+            foreach (Transform child in instance.transform) allTrees.Add(child);
+
+            int count = Mathf.Min(BackgroundTreeCount, allTrees.Count);
+            for (int i = 0; i < count; i++)
+            {
+                int pick = Random.Range(i, allTrees.Count);
+                (allTrees[i], allTrees[pick]) = (allTrees[pick], allTrees[i]);
+
+                var tree = allTrees[i];
+                tree.SetParent(transform, false);
+                float angle = (i / (float)count) * 360f + Random.Range(-8f, 8f);
+                float radius = Random.Range(TreeRingMinRadius, TreeRingMaxRadius);
+                float rad = angle * Mathf.Deg2Rad;
+                tree.localPosition = new Vector3(Mathf.Sin(rad) * radius, 0f, Mathf.Cos(rad) * radius);
+                tree.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                tree.localScale = Vector3.one * TreeScale * Random.Range(0.8f, 1.3f);
+
+                foreach (var renderer in tree.GetComponentsInChildren<Renderer>())
+                    renderer.sharedMaterial = treeMaterial;
+            }
+
+            Destroy(instance);
         }
 
         private void LoadMushroomTextures()
