@@ -4,6 +4,7 @@ using HearApp.Core.HearingEngine;
 using HearApp.Core.Worlds;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace HearApp.Worlds.VikingBoat
 {
@@ -75,7 +76,44 @@ namespace HearApp.Worlds.VikingBoat
             // rather than narrowed via ConfigurePerspectiveCoreVerticalFov.
             // Position/orientation are driven every frame by Update() (flythrough) instead of
             // set once here.
+
+            // Second camera dedicated to the held/reserve shield (human report 2026-09-27: "Vidis,
+            // ze se castecne potapeji do vody? To nesmi, musi byt vzdy v popredi pred vsim" - it must
+            // always render in front of everything). The held shield is a real 3D object riding along
+            // in front of the main camera, so ordinary depth testing lets nearer world geometry (the
+            // river plane, once the flythrough dips low enough near the end) draw over it - a HUD
+            // element has no business being depth-tested against the scene at all. Parented with a
+            // zero local pose so it always exactly matches the main camera's position/rotation
+            // without extra per-frame code; renders on its own layer, after the main camera, and
+            // clears only the depth buffer first (not color) so it composites on top of whatever the
+            // main camera already drew instead of erasing it.
+            var overlayObject = new GameObject("VikingBoatHeldShieldCamera");
+            overlayObject.transform.SetParent(_camera.transform, false);
+            _heldShieldCamera = overlayObject.AddComponent<Camera>();
+            _heldShieldCamera.clearFlags = CameraClearFlags.Depth;
+            _heldShieldCamera.cullingMask = 1 << HeldShieldLayer;
+            _heldShieldCamera.nearClipPlane = _camera.nearClipPlane;
+            _heldShieldCamera.farClipPlane = _camera.farClipPlane;
+            _heldShieldCamera.depth = _camera.depth + 1;
+            _camera.cullingMask &= ~(1 << HeldShieldLayer);
+
+            // Plain multi-Camera layering (what the block above would be on the built-in render
+            // pipeline) doesn't work as-is on URP (found the hard way 2026-09-27: the whole screen
+            // went solid dark blue the moment a second enabled Camera existed) - URP treats every
+            // Camera as an independent "Base" pass unless explicitly told otherwise, so the second
+            // camera's own base pass was replacing the first camera's output rather than compositing
+            // over it. URP's actual mechanism for this is Camera Stacking: mark the held-shield
+            // camera as an Overlay and add it to the main camera's stack so URP composites them in
+            // one pass in the intended order.
+            _heldShieldCamera.GetUniversalAdditionalCameraData().renderType = CameraRenderType.Overlay;
+            _camera.GetUniversalAdditionalCameraData().cameraStack.Add(_heldShieldCamera);
         }
+
+        // An otherwise-unused layer index (no other world/shell code in this project touches
+        // Camera.cullingMask or GameObject.layer - confirmed by a project-wide search 2026-09-27),
+        // picked from the high end of the user-defined range to minimize any chance of collision.
+        private const int HeldShieldLayer = 30;
+        private Camera _heldShieldCamera;
 
         // Flythrough: the camera glides along the hull's side at shield height so each shield on
         // the gunwale crosses the frame one at a time as we pass it. The ship is recentred in
@@ -115,6 +153,11 @@ namespace HearApp.Worlds.VikingBoat
 
             _camera.transform.position = pos;
             _camera.transform.LookAt(new Vector3(-0.4f, pos.y, pos.z + FlythroughLookAheadZ), Vector3.up);
+
+            // CoreSafeSquareFit can change the main camera's fieldOfView on an aspect/orientation
+            // change - keep the held-shield overlay camera's projection identical so the held shield
+            // never appears to shift or resize relative to the rest of the frame.
+            if (_heldShieldCamera != null) _heldShieldCamera.fieldOfView = _camera.fieldOfView;
         }
 
         // Reward shields. Original idea (human, 2026-09-27): with each success, a shield should
@@ -140,22 +183,60 @@ namespace HearApp.Worlds.VikingBoat
         // outward - while local Y (wide) becomes world Y (vertical) and local X (wide) becomes
         // world Z (along the ship's length).
         private const float ShieldNativeDiameter = 2.15f;
-        // 0.6 * 0.7 (human report 2026-09-27: shields too large, ~70% would be enough).
-        private const float ShieldTargetDiameter = 0.42f;
-        private const float ShieldScale = ShieldTargetDiameter / ShieldNativeDiameter;
+        // Held/reserve size (human report 2026-09-27, this round: "stity v zasobniku... udelej je
+        // i o neco mensi" - the reserve shields, make them a bit smaller too) - a modest trim from
+        // the previous 0.42.
+        private const float HeldShieldTargetDiameter = 0.34f;
+        private const float HeldShieldScale = HeldShieldTargetDiameter / ShieldNativeDiameter;
+        // Mounted-on-hull size - human report the SAME round, about the shields already on the ship:
+        // "nehorazne vysoko a silene moc velke" (outrageously high AND insanely too big). Cut hard,
+        // separately from the held size above - see AttachShieldRoutine, which now lerps localScale
+        // from Held to Mounted during the fly-in instead of leaving the held scale untouched.
+        private const float MountedShieldTargetDiameter = 0.22f;
+        private const float MountedShieldScale = MountedShieldTargetDiameter / ShieldNativeDiameter;
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
         private const int ShieldVariantCount = 6;
 
-        // Rail height/offset already validated by the QA screenshots, within the flat midship span
-        // (not the curled bow/stern, which sit outside +-1.7 and would leave a shield floating off
-        // the actual hull surface).
-        private const float ShieldRailX = 0.9f;
-        private const float ShieldRailY = -0.5f;
-        private const float ShieldRailHalfSpan = 1.7f;
-        // Matches the shield's own 0.6 target diameter plus a small gap, so consecutive shields on
-        // the rail don't overlap.
-        private const float ShieldMinSpacing = 0.68f;
-        private const int MaxShields = 6;
+        // X re-derived 2026-09-27 (human report: "Stity se umistuji spatne... umisti je co nejblize
+        // toho stitu, co uz tam defaultne je" - shields are placed wrong, put them as close as
+        // possible to the shield that is already there by default). A throwaway
+        // InspectVikingShieldCluster Editor diagnostic (clustering submesh 1's vertices by their UV -
+        // map_ShipV_002's texture reuses the exact same red/blue quartered art as our reward shield
+        // in one small corner) found the hull already carries two small baked-in shield decorations,
+        // one per side, at RAW asset-space (+-0.52, 0.35, 0).
+        //
+        // Y was wrong, though (human report 2026-09-27, next round: mounted shields "nehorazne
+        // vysoko" - outrageously high - matching an on-device screenshot with the shields sitting up
+        // by the mast/rigging). Root cause: that 0.35 is the shield decal's RAW Y, straight from the
+        // unmodified source asset - but BuildEnvironment recenters the actual ship instance by
+        // -SourceBoundsCenter (Y=1.17), so every displayed/local-space Y used elsewhere in this class
+        // (the flythrough path, the water line, the earlier rail-half-span measurement) is
+        // (rawY - 1.17), NOT the raw value directly. 0.35 used as-is put the mount a full 1.17 units
+        // too high. A follow-up InspectHullMidshipProfile diagnostic (this time correctly reading the
+        // hull's OWN outer edge in the same recentred space everything else already uses) found the
+        // hull's actual widest point at midship sits at displayed Y in [-0.87, -0.77], X~=0.54 - i.e.
+        // low on the side, well below the mast, not up near the rigging. X=0.52 happens to already be
+        // right (SourceBoundsCenter.x is 0, so X needed no correction) - only Y moves.
+        private const float ShieldRailX = 0.52f;
+        private const float ShieldRailY = -0.8f;
+        // HalfSpan/MinSpacing re-derived the same round shields were found floating near the bow
+        // (human report: shields hanging over open water, and separately clipping into the curled
+        // prow). A throwaway InspectHullRailProfile Editor diagnostic (bucketing the hull's own
+        // vertices by Z and reading the rail's outer X edge in each slice, in the same displayed-Y
+        // band as the corrected mount above) measured the real profile: outer edge ~0.54 at Z=0
+        // (matching the default shield, as expected) but only ~0.40 by Z=+-0.6 and collapsed to
+        // ~0.10-0.25 by Z=+-1.8/2.2 as the hull narrows into the curled bow/stern. Kept the span
+        // tight to where the profile stays close to X=0.52, and tightened spacing to match the
+        // smaller MountedShieldTargetDiameter above so more shields still fit within that strip.
+        private const float ShieldRailHalfSpan = 0.6f;
+        private const float ShieldMinSpacing = 0.26f;
+        // Raised from 6 (human report 2026-09-27: "kolik stitu mame? Zda se mi jich malo" - how many
+        // do we have, seems like too few). The old cap of 6 was really a hidden side effect of
+        // ShieldVariantCount (also 6) - SpawnHeldShield refused to hand out a 7th shield at all once
+        // it ran out of distinct textures. There are still only 6 painted variants (no new art), so
+        // beyond the 6th shield AttachShieldRoutine now cycles back through them via modulo instead
+        // of hard-stopping - a repeated pattern reads far better than no reward shield appearing.
+        private const int MaxShields = 10;
         private readonly List<float> _placedShieldZs = new();
 
         // Held close in front of the camera (child of the camera transform, so it rides along
@@ -208,19 +289,31 @@ namespace HearApp.Worlds.VikingBoat
 
         private void SpawnHeldShield()
         {
-            if (_shieldAsset == null || _nextVariantIndex >= _shieldMaterials.Length) return;
+            // Was `_nextVariantIndex >= _shieldMaterials.Length` - an accidental second, lower cap
+            // (6 painted variants) hiding behind MaxShields' own cap (also 6 at the time), so a 7th
+            // shield could never be offered even once MaxShields was raised above 6 (see MaxShields'
+            // comment above). Now cycles through the 6 variants via modulo below instead.
+            if (_shieldAsset == null || _nextVariantIndex >= MaxShields) return;
 
             var instance = Instantiate(_shieldAsset, _camera.transform);
             instance.name = $"HeldShield_{_nextVariantIndex}";
             instance.transform.localPosition = HeldShieldLocalPosition;
             instance.transform.localRotation = HeldShieldLocalRotation;
-            instance.transform.localScale = Vector3.one * ShieldScale;
+            instance.transform.localScale = Vector3.one * HeldShieldScale;
+            SetLayerRecursively(instance, HeldShieldLayer);
 
             var renderer = instance.GetComponentInChildren<Renderer>();
-            if (renderer != null) renderer.sharedMaterial = _shieldMaterials[_nextVariantIndex];
+            if (renderer != null) renderer.sharedMaterial = _shieldMaterials[_nextVariantIndex % _shieldMaterials.Length];
 
             _heldShield = instance.transform;
             _nextVariantIndex++;
+        }
+
+        private static void SetLayerRecursively(GameObject go, int layer)
+        {
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+                SetLayerRecursively(child.gameObject, layer);
         }
 
         private IEnumerator AttachShieldRoutine()
@@ -257,9 +350,15 @@ namespace HearApp.Worlds.VikingBoat
             Vector3 targetPosition = new(ShieldRailX, ShieldRailY, desiredZ);
 
             // Detach from the camera, keeping its current world pose as the flight's start point.
+            // Reset off the held-shield overlay layer back to Default (0) at the same time - once
+            // mounted this is a normal world object again and must be depth-tested like everything
+            // else, not forced in front of the ship it is about to land on.
             shield.SetParent(transform, true);
+            SetLayerRecursively(shield.gameObject, 0);
             Vector3 startPosition = shield.localPosition;
             Quaternion startRotation = shield.localRotation;
+            Vector3 startScale = shield.localScale;
+            Vector3 targetScale = Vector3.one * MountedShieldScale;
 
             const float duration = 0.6f;
             float elapsed = 0f;
@@ -270,11 +369,13 @@ namespace HearApp.Worlds.VikingBoat
                 float eased = 1f - Mathf.Pow(1f - t, 3f);
                 shield.localPosition = Vector3.Lerp(startPosition, targetPosition, eased);
                 shield.localRotation = Quaternion.Slerp(startRotation, ShieldMountRotation, eased);
+                shield.localScale = Vector3.Lerp(startScale, targetScale, eased);
                 yield return null;
             }
 
             shield.localPosition = targetPosition;
             shield.localRotation = ShieldMountRotation;
+            shield.localScale = targetScale;
 
             SpawnHeldShield();
             RaiseListeningSafe();
@@ -307,7 +408,51 @@ namespace HearApp.Worlds.VikingBoat
                 Destroy(importedLight.gameObject);
 
             ApplyTextures(instance);
+            FixSailOrientation(instance);
             BuildRiver();
+        }
+
+        // Mast + sail + rigging read as "sailing backward" on-device (human report 2026-09-27: "Lod
+        // pluje naopak. Podivej se na plachtu. Otoc ji o 180 stupnu." - the ship sails the wrong way,
+        // look at the sail, rotate it 180 degrees). The whole ship is a single imported mesh with no
+        // separate sail transform to rotate (confirmed via a throwaway InspectVikingShip Editor
+        // diagnostic - one child GameObject named "default", one Mesh, 3 submeshes split only by
+        // material). A second throwaway diagnostic (InspectVikingSail) measured each submesh's own
+        // bounds directly from the raw .obj's "o " groups (base1_Cube/base2_Cube.005/Plane, mapped
+        // to map_ShipV_001/002/003 in that order) and found submesh 2 ("Plane" - despite the name,
+        // it is the mast/sail/rigging assembly, not a simple ground plane) is symmetric about the
+        // ship's local X=0/Z=0 centerline (bounds center (0, 1.24, 0)) - i.e. the mast stands right
+        // on the rotation axis, so spinning just that submesh's vertices 180 degrees around Y through
+        // the origin turns the sail/rigging in place without touching the hull (submeshes 0/1) or
+        // needing to reposition anything.
+        private const int SailSubmeshIndex = 2;
+
+        private void FixSailOrientation(GameObject instance)
+        {
+            var meshFilter = instance.GetComponentInChildren<MeshFilter>();
+            if (meshFilter == null) return;
+
+            var mesh = meshFilter.mesh; // .mesh (not .sharedMesh) forces a per-instance copy here,
+                                         // so this never mutates the shared Resources-loaded asset.
+            var indices = mesh.GetTriangles(SailSubmeshIndex);
+            var affected = new HashSet<int>(indices);
+
+            var vertices = mesh.vertices;
+            var normals = mesh.normals;
+            foreach (var i in affected)
+            {
+                var v = vertices[i];
+                vertices[i] = new Vector3(-v.x, v.y, -v.z);
+                if (i < normals.Length)
+                {
+                    var n = normals[i];
+                    normals[i] = new Vector3(-n.x, n.y, -n.z);
+                }
+            }
+
+            mesh.vertices = vertices;
+            if (normals.Length == vertices.Length) mesh.normals = normals;
+            mesh.RecalculateBounds();
         }
 
         // Water under the ship (human request 2026-09-27: get the ship onto water).
