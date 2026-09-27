@@ -638,7 +638,17 @@ namespace HearApp.Core.Shell.UI
                 button.style.borderTopLeftRadius = 999; button.style.borderTopRightRadius = 999;
                 button.style.borderBottomLeftRadius = 999; button.style.borderBottomRightRadius = 999;
             }
+            // The parent's alignItems/justifyContent Center only centers the Label's own box, not
+            // necessarily the glyph within it - with no explicit size or text-align, that box just
+            // shrink-wraps to the font's line height, whose baseline/glyph metrics for "←" differ
+            // enough between Android's and iOS's system font fallback that the arrow rendered
+            // visibly off-center on Android (human report 2026-09-27) despite looking fine on iOS.
+            // Filling the button's own box and centering text within it explicitly makes the glyph
+            // centered against the button itself instead of against a platform-dependent line box.
             var arrow = MakeLabel("←", new VisualTokens.TypeStyle(22, 700), glassy ? Color.white : VisualTokens.Colors.Ink900);
+            arrow.style.width = BackNavButtonSize;
+            arrow.style.height = BackNavButtonSize;
+            arrow.style.unityTextAlign = TextAnchor.MiddleCenter;
             button.Add(arrow);
             button.RegisterCallback<ClickEvent>(_ => onClick());
             return button;
