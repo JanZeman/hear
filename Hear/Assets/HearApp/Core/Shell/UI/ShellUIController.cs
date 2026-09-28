@@ -649,6 +649,19 @@ namespace HearApp.Core.Shell.UI
             arrow.style.width = BackNavButtonSize;
             arrow.style.height = BackNavButtonSize;
             arrow.style.unityTextAlign = TextAnchor.MiddleCenter;
+            // Even filling the button's box, "←" still sits slightly low within it (human report
+            // 2026-09-28: "v ramci samotneho tlacitka je jeho sipka moc nizko... na Androidu je to
+            // videt zretelne, na iPhonu jen jeden ci dva pixely" - within the button itself the arrow
+            // sits too low, clearly visible on Android, only a pixel or two on iPhone) - the glyph's
+            // own vertical metrics within the font's line box aren't perfectly symmetric, and that
+            // asymmetry is more pronounced in Android's fallback font. Reserving a little extra space
+            // below (rather than above) the centered text nudges it upward within the box; bigger on
+            // Android to match the bigger reported offset there.
+            //
+            // First pass (4/1.5) fixed the button's own position but left the glyph "jen o jeden
+            // pixel" (just one pixel) further to nudge, per human follow-up 2026-09-28 - bumped both
+            // by another pixel's worth. Second follow-up the same day: one more pixel again.
+            arrow.style.paddingBottom = Application.platform == RuntimePlatform.Android ? 6f : 3.5f;
             button.Add(arrow);
             button.RegisterCallback<ClickEvent>(_ => onClick());
             return button;
@@ -1432,11 +1445,20 @@ namespace HearApp.Core.Shell.UI
         /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to keep its
         /// "Results" title below the top-left back button - see <see
         /// cref="GetTopContentReserveLogical"/>.</summary>
+        // Floor below which the computed inset is treated as unreliable rather than genuinely zero
+        // (human report 2026-09-28, screenshot from a second Android device, a Galaxy S9 - not the
+        // S9+ this was being tested on - "cele tlacitko je moc nahore, jeho vrsek koliduje s
+        // ukazatelem casu" - the whole button sits too high, its top collides with the clock. Every
+        // real status bar is at least this tall, so Screen.safeArea reporting less than that on some
+        // devices means the reading itself is off, not that the device truly has no status bar to
+        // clear.
+        private const float MinTopSafeAreaInsetLogical = 24f;
+
         internal static float GetTopSafeAreaInsetLogical()
         {
             var safeArea = Screen.safeArea;
             float topPhysical = Screen.height - (safeArea.y + safeArea.height);
-            return Mathf.Max(0f, PhysicalToLogical(topPhysical));
+            return Mathf.Max(MinTopSafeAreaInsetLogical, PhysicalToLogical(topPhysical));
         }
 
         /// <summary>How far down any subpage's own top content (e.g. Results' "Results" title)

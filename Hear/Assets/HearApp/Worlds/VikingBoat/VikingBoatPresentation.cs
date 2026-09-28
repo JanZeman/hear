@@ -198,7 +198,11 @@ namespace HearApp.Worlds.VikingBoat
         // "nehorazne vysoko a silene moc velke" (outrageously high AND insanely too big). Cut hard,
         // separately from the held size above - see AttachShieldRoutine, which now lerps localScale
         // from Held to Mounted during the fly-in instead of leaving the held scale untouched.
-        private const float MountedShieldTargetDiameter = 0.22f;
+        // Shrunk again 2026-09-28 (human report, with a close-up screenshot: the mounted shield reads
+        // clearly bigger than the hull's own decal right next to/behind it) - down toward the
+        // original decal's own measured size (its vertex cluster's extents were only ~0.07 in Y/Z, so
+        // roughly a 0.14-0.18 diameter).
+        private const float MountedShieldTargetDiameter = 0.16f;
         private const float MountedShieldScale = MountedShieldTargetDiameter / ShieldNativeDiameter;
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
         private const int ShieldVariantCount = 6;
@@ -223,57 +227,66 @@ namespace HearApp.Worlds.VikingBoat
         // hull's actual widest point at midship sits at displayed Y in [-0.87, -0.77], X~=0.54 - i.e.
         // low on the side, well below the mast, not up near the rigging. X=0.52 happens to already be
         // right (SourceBoundsCenter.x is 0, so X needed no correction) - only Y moves.
-        private const float ShieldRailX = 0.52f;
-        private const float ShieldRailY = -0.8f;
-        // HalfSpan/MinSpacing re-derived the same round shields were found floating near the bow
-        // (human report: shields hanging over open water, and separately clipping into the curled
-        // prow). A throwaway InspectHullRailProfile Editor diagnostic (bucketing the hull's own
-        // vertices by Z and reading the rail's outer X edge in each slice, in the same displayed-Y
-        // band as the corrected mount above) measured the real profile: outer edge ~0.54 at Z=0
-        // (matching the default shield, as expected) but only ~0.40 by Z=+-0.6 and collapsed to
-        // ~0.10-0.25 by Z=+-1.8/2.2 as the hull narrows into the curled bow/stern. Kept the span
-        // tight to where the profile stays close to X=0.52, and tightened spacing to match the
-        // smaller MountedShieldTargetDiameter above so more shields still fit within that strip.
-        private const float ShieldRailHalfSpan = 0.6f;
-        private const float ShieldMinSpacing = 0.25f;
-        // Nudge-forward-until-clear placement (human report 2026-09-28: "Nekdy od pateho stitu je
-        // zacinas davat jeden na druhy" - starting around the fifth shield you start stacking them on
-        // top of each other) only ever nudged in the +Z direction and then clamped at the span edge,
-        // so once a run of detections landed near the +Z end of the rail, later shields piled up at
-        // the same clamped position instead of finding free room elsewhere on the rail. Replaced with
-        // a fixed slot grid spanning the whole HalfSpan on both sides, spaced ShieldMinSpacing apart -
-        // each detection claims whichever unclaimed slot is closest to the camera's current Z, so
-        // slots can never collide (there are only as many as physically fit) and a full rail simply
-        // stops offering new mounts (see AttachShieldRoutine) instead of overlapping.
+        // X nudged out from the decal's own 0.52 (human report 2026-09-28, with a close-up
+        // screenshot: "ta puvodni 'prosvita' temi, co jsou mezi okem pozorovatele a tou puvodni" -
+        // the original 'shows through' the ones that are between the viewer's eye and it - and "musis
+        // to na z-ose priblizit trochu vic k mym ocim" - move it closer to my eyes on that axis).
+        // Mounting the reward shield at the exact same X as the decal it sits on put both surfaces
+        // exactly coplanar from the camera's point of view - classic z-fighting, two overlapping faces
+        // flickering between each other rather than one cleanly occluding the other.
         //
-        // The centre slot (Z=0) is where the hull's own baked-in shield decal used to sit (see
-        // RemoveDefaultShieldDecoration above) - left out of the grid on human instruction 2026-09-28:
-        // "neumistuj zadny stit na misto, kde je ten stit puvodni" (never mount a reward shield on the
-        // original's spot). Leaving out just Z=0 itself wasn't enough, though (human report the same
-        // day, with a screenshot: "treti stit jsi umistil temer presne NA ten puvodni" - you placed
-        // the third shield almost exactly ON the original) - the nearest grid ring was only one
-        // ShieldMinSpacing (0.26) from centre, and once you account for BOTH the reward shield's own
-        // radius (0.11) and the original decal's (roughly 0.08-0.1, from its measured cluster
-        // extents), their edges ended up only ~0.05-0.07 apart - close enough to read as "right on top
-        // of it" despite technically not overlapping. CenterExclusionRadius pushes the nearest ring
-        // out to a gap that is actually visible, at the cost of one ring's worth of spacing tightened
-        // slightly (0.26 -> 0.25) so the same HalfSpan still fits two rings per side.
-        private const float CenterExclusionRadius = 0.35f;
-        private static readonly float[] ShieldSlotZGrid = BuildShieldSlotZGrid();
-
-        private static float[] BuildShieldSlotZGrid()
-        {
-            var slots = new List<float>();
-            for (float z = CenterExclusionRadius; z <= ShieldRailHalfSpan + 0.001f; z += ShieldMinSpacing)
-            {
-                slots.Add(-z);
-                slots.Add(z);
-            }
-            return slots.ToArray();
-        }
-
-        private static readonly int MaxShields = ShieldSlotZGrid.Length;
-        private readonly HashSet<float> _placedShieldZs = new();
+        // First fix pushed X out to 0.60 (+0.08) - reasonable relative to the shield's size at the
+        // time (0.22 diameter, 0.11 radius), but MountedShieldTargetDiameter got cut hard in that same
+        // round (down to 0.16, radius 0.08) without revisiting this offset - so +0.08 had gone from
+        // "most of a radius" to "a full radius", enough to visibly float the reward shield off the
+        // hull as its own separate thing (human report 2026-09-28: "uplne ses na tu puvodni netrefil"
+        // - you completely missed hitting the original). Second fix (0.55, i.e. +0.03) was closer but
+        // still visibly off (human report the same round, another close-up: "porad to tam neni
+        // presne" - still not exactly there).
+        //
+        // Rather than guess a third offset, this finally measured the decal's own geometry directly:
+        // an InspectShieldDecalCluster diagnostic clustered the SAME per-triangle colour-matched
+        // vertices already proven correct (they are what RemoveDefaultShieldDecoration used to
+        // successfully strip the decal's colour, before that whole approach got reverted - see
+        // BuildEnvironment's history) by proximity, rather than averaging all of them together (that
+        // average was meaningless - the colour match also catches scattered rivets/hardware
+        // elsewhere on the hull, see the numbers this same diagnostic reported at other Z values).
+        // The two tight, matching clusters (one per side, ~288 vertices each, a plausible full disc)
+        // sit at recentred (+-0.52, -0.82, 0.20) with extents (0.02, 0.08, 0.08) - i.e. the decal is
+        // almost perfectly flush against the hull (only 0.04 total depth) and about 0.16 in diameter,
+        // which is exactly MountedShieldTargetDiameter already. Y was off by 0.02 (-0.8 vs the real
+        // -0.82) and, now that the decal's own tiny 0.02 half-thickness is known precisely, the X
+        // offset needed to clear it is far smaller than either previous guess - just past the decal's
+        // own outer surface (0.52 + 0.02) plus a hair of margin.
+        private const float ShieldRailX = 0.545f;
+        private const float ShieldRailY = -0.81f;
+        // Everything above this line about spreading shields along a rail (a half-span, a minimum
+        // spacing, a slot grid, a centre-exclusion radius to stay clear of the original) chased a
+        // moving target across several rounds of human feedback and never actually landed - most
+        // recently, 2026-09-28: "porad blbe! A puvodni stit jsi vubec mazat nemel! Zkusme to jinak.
+        // Vrat ten puvodni stit a pak vsechny nahradni stity umistuj presne na nej" (still bad! And
+        // you should never have deleted the original shield at all! Let's try it differently: bring
+        // the original shield back, then mount every reward shield exactly on it). So:
+        // RemoveDefaultShieldDecoration is gone (see BuildEnvironment - the hull's own decal is left
+        // completely untouched again) and every reward shield now targets the SAME single spot, right
+        // on top of that decal, rather than a spread of distinct positions - see AttachShieldRoutine's
+        // replace-in-place logic below.
+        //
+        // 0.20 exactly matched the decal's own measured Z (see ShieldRailX's note), but still read as
+        // shifted from the human's viewpoint (2026-09-28, screenshot: "musis to dat vice doleva! (z
+        // meho pohledu)" - you need to put it more to the left, from my point of view). The flythrough
+        // camera's screen-right axis (worldUp x forward, with the camera looking mostly along -X with
+        // a +Z lean toward the direction of travel - see the flythrough comment above) points mostly
+        // along +Z with a smaller +X component, so the ShieldRailX outward push needed for z-fighting
+        // (see above) also drags the shield toward screen-right as a side effect of moving toward the
+        // camera along a not-quite-perpendicular sightline. Nudged Z down to compensate and pull it
+        // back toward screen-left.
+        //
+        // 0.15 overshot the other way (human report the same round: "nasazeny stit je moc vlevo od
+        // spravneho cile" - the mounted shield is now too far left of the correct target) - confirms
+        // the direction of the fix was right, just too large a step. Split the difference between the
+        // decal's own measured 0.20 (read as too far right) and 0.15 (too far left).
+        private const float ShieldRailZ = 0.185f;
 
         // Held close in front of the camera (child of the camera transform, so it rides along
         // through the flythrough) - originally centred near the player's eye per human direction,
@@ -293,7 +306,6 @@ namespace HearApp.Worlds.VikingBoat
         private Material[] _shieldMaterials;
         private Transform _heldShield;
         private int _nextVariantIndex;
-        private int _shieldsPlaced;
 
         private void BuildShieldRewardAssets()
         {
@@ -325,11 +337,11 @@ namespace HearApp.Worlds.VikingBoat
 
         private void SpawnHeldShield()
         {
-            // Was `_nextVariantIndex >= _shieldMaterials.Length` - an accidental second, lower cap
-            // (6 painted variants) hiding behind MaxShields' own cap (also 6 at the time), so a 7th
-            // shield could never be offered even once MaxShields was raised above 6 (see MaxShields'
-            // comment above). Now cycles through the 6 variants via modulo below instead.
-            if (_shieldAsset == null || _nextVariantIndex >= MaxShields) return;
+            // No cap here any more - every reward shield replaces the last one at the single shared
+            // mount spot (see AttachShieldRoutine), so there is no "ran out of room on the rail" case
+            // left to guard against. Cycles through the 6 painted variants via modulo below for as
+            // many detections as a session produces.
+            if (_shieldAsset == null) return;
 
             var instance = Instantiate(_shieldAsset, _camera.transform);
             instance.name = $"HeldShield_{_nextVariantIndex}";
@@ -352,9 +364,16 @@ namespace HearApp.Worlds.VikingBoat
                 SetLayerRecursively(child.gameObject, layer);
         }
 
+        // The one and only mount spot, right on top of the hull's own baked-in decal - every reward
+        // shield flies to this exact same position (human instruction 2026-09-28: "vrat ten puvodni
+        // stit a pak vsechny nahradni stity umistuj presne na nej"). Whatever was mounted there before
+        // gets destroyed as the new one starts its approach, so there is only ever one reward shield
+        // visible at a time and it never has to compete with, or overlap, the original underneath it.
+        private Transform _mountedShield;
+
         private IEnumerator AttachShieldRoutine()
         {
-            if (_heldShield == null || _shieldsPlaced >= MaxShields)
+            if (_heldShield == null)
             {
                 RaiseListeningSafe();
                 yield break;
@@ -362,35 +381,11 @@ namespace HearApp.Worlds.VikingBoat
 
             Transform shield = _heldShield;
             _heldShield = null;
-            _shieldsPlaced++;
 
-            // Pick whichever fixed grid slot (see ShieldSlotZGrid above) closest to the camera's
-            // current Z is still free - guaranteed collision-free since each slot can only ever be
-            // claimed once, unlike the old "nudge forward from the camera position, clamp at the
-            // span edge" scheme this replaced (that could pile several shields up at the same clamped
-            // edge once a run of detections landed near the +Z end of the rail).
-            float cameraZ = _camera.transform.position.z;
-            float desiredZ = float.NaN;
-            float bestDistance = float.MaxValue;
-            foreach (float slot in ShieldSlotZGrid)
-            {
-                if (_placedShieldZs.Contains(slot)) continue;
-                float distance = Mathf.Abs(slot - cameraZ);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    desiredZ = slot;
-                }
-            }
-            if (float.IsNaN(desiredZ))
-            {
-                // All grid slots claimed - shouldn't happen since MaxShields matches the grid size,
-                // but fail safe rather than mount on top of an existing shield.
-                RaiseListeningSafe();
-                yield break;
-            }
-            _placedShieldZs.Add(desiredZ);
-            Vector3 targetPosition = new(ShieldRailX, ShieldRailY, desiredZ);
+            if (_mountedShield != null) Destroy(_mountedShield.gameObject);
+            _mountedShield = shield;
+
+            Vector3 targetPosition = new(ShieldRailX, ShieldRailY, ShieldRailZ);
 
             // Detach from the camera, keeping its current world pose as the flight's start point.
             // Reset off the held-shield overlay layer back to Default (0) at the same time - once
@@ -452,102 +447,7 @@ namespace HearApp.Worlds.VikingBoat
 
             ApplyTextures(instance);
             FixSailOrientation(instance);
-            RemoveDefaultShieldDecoration(instance);
             BuildRiver();
-        }
-
-        // The hull's own baked-in shield decoration is redundant and visually competes with the
-        // reward shields once those land nearby (human request 2026-09-27: "Je mozne z lode
-        // odstranit ten puvodni jediny shield?" - can the original single shield be removed?). Cut
-        // rather than hidden: there is no separate GameObject for it to disable (same merged-mesh
-        // situation as the sail - see FixSailOrientation above).
-        //
-        // First attempt targeted only the two vertex clusters an earlier position-based diagnostic
-        // (InspectVikingShieldCluster) had guessed were "the shield" (a symmetric pair at raw
-        // (+-0.52, 0.35, 0)). Wrong guess - human report 2026-09-27, with an annotated screenshot:
-        // the original decal was still clearly sitting on the hull, untouched, still visibly smaller
-        // than the reward shields next to it. That diagnostic had found SEVEN distinct clusters
-        // sharing the same UV corner (rivets/hardware apparently reuse the same tiny texture patch),
-        // and the picked pair was just two of them, not necessarily the actual shield.
-        //
-        // Second attempt targeted a UV bounding box instead (U in [0,0.30], V in [0.76,1.0], from an
-        // InspectShieldPixels diagnostic's pixel scan) - still wrong (human report 2026-09-27, with a
-        // second annotated screenshot: the decal was STILL there, still visibly smaller than the
-        // reward shields). Rather than guess a box a third time, this went straight to ground truth:
-        // loads map_ShipV_002's own texture at runtime (its isReadable had to be turned on, same fix
-        // as the mesh needed earlier) and samples the ACTUAL pixel color under each submesh-1
-        // triangle's UV centroid, catching exactly the triangles whose sampled color matches the
-        // shield artwork's red/blue or its rim/boss's neutral grey-black (see IsShieldDecalColor)
-        // instead of trusting any hand-derived UV region.
-        //
-        // That correctly found the decal's triangles, but DELETING them (dropping them from the
-        // submesh's index buffer, as if cutting an unwanted patch of cloth) was itself the bug -
-        // human report 2026-09-28, screenshot showing a pale circular gap right where the decal used
-        // to be: the decal turned out to be the hull's ONLY geometry at that spot (no separate wood
-        // layer underneath it to reveal), so deleting its triangles cut an actual hole straight
-        // through to the sky-coloured background. Fixed by re-texturing instead of deleting: the
-        // matched triangles' vertices get their UV shifted by a fixed offset (DecalToSafeWoodUvOffset)
-        // to a patch elsewhere on the same texture that is plain wood planking, confirmed brown via
-        // the same color check - a per-vertex translation rather than collapsing everyone onto one
-        // single UV point, so the patch keeps whatever grain/shading variation the wood has there
-        // instead of rendering as one flat, uniformly-coloured blob. Surface stays fully intact - no
-        // gap - and now just reads as ordinary hull instead of a shield.
-        private const int UpperHullSubmeshIndex = 1;
-        private const string UpperHullTextureResourcePath = "Worlds/VikingBoat/Textures/Ship002_BaseColor";
-        private static readonly Vector2 ShieldDecalUvCenter = new(0.15f, 0.88f);
-        private static readonly Vector2 SafeWoodUv = new(0.65f, 0.35f);
-        private static readonly Vector2 DecalToSafeWoodUvOffset = SafeWoodUv - ShieldDecalUvCenter;
-
-        private static bool IsShieldDecalColor(Color c)
-        {
-            bool isRed = c.r > 0.18f && c.g < 0.10f && c.b < 0.10f;
-            bool isBlue = c.b > 0.18f && c.r < 0.10f && c.g < 0.35f && c.g > c.r;
-            if (isRed || isBlue) return true;
-
-            // Removing only the red/blue paint left the shield's rim/boss behind as a bare grey disc
-            // still sitting on the hull (human report 2026-09-27, third annotated screenshot: still
-            // there). The hull's own wood planking is consistently warm brown in this texture (every
-            // sampled swatch had r clearly > g > b, e.g. (0.34,0.24,0.17)) while the shield's
-            // rim/boss metal is neutral grey/black (r, g and b close together) - that channel-spread
-            // check tells the two apart without needing another position guess.
-            float maxChannel = Mathf.Max(c.r, c.g, c.b);
-            float minChannel = Mathf.Min(c.r, c.g, c.b);
-            bool isNeutralGreyOrBlack = (maxChannel - minChannel) < 0.05f && maxChannel < 0.55f;
-            return isNeutralGreyOrBlack;
-        }
-
-        private void RemoveDefaultShieldDecoration(GameObject instance)
-        {
-            var meshFilter = instance.GetComponentInChildren<MeshFilter>();
-            if (meshFilter == null) return;
-
-            var texture = Resources.Load<Texture2D>(UpperHullTextureResourcePath);
-            if (texture == null)
-            {
-                Debug.LogError("[VikingBoat] Could not load hull texture for shield-decal removal.");
-                return;
-            }
-
-            var mesh = meshFilter.mesh;
-            var uvs = mesh.uv;
-            var indices = mesh.GetTriangles(UpperHullSubmeshIndex);
-            int retexturedCount = 0;
-
-            for (int i = 0; i < indices.Length; i += 3)
-            {
-                Vector2 uvCentroid = (uvs[indices[i]] + uvs[indices[i + 1]] + uvs[indices[i + 2]]) / 3f;
-                Color sample = texture.GetPixelBilinear(uvCentroid.x, uvCentroid.y);
-                if (IsShieldDecalColor(sample))
-                {
-                    uvs[indices[i]] += DecalToSafeWoodUvOffset;
-                    uvs[indices[i + 1]] += DecalToSafeWoodUvOffset;
-                    uvs[indices[i + 2]] += DecalToSafeWoodUvOffset;
-                    retexturedCount++;
-                }
-            }
-
-            mesh.uv = uvs;
-            Debug.Log($"[VikingBoat] RemoveDefaultShieldDecoration: retextured {retexturedCount}/{indices.Length / 3} submesh-1 triangles.");
         }
 
         // Mast + sail + rigging read as "sailing backward" on-device (human report 2026-09-27: "Lod
