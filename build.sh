@@ -40,8 +40,10 @@ build_ios() {
     --execute-method Hear.Editor.HearDevelopmentBuild.BuildIos \
     --output-path Builds/iOS
 
+  local xcode_project="$PWD/Builds/iOS/Unity-iPhone.xcodeproj"
+
   echo "==> Compiling Xcode project"
-  xcodebuild -project Builds/iOS/Unity-iPhone.xcodeproj \
+  xcodebuild -project "$xcode_project" \
     -scheme Unity-iPhone \
     -configuration Debug \
     -destination "id=$IOS_DEVICE_UDID" \
@@ -50,17 +52,29 @@ build_ios() {
     DEVELOPMENT_TEAM=9VBQGD32YX \
     build
 
-  # Excludes the Index.noindex mirror under the same DerivedData tree, which also matches a
-  # naive "*/Build/Products/.../Hear.app" glob but is missing Info.plist and fails installation
-  # with "not a valid bundle" (com.apple.dt.CoreDeviceError 3000).
-  local app_path
-  app_path="$(find "$HOME/Library/Developer/Xcode/DerivedData" \
-    -maxdepth 6 -path "*Unity-iPhone-*/Build/Products/Debug-iphoneos/Hear.app" \
-    -not -path "*/Index.noindex/*" \
-    -print -quit)"
+  # DerivedData is shared across every worktree on this Mac, keyed by a hash of the .xcodeproj's
+  # own absolute path - a naive search through it (the previous approach here) could pick up a
+  # DIFFERENT worktree's stale Hear.app instead of the one just built above, silently installing
+  # the wrong worktree's build (human report 2026-09-28: "nerespektuje, ve kterem worktree to
+  # bylo spusteno"). Asking Xcode for this exact project's own CONFIGURATION_BUILD_DIR instead
+  # ties the install path deterministically to $xcode_project (itself derived from $ROOT_DIR,
+  # i.e. this worktree), with no ambiguity and no DerivedData-internal path guessing.
+  local build_dir
+  build_dir="$(xcodebuild -project "$xcode_project" \
+    -scheme Unity-iPhone \
+    -configuration Debug \
+    -destination "id=$IOS_DEVICE_UDID" \
+    -showBuildSettings 2>/dev/null \
+    | awk -F ' = ' '/CONFIGURATION_BUILD_DIR/ { print $2; exit }')"
 
-  if [ -z "$app_path" ]; then
-    echo "Could not locate the built Hear.app under DerivedData." >&2
+  if [ -z "$build_dir" ]; then
+    echo "Could not resolve CONFIGURATION_BUILD_DIR from xcodebuild -showBuildSettings." >&2
+    exit 1
+  fi
+
+  local app_path="$build_dir/Hear.app"
+  if [ ! -d "$app_path" ]; then
+    echo "Expected built app not found at $app_path" >&2
     exit 1
   fi
 
