@@ -568,10 +568,43 @@ namespace HearApp.Worlds.VikingBoat
         // more step, 8 -> 7. Fourth report, after the ship-sailing rework further down changed how
         // this whole row reads on screen ("Opet posun ty sloty vice do pride lodi, tak o 3 sloty" -
         // again, shift those slots more toward the bow, by about 3 slots): back out again, 7 -> 10.
+        // Fifth report, same day: "Temer dokonale. Ale 10ty talir se spatne umistil. Opet pred ten
+        // puvodni namist ZA nej" (almost perfect - but the 10th shield landed wrong, again in front
+        // of the original instead of behind it) - a second report of the exact same complaint as the
+        // very first one (vaguer, no number, right when this skip logic was first introduced), just
+        // now with a specific number attached. Nudging SlotsBeforeOriginal by one (10 -> 9) "fixed"
+        // it the same way the first report's fix did - by moving the boundary, not by understanding
+        // why a shield right next to the original kept reading as being on the wrong side at all.
+        // Human, correctly, rejected that as not actually fixed: "Matematika je spatne. Neni to jen
+        // o hodnote SlotsBeforeOriginal... spocitat pocet slotu od stredoveho doleva a pak doprava a
+        // udelat ochranu, aby se zadny stit nemohl umistit blizko toho puvodniho?" (the math is
+        // wrong, it's not just about the SlotsBeforeOriginal value... calculate the slot count from
+        // the centre, left then right, and add protection so no shield can ever be placed close to
+        // the original).
+        //
+        // Root cause, on actually digging in rather than nudging the boundary again: skipping only
+        // the ONE slot that sits exactly on the original leaves its two immediate neighbours just
+        // ShieldSlotGap (0.17) away from it - about 0.01 of actual edge-to-edge clearance (see
+        // ShieldSlotGap's own note), the tightest gap anywhere in the row and visually ambiguous at
+        // the close oblique camera angle now in use. Whichever slot ended up in that tight spot was
+        // going to keep reading as "on the wrong side" regardless of which integer SlotsBeforeOriginal
+        // happened to be - the boundary was never the bug, the missing clearance around the original
+        // was. See ProtectedSlotRadius below for the actual fix: a whole RANGE of slots around the
+        // original is skipped now, not just the one slot exactly on it, so its nearest neighbours on
+        // both sides are guaranteed real clearance instead of the bare minimum.
+        //
         // No equivalent report yet on the stern end, so that side is untouched - see HullOuterXAtZ's
         // clamp for what happens if the row ever reaches that far.
-        private const int SlotsBeforeOriginal = 10;
+        private const int SlotsBeforeOriginal = 9;
         private static readonly float ShieldRowStartZ = ShieldRailZ - SlotsBeforeOriginal * ShieldSlotGap;
+
+        // How many EXTRA slots on each side of the original's own slot (SlotsBeforeOriginal) are
+        // also skipped, not assigned to any shield - see the root-cause note above. At 1, the
+        // original's nearest mounted neighbours on both sides sit 2*ShieldSlotGap (0.34) away
+        // instead of 1*ShieldSlotGap (0.17), while every other gap in the row stays the plain
+        // ShieldSlotGap - still one uniform grid, just with a wider exclusion band around the one
+        // position that needs to read as unambiguously separate.
+        private const int ProtectedSlotRadius = 1;
 
         // Held close in front of the camera (child of the camera transform, so it rides along
         // through the flythrough) - originally centred near the player's eye per human direction,
@@ -763,9 +796,9 @@ namespace HearApp.Worlds.VikingBoat
                 SetLayerRecursively(child.gameObject, layer);
         }
 
-        // Sequential arrival count, bow to stern - see ShieldRowStartZ's note. The slot that must be
-        // skipped (it belongs to the original decal, already sitting there) is SlotsBeforeOriginal
-        // by construction - no rounding needed, unlike before.
+        // Sequential arrival count, bow to stern - see ShieldRowStartZ's note. The slots that must
+        // be skipped (the original decal's own slot, SlotsBeforeOriginal, plus its protected
+        // neighbours - see ProtectedSlotRadius) are known by construction - no rounding needed.
         private int _totalMounted;
 
         private IEnumerator AttachShieldRoutine()
@@ -780,10 +813,13 @@ namespace HearApp.Worlds.VikingBoat
             float nativeDiameter = _heldShieldNativeDiameter;
             _heldShield = null;
 
-            // slots 0..SlotsBeforeOriginal-1 land bow-ward of the original (smaller Z); slot
-            // SlotsBeforeOriginal itself is the original's own position (never assigned here); every
-            // slot after that lands stern-ward of it (larger Z) - see ShieldRowStartZ's derivation.
-            int slot = _totalMounted < SlotsBeforeOriginal ? _totalMounted : _totalMounted + 1;
+            // slots 0..protectedZoneStart-1 land bow-ward of the original (smaller Z); the whole
+            // protected zone around SlotsBeforeOriginal (see ProtectedSlotRadius's note) is never
+            // assigned; every slot after that lands stern-ward of it (larger Z) - see
+            // ShieldRowStartZ's derivation.
+            int protectedZoneStart = SlotsBeforeOriginal - ProtectedSlotRadius;
+            int protectedZoneSlotCount = 2 * ProtectedSlotRadius + 1;
+            int slot = _totalMounted < protectedZoneStart ? _totalMounted : _totalMounted + protectedZoneSlotCount;
             _totalMounted++;
 
             float targetZ = ShieldRowStartZ + slot * ShieldSlotGap;
