@@ -429,12 +429,14 @@ namespace HearApp.Worlds.VikingBoat
         // likely thin/sparse geometry from the curled bow decoration itself (see HullSideProfile's
         // own note on the unexpected uptick right at Z=-2.0) rather than a real side wall. Second
         // report the same day ("zacni jeste vice vpravo, tak do (puvodne) 6 pozice" - start even
-        // further right, at the [original] 6th position): moved forward again. SlotsBeforeOriginal =
-        // 8 below reconstructs that same "6th position" intent (measured back from ShieldRailZ
-        // instead of forward from a since-abandoned start point) while landing exactly on a real
-        // slot. No equivalent report yet on the stern end, so that side is untouched - see
-        // HullOuterXAtZ's clamp for what happens if the row ever reaches that far.
-        private const int SlotsBeforeOriginal = 8;
+        // further right, at the [original] 6th position): moved forward again, landing on
+        // SlotsBeforeOriginal = 8 (measured back from ShieldRailZ instead of forward from a
+        // since-abandoned start point, so it lands exactly on a real slot). Third report, once the
+        // exact-alignment fix above made the row actually look right for the first time ("Nadhera.
+        // Zkus zacit o jeden slot vpravo" - gorgeous, try starting one slot further right): one
+        // more step, 8 -> 7. No equivalent report yet on the stern end, so that side is untouched -
+        // see HullOuterXAtZ's clamp for what happens if the row ever reaches that far.
+        private const int SlotsBeforeOriginal = 7;
         private static readonly float ShieldRowStartZ = ShieldRailZ - SlotsBeforeOriginal * ShieldSlotGap;
 
         // Held close in front of the camera (child of the camera transform, so it rides along
