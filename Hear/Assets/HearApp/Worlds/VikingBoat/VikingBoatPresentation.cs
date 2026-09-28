@@ -27,11 +27,14 @@ namespace HearApp.Worlds.VikingBoat
     public sealed class VikingBoatPresentation : WorldPresentationBase
     {
         private Camera _camera;
-        private float _startTime;
+        // The ship's own root transform (see BuildEnvironment) - Update() moves this to give the
+        // ship a real forward velocity instead of just sweeping the camera's gaze across a static
+        // hull. Reward shields are parented to this too (see AttachShieldRoutine) so they travel
+        // with the ship instead of being left behind in world space.
+        private Transform _shipPivot;
 
         private void Awake()
         {
-            _startTime = Time.time;
             BuildLighting();
             BuildEnvironment();
             BuildCamera();
@@ -115,52 +118,180 @@ namespace HearApp.Worlds.VikingBoat
         private const int HeldShieldLayer = 30;
         private Camera _heldShieldCamera;
 
-        // Flythrough: the camera glides along the hull's side at shield height so each shield on
-        // the gunwale crosses the frame one at a time as we pass it. The ship is recentred in
-        // BuildEnvironment so its combined bounds sit at local origin; measured combined size was
-        // (1.65, 2.39, 4.58), so half-length along Z is ~2.3m - the span below adds a margin past
-        // both ends so shields visibly enter/exit frame. Kept within the flat midship section (not
-        // the curled bow/stern, which sit outside this span) so the rail stays level and the
-        // shields pass by at a consistent height/spacing.
+        // Flythrough. The ship is recentred in BuildEnvironment so its combined bounds sit at local
+        // origin; measured combined size was (1.65, 2.39, 4.58), so half-length along Z is ~2.3m.
         //
         // One single one-way pass across the whole session instead of an 8s back-and-forth loop
         // (human request 2026-09-27: over the 30s session there should be exactly one flyover from
-        // front to back, from the side) - FlythroughDuration originally matched
-        // GameFlowController.SessionDurationSeconds (private to that class, so not referenced
-        // directly; both were 30f by design intent, not coincidence).
+        // front to back, from the side). Slowed down repeatedly the same class of feedback kept
+        // landing on 2026-09-28 ("Musis prulet trochu zpomalit", then "Ta lod nam pluje moc rychle.
+        // Trosku ji zpomal", then "...jeste trochu pomalejsi") while this was still one constant-rate
+        // pass with a single duration constant (30, matching GameFlowController.SessionDurationSeconds
+        // by design -> 45 -> 55 -> 65) - since replaced by the two-phase, distance-triggered speed
+        // model below (see FlythroughFastSpeed/FlythroughSlowSpeed), which has no single duration
+        // constant left to tune the same way.
         //
-        // Slowed down 2026-09-28 (human report: "Musis prulet trochu zpomalit" - you need to slow
-        // the flythrough down a bit) to 45 - a real session's actual length varies a lot with how
-        // fast trials resolve anyway (observed anywhere from ~10s to the full nominal length), so
-        // exact sync to SessionDurationSeconds was already more aspirational than load-bearing; a
-        // slower glide reads better for however much of it a given session actually gets to show.
-        // Slowed again the same day (human report: "Ta lod nam pluje moc rychle. Trosku ji zpomal" -
-        // the ship is sailing too fast for us, slow it down a bit) to 55.
+        // Direction (bow at -Z, stern at +Z) was a best guess when first chosen (human report
+        // 2026-09-27 about a flat left-to-right pan not reading as a flight) - confirmed since by
+        // every later piece of shield-row work (ShieldRowStartZ etc.) working out consistently with
+        // it, so no longer pending.
         //
-        // A straight track parallel to the hull (constant X, varying only Z, always looking
-        // perpendicular across) read on-device as a flat left-to-right pan, not a flight (human
-        // report 2026-09-27: "ta let jde zleva doprava... melo by to jit sikmo" - the flight goes
-        // left-to-right, it should go obliquely). Fixed by moving BOTH X and Z over the course of
-        // the pass - a genuine diagonal approach that swoops in from wide-and-forward of the bow to
-        // close-and-aft of the stern along the port side, plus a forward-biased look target so the
-        // camera visibly banks into its own direction of travel instead of just tracking sideways.
-        // Direction (bow at -Z, stern at +Z) is a best guess pending an on-device look at which end
-        // is actually the bow; if it turns out backwards, swap Start/End below.
-        private static readonly Vector3 FlythroughStart = new(3.0f, -0.2f, -2.6f);
-        private static readonly Vector3 FlythroughEnd = new(0.9f, -0.7f, 2.6f);
-        private const float FlythroughLookAheadZ = 1.1f;
-        private const float FlythroughDuration = 55f;
+        // Re-modelled twice on 2026-09-28. First pass ("sikmeji" - more oblique) had the CAMERA
+        // itself translate along the hull's length with a look target barely lagging behind its own
+        // position - implementing "more oblique" as a wider gap between the camera's start/end X,
+        // which actually made the gaze MORE perpendicular to the hull, the opposite of the request.
+        // Human clarification: "lod me jakoby obeplouva. Predstav si, ze sedim na kanoe, co je pred
+        // lodi na jejim levoboku. Lod me predjede a ja se na ni divam" - the ship circles around me,
+        // as if; imagine I'm sitting in a canoe ahead of the ship on its port side, the ship
+        // overtakes me and I watch it - a near-fixed viewpoint. Second pass kept the camera fixed but
+        // swept its LOOK TARGET across the still-static hull to fake the sweep - which read as
+        // "neprirozene" (unnatural, human report the same day): nothing in the scene ever actually
+        // moved relative to the water, so there was no parallax at all, just a camera swivelling on
+        // the spot. Final human steer: "ta lod vubec neplave svym vlastnim smerem! Pouzij trochu
+        // matematiky a fyziky. Ta lod musi plout 'dopredu' podle toho oc je dopredu pro tu lod!" -
+        // the ship isn't sailing in its own direction at all - use some real math/physics, it has to
+        // sail forward according to what "forward" means for the ship (its own -Z, bow-first - see
+        // the direction note above).
+        //
+        // So now the SHIP has a real forward velocity along its own -Z axis (_shipPivot's position,
+        // not the camera's), while the camera is genuinely fixed - both position AND rotation, like
+        // someone sitting still in a canoe watching a real ship go by. All the "arriving, alongside,
+        // departing" motion the earlier two attempts tried to fake with camera animation now comes
+        // from actual relative motion between the hull and the (stationary) water/background.
+        //
+        // FlythroughCanoePosition.x=1.2 clears the row's own widest mount point (near the original
+        // decal, X~0.54, see HullSideProfile) with margin; .z=-2.4 sits just ahead of the bow's own
+        // measured rest-position tip (~-2.0/-2.29), matching "ahead of the ship, port side".
+        //
+        // Looking due -X (straight across the beam, perpendicular to the ship's own direction of
+        // travel) made the ship's real -Z velocity project onto the screen as pure lateral motion -
+        // human report the same day: "lod pluje zprava doleva a ne proti me jako pozorovateli!" (the
+        // ship sails right to left, not toward me as an observer). Motion toward/away from an
+        // observer needs a velocity component ALONG the observer's own line of sight, not just
+        // across it - a target perpendicular to travel can only ever show lateral motion, no matter
+        // how fast the ship moves. Looking instead toward the ship's own resting centre (world
+        // origin, roughly its midship at t=0, before Update() starts moving it) puts a good deal of
+        // the gaze direction along the ship's own -Z travel axis - the ship genuinely approaches out
+        // of the distance along that sightline before crossing and receding, rather than just
+        // sliding past sideways.
+        private static readonly Vector3 FlythroughCanoePosition = new(1.2f, -0.7f, -2.4f);
+        private static readonly Vector3 FlythroughLookTarget = new(0f, FlythroughCanoePosition.y, 0f);
+
+        // Core distance the ship travels (along -Z) once under way - enough for the stern (rest
+        // position ~+2.3, see the class-level hull-size note above) to also end up past the canoe's
+        // fixed Z once translated: 2.3 - (-2.4) = 4.7, plus a little margin so the whole hull is
+        // convincingly gone by the end rather than just barely past.
+        private const float FlythroughCoreTravelDistance = 5.0f;
+
+        // Extra distance the ship starts out beyond its own rest position (along +Z, i.e. further
+        // from the canoe before the pass even begins) - human report 2026-09-28, right after the
+        // oblique-gaze fix above finally read as "toward me" correctly: "Ted to zacina byt opravdu
+        // krasne! Lod ale musi prijet z mnohem vetsi dalky" (now it's starting to look really
+        // beautiful, but the ship has to arrive from a much greater distance). Added on top of the
+        // ship's rest position rather than folded into FlythroughCoreTravelDistance, so the ENDING
+        // position (how far past the canoe the stern ends up) stays exactly what it was - only the
+        // starting point moves further out, giving a longer approach.
+        private const float FlythroughInitialDistance = 5.0f;
+
+        // Two-phase speed, not one constant rate across the whole pass (human report 2026-09-28:
+        // "prvni pripichnute stity nejsou dlouho videt... na zacatku bude propluti lodi rychlejsi,
+        // aby doplula do pozice, kdy brzy bude pripichnuty prvni stit a bude videt" - the first
+        // attached shields aren't visible for long; let the initial approach be faster, so it
+        // reaches the position where the first shield will soon be attached, and it stays visible).
+        // Phase one covers the initial approach (including FlythroughInitialDistance) quickly; phase
+        // two covers the rest at a much slower, more deliberate pace, so shields have time to arrive
+        // on camera and linger once attached.
+        //
+        // DISTANCE-triggered, not time-triggered - human correction 2026-09-28, after a first
+        // attempt switched phases at a fixed elapsed-time constant: "Ty jsi nastavil cas, ale co ja
+        // myslel bylo, aby ta lod zabrzdila jakmile prijede blizko ke kamere" (you set a time, but
+        // what I meant was for the ship to brake as soon as it arrives close to the camera). A fixed
+        // time can't guarantee that - the fast phase needs to cover a fixed DISTANCE at a fixed
+        // SPEED, and whatever real time that takes is however long it takes; the brake point is then
+        // genuinely "close to the camera" by construction, not by a guessed duration. Speeds below
+        // are simply the ones the previous fixed-duration attempt (5s to cover fastPhaseTravel,
+        // ~60s for the rest) worked out to, kept as the same-feeling default now that the mechanism
+        // is correct.
+        private const float FlythroughFastSpeed = 1.3f;
+        private const float FlythroughSlowSpeed = 0.06f;
+
+        // See the fastPhaseTravel computation in Update() for the human report this responds to -
+        // roughly half the hull's own measured length (combined bounds size.z was 4.58, see the
+        // class-level note, half of that is ~2.3).
+        private const float FlythroughBrakeLeadDistance = 1.3f;
+
+        // The fast/slow speeds above used to switch instantly at the brake point - a genuine
+        // velocity discontinuity, which read as a hard cut rather than a ship actually slowing down
+        // (human report 2026-09-28: "Muzes naanimovat to zbrzdeni jako zbrzdeni? Tj. trochu
+        // pozvolnejsi?" - can you animate the braking AS braking? i.e. a bit more gradual?). Over
+        // this many units of distance BEFORE the brake point, speed now eases from
+        // FlythroughFastSpeed down to FlythroughSlowSpeed via smoothstep instead of jumping - see
+        // the accumulator below.
+        private const float FlythroughBrakeZoneDistance = 1.0f;
+
+        // Distance actually covered so far - an explicit per-frame accumulator (added this update)
+        // rather than a closed-form function of elapsed time, because a smooth speed-vs-distance
+        // curve (see FlythroughBrakeZoneDistance) has no simple closed form to invert back into
+        // distance-as-a-function-of-time; integrating speed*deltaTime every frame sidesteps that
+        // entirely and is the standard way to drive this kind of eased motion.
+        private float _shipTravelled;
 
         private void Update()
         {
-            if (_camera == null) return;
+            if (_camera == null || _shipPivot == null) return;
 
-            float elapsed = Time.time - _startTime;
-            float normalized = Mathf.Clamp01(elapsed / FlythroughDuration);
-            Vector3 pos = Vector3.Lerp(FlythroughStart, FlythroughEnd, normalized);
+            // How far the ship needs to travel for the BOW (not the first shield - see below) to
+            // reach the canoe's fixed line of sight - computed here (inside a method, not another
+            // field's own initializer) rather than as its own static field, since HullSideProfile is
+            // declared later in the file and C# only guarantees static field initializers run in
+            // textual declaration order.
+            //
+            // Originally targeted ShieldRowStartZ (the row's first shield), which sits well aft of
+            // the bow - human report 2026-09-28: "Ta lod brzi, kdyz uz jsme kamerou v jeji polovine.
+            // Rikam, ze musi brzdit DRIVE. Zhruba, kdyz prid prijela do poloviny obrazovky" (the ship
+            // brakes when the camera's already halfway alongside it; it has to brake EARLIER -
+            // roughly when the bow arrives at the middle of the screen). By the time the first
+            // shield reached the canoe's sightline under the old target, the BOW itself (further out
+            // along -Z, so it always reaches any given world Z first) had already sailed well past
+            // the camera. HullSideProfile[0].z (-2.0) is the bow-most Z the hull-profile diagnostic
+            // actually measured a side wall at (see that table's own note) - using it here instead
+            // means braking now happens right as the bow itself reaches the camera's sightline, with
+            // the first shield (and everything after it) still approaching during the slow phase.
+            //
+            // Even that undershot it (human follow-up, same day: "Skvela zmena! Ted uz jen doladit a
+            // nechat lod brzdit jeste drive - tak o pulku lodi" - great change! now just fine-tune
+            // and have the ship brake even earlier - by about half a ship's length) - pulled forward
+            // by FlythroughBrakeLeadDistance, ~half the hull's own measured length (see the
+            // class-level note on the combined bounds), so braking now starts while the bow is still
+            // that much further out rather than exactly at the canoe's own sightline.
+            float fastPhaseTravel = FlythroughInitialDistance + (HullSideProfile[0].z - FlythroughCanoePosition.z) - FlythroughBrakeLeadDistance;
+            float totalTravel = FlythroughInitialDistance + FlythroughCoreTravelDistance;
 
-            _camera.transform.position = pos;
-            _camera.transform.LookAt(new Vector3(-0.4f, pos.y, pos.z + FlythroughLookAheadZ), Vector3.up);
+            // Ease speed down from FlythroughFastSpeed to FlythroughSlowSpeed over the last
+            // FlythroughBrakeZoneDistance units before fastPhaseTravel, instead of cutting instantly
+            // at it - see FlythroughBrakeZoneDistance's note.
+            float distanceToBrakePoint = fastPhaseTravel - _shipTravelled;
+            float speed;
+            if (distanceToBrakePoint <= 0f)
+                speed = FlythroughSlowSpeed;
+            else if (distanceToBrakePoint >= FlythroughBrakeZoneDistance)
+                speed = FlythroughFastSpeed;
+            else
+                speed = Mathf.Lerp(FlythroughSlowSpeed, FlythroughFastSpeed,
+                    Mathf.SmoothStep(0f, 1f, distanceToBrakePoint / FlythroughBrakeZoneDistance));
+
+            _shipTravelled = Mathf.Min(_shipTravelled + speed * Time.deltaTime, totalTravel);
+            float travelled = _shipTravelled;
+
+            // Bow-first: forward for the ship is -Z (see the direction note above). Starts
+            // FlythroughInitialDistance out and advancing "travelled" units brings it back down
+            // toward and past its own rest position - see FlythroughInitialDistance's note. Reward
+            // shields, parented to this same pivot (see AttachShieldRoutine), travel with it
+            // automatically.
+            _shipPivot.localPosition = new Vector3(0f, 0f, FlythroughInitialDistance - travelled);
+
+            _camera.transform.position = FlythroughCanoePosition;
+            _camera.transform.LookAt(FlythroughLookTarget, Vector3.up);
 
             // CoreSafeSquareFit can change the main camera's fieldOfView on an aspect/orientation
             // change - keep the held-shield overlay camera's projection identical so the held shield
@@ -405,9 +536,9 @@ namespace HearApp.Worlds.VikingBoat
         // zacatku lodi (jeji prid) a kazdy dalsi jde do prava smerem k zadi" - you have to plant the
         // shields starting from the front of the ship, its bow, and each next one goes right toward
         // the stern), replacing the earlier centre-outward alternating row - see ShieldSlotGap's
-        // note. Bow-at-negative-Z matches the flythrough's own best-guess direction (see
-        // FlythroughStart/End's note) and the human's "doprava" (rightward) cue: the established
-        // screen-axis mapping for this camera has screen-right pointing mostly along +Z.
+        // note. Bow-at-negative-Z matches the flythrough's own direction convention (see its own
+        // note) and the human's "doprava" (rightward) cue: the established screen-axis mapping for
+        // this camera has screen-right pointing mostly along +Z.
         //
         // The row must include the ORIGINAL decal as one of its own evenly-spaced members (human
         // report 2026-09-28: "Musi ti to vyjit tak, aby na konci vsechny stity tvorily nadhernou
@@ -434,9 +565,12 @@ namespace HearApp.Worlds.VikingBoat
         // since-abandoned start point, so it lands exactly on a real slot). Third report, once the
         // exact-alignment fix above made the row actually look right for the first time ("Nadhera.
         // Zkus zacit o jeden slot vpravo" - gorgeous, try starting one slot further right): one
-        // more step, 8 -> 7. No equivalent report yet on the stern end, so that side is untouched -
-        // see HullOuterXAtZ's clamp for what happens if the row ever reaches that far.
-        private const int SlotsBeforeOriginal = 7;
+        // more step, 8 -> 7. Fourth report, after the ship-sailing rework further down changed how
+        // this whole row reads on screen ("Opet posun ty sloty vice do pride lodi, tak o 3 sloty" -
+        // again, shift those slots more toward the bow, by about 3 slots): back out again, 7 -> 10.
+        // No equivalent report yet on the stern end, so that side is untouched - see HullOuterXAtZ's
+        // clamp for what happens if the row ever reaches that far.
+        private const int SlotsBeforeOriginal = 10;
         private static readonly float ShieldRowStartZ = ShieldRailZ - SlotsBeforeOriginal * ShieldSlotGap;
 
         // Held close in front of the camera (child of the camera transform, so it rides along
@@ -646,6 +780,9 @@ namespace HearApp.Worlds.VikingBoat
             float nativeDiameter = _heldShieldNativeDiameter;
             _heldShield = null;
 
+            // slots 0..SlotsBeforeOriginal-1 land bow-ward of the original (smaller Z); slot
+            // SlotsBeforeOriginal itself is the original's own position (never assigned here); every
+            // slot after that lands stern-ward of it (larger Z) - see ShieldRowStartZ's derivation.
             int slot = _totalMounted < SlotsBeforeOriginal ? _totalMounted : _totalMounted + 1;
             _totalMounted++;
 
@@ -655,8 +792,11 @@ namespace HearApp.Worlds.VikingBoat
             // Detach from the camera, keeping its current world pose as the flight's start point.
             // Reset off the held-shield overlay layer back to Default (0) at the same time - once
             // mounted this is a normal world object again and must be depth-tested like everything
-            // else, not forced in front of the ship it is about to land on.
-            shield.SetParent(transform, true);
+            // else, not forced in front of the ship it is about to land on. Parented to _shipPivot
+            // (the ship's own moving root), not the stationary world `transform` - see Update()'s
+            // note on why the ship now actually travels: a shield parented to the wrong one would
+            // get left behind in open water the moment the hull moved out from under it.
+            shield.SetParent(_shipPivot, true);
             SetLayerRecursively(shield.gameObject, 0);
             Vector3 startPosition = shield.localPosition;
             Quaternion startRotation = shield.localRotation;
@@ -697,6 +837,7 @@ namespace HearApp.Worlds.VikingBoat
 
             var pivot = new GameObject("VikingShip").transform;
             pivot.SetParent(transform, false);
+            _shipPivot = pivot;
 
             var instance = Instantiate(asset);
             instance.transform.SetParent(pivot, false);
