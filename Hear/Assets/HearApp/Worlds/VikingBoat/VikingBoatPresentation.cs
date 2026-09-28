@@ -205,7 +205,16 @@ namespace HearApp.Worlds.VikingBoat
         private const float MountedShieldTargetDiameter = 0.16f;
         private const float MountedShieldScale = MountedShieldTargetDiameter / ShieldNativeDiameter;
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
-        private const int ShieldVariantCount = 6;
+        // 7th variant added 2026-09-28 (human: a "Viking_Shield_1" asset placed under
+        // sources/3D/VikingShields1, own full PBR set at 1k - only BaseColor -> Shield7_Albedo and
+        // NormalOpenGL -> Shield7_Normal are wired in, matching what SpawnHeldShield's material setup
+        // actually uses; the accompanying Roughness/Metallic/AO/Height maps aren't consumed anywhere
+        // in this class). Its BaseColor is a multi-part UV atlas (front face, rim, boss, strap) laid
+        // out similarly to the existing Shield1-6 textures, not a simple 0-1 front-face image, so it
+        // was added straight into the existing per-variant loop below on the assumption the shared
+        // shield mesh's UV template is close enough to read correctly - unconfirmed on-device as of
+        // this writing.
+        private const int ShieldVariantCount = 7;
 
         // X re-derived 2026-09-27 (human report: "Stity se umistuji spatne... umisti je co nejblize
         // toho stitu, co uz tam defaultne je" - shields are placed wrong, put them as close as
@@ -285,8 +294,28 @@ namespace HearApp.Worlds.VikingBoat
         // 0.15 overshot the other way (human report the same round: "nasazeny stit je moc vlevo od
         // spravneho cile" - the mounted shield is now too far left of the correct target) - confirms
         // the direction of the fix was right, just too large a step. Split the difference between the
-        // decal's own measured 0.20 (read as too far right) and 0.15 (too far left).
+        // decal's own measured 0.20 (read as too far right) and 0.15 (too far left). Human then
+        // fine-tuned this value directly (own build, see the note above AttachShieldRoutine) rather
+        // than going another round through me - left as whatever is currently checked in.
         private const float ShieldRailZ = 0.185f;
+
+        // Pivoted again 2026-09-28, right after ShieldRailZ above finally landed: "Ted chci, abys
+        // stity nepokladal na ten stary stit, ale kousek nalevo a kousek napravo, tak aby se
+        // neprekryvaly s tim puvodnim. Ale pak uz je budes davat na sebe..." - don't mount on the
+        // original, put shields a bit left and a bit right instead. First version of this stacked
+        // later arrivals on top of one another in the same two spots (a "pile" on each side) -
+        // superseded within the same round: "ted zrusime kupicky. Ty stity budes davat podobne od
+        // stredoveho, jednou doleva, jednou doprava, pak o stejnou konstantu dal, doleva a doprava,
+        // atd. Tim vznikne cela rada stitu" - cancel the piles; alternate left/right same as before,
+        // but each next one on a given side goes a further multiple of the SAME gap out from centre,
+        // building one continuous row instead of two stacks. See AttachShieldRoutine: the same
+        // per-side counter now multiplies this gap by (count+1) instead of offsetting depth along X.
+        //
+        // Gap sized off the two things that have to clear each other: the decal's own ~0.16 diameter
+        // (see ShieldRailX's note) and this shield's matching 0.16 (MountedShieldTargetDiameter) - at
+        // 0.20 two adjacent discs' edges sit about 0.04 apart, comfortably clear without reading as a
+        // big empty gap.
+        private const float ShieldSlotGap = 0.20f;
 
         // Held close in front of the camera (child of the camera transform, so it rides along
         // through the flythrough) - originally centred near the player's eye per human direction,
@@ -364,12 +393,14 @@ namespace HearApp.Worlds.VikingBoat
                 SetLayerRecursively(child.gameObject, layer);
         }
 
-        // The one and only mount spot, right on top of the hull's own baked-in decal - every reward
-        // shield flies to this exact same position (human instruction 2026-09-28: "vrat ten puvodni
-        // stit a pak vsechny nahradni stity umistuj presne na nej"). Whatever was mounted there before
-        // gets destroyed as the new one starts its approach, so there is only ever one reward shield
-        // visible at a time and it never has to compete with, or overlap, the original underneath it.
-        private Transform _mountedShield;
+        // Alternates left/right (see ShieldSlotGap's note) - even-numbered arrivals extend the left
+        // side of the row, odd-numbered the right. Each side's own count of shields already placed
+        // there (0-based, before this new one) becomes this new one's position in the row: the
+        // (count+1)th multiple of ShieldSlotGap out from centre, so the row grows outward one gap at a
+        // time on whichever side is due next instead of piling up in place.
+        private int _totalMounted;
+        private int _leftRowCount;
+        private int _rightRowCount;
 
         private IEnumerator AttachShieldRoutine()
         {
@@ -382,10 +413,12 @@ namespace HearApp.Worlds.VikingBoat
             Transform shield = _heldShield;
             _heldShield = null;
 
-            if (_mountedShield != null) Destroy(_mountedShield.gameObject);
-            _mountedShield = shield;
+            bool goLeft = _totalMounted % 2 == 0;
+            _totalMounted++;
+            int rowIndex = goLeft ? _leftRowCount++ : _rightRowCount++;
 
-            Vector3 targetPosition = new(ShieldRailX, ShieldRailY, ShieldRailZ);
+            float targetZ = ShieldRailZ + (goLeft ? -1 : 1) * (rowIndex + 1) * ShieldSlotGap;
+            Vector3 targetPosition = new(ShieldRailX, ShieldRailY, targetZ);
 
             // Detach from the camera, keeping its current world pose as the flight's start point.
             // Reset off the held-shield overlay layer back to Default (0) at the same time - once
