@@ -83,21 +83,20 @@ namespace HearApp.Core.Shell.UI
             };
             scroll.contentContainer.style.paddingLeft = VisualTokens.Spacing.L;
             scroll.contentContainer.style.paddingRight = VisualTokens.Spacing.L;
-            // A flat Spacing.XXL never accounted for the safe-area inset or the top-left back
-            // button sitting on top of this screen, so the "Results" title collided with it on
-            // any phone with a real notch/status bar (human report 2026-09-27, with a screenshot:
-            // the title "musi jit nize, nikdy nesmi kolidovat s nasim nav barem").
-            // ShellUIController.GetTopContentReserveLogical() is the same figure Playing's own
-            // HUD bar and AddTopLeftBackButton derive their own top offsets from, so this always
-            // clears the button regardless of device.
-            scroll.contentContainer.style.paddingTop = ShellUIController.GetTopContentReserveLogical();
+            // A flat Spacing.XXL never accounted for the safe-area inset, so the header row
+            // collided with the status bar on any phone with a real notch (human report
+            // 2026-09-27, with a screenshot: the title "musi jit nize, nikdy nesmi kolidovat s nasim
+            // nav barem"). GetTopSafeAreaInsetLogical() + Spacing.M is the same baseline
+            // AddTopLeftBackButton uses for every other screen's back button, so this header row's
+            // back button lines up with the rest of the app regardless of device.
+            scroll.contentContainer.style.paddingTop = ShellUIController.GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M;
             // No bottom padding here: the scroll box itself already ends exactly at the nav's top
             // edge (navReserve above), so any padding here would just reopen the gap that was
             // just closed.
             screen.Add(scroll);
             var content = scroll.contentContainer;
 
-            content.Add(BuildHeader());
+            content.Add(BuildHeader(() => flow.ReturnToSelectorFromResults()));
             content.Add(BuildNonMedicalReminder());
 
             var recentForTrend = SessionHistoryStore.Recent(TrendWindow);
@@ -152,10 +151,14 @@ namespace HearApp.Core.Shell.UI
                 style =
                 {
                     flexGrow = 1, paddingLeft = VisualTokens.Spacing.L, paddingRight = VisualTokens.Spacing.L,
-                    paddingTop = VisualTokens.Spacing.XXL, paddingBottom = navReserve + VisualTokens.Spacing.L
+                    // Same safe-area baseline as the populated Build() path's header row now uses
+                    // (was a flat Spacing.XXL, from back when the back button was a separate overlay
+                    // rather than embedded in BuildHeader's own row).
+                    paddingTop = ShellUIController.GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M,
+                    paddingBottom = navReserve + VisualTokens.Spacing.L
                 }
             };
-            content.Add(BuildHeader());
+            content.Add(BuildHeader(() => flow.ReturnToSelectorFromResults()));
             content.Add(BuildNonMedicalReminder());
 
             // The card group is only ever a few hundred px tall on a phone-height screen, so it is
@@ -619,17 +622,33 @@ namespace HearApp.Core.Shell.UI
 
         // ---------------------------------------------------------------- Shared building blocks
 
-        /// <summary>"Results" page title plus the small centered HEAR lockup + "Your hearing
-        /// journey" tagline every context in the approved board carries at the top - previously
-        /// just the bare title. Uses the on-dark full lockup (Home reserves the no-claim variant
-        /// for itself; this screen isn't Home, so the with-claim-less-but-full mark reads fine at
-        /// a small size on a dark/atmospheric background).</summary>
-        private static VisualElement BuildHeader()
+        /// <summary>Back button + "Results" title in one horizontal row, plus the small centered
+        /// HEAR lockup + "Your hearing journey" tagline every context in the approved board carries
+        /// below that - previously just the bare title, with the back button floating as a separate
+        /// absolute overlay added by ShellUIController after this method returned. Human request
+        /// 2026-09-28, with a screenshot: back button, a gap, then the title, all in one line - not
+        /// stacked vertically with the title starting some calculated distance below the button.
+        /// Embeds ShellUIController.MakeBackButton directly instead (glassy: true, matching this
+        /// screen's own art background - see BuildBackground), so this is now the only place that
+        /// screen's back button is built at all.</summary>
+        private static VisualElement BuildHeader(System.Action onBack)
         {
             var container = new VisualElement { style = { marginBottom = VisualTokens.Spacing.L, flexShrink = 0 } };
-            container.Add(MakeLabel("Results", VisualTokens.Type.Title, Color.white, 0, VisualTokens.Spacing.M));
 
-            var brand = new VisualElement { style = { alignItems = Align.Center } };
+            var titleRow = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            titleRow.Add(ShellUIController.MakeBackButton(glassy: true, onBack));
+            var titleLabel = MakeLabel("Results", VisualTokens.Type.Title, Color.white);
+            // Nudged down/right relative to the back button per two human follow-ups 2026-09-28:
+            // first "Napis potrebuje (relativne k tomu tlacitku) trochu dolu a doprava" (the title
+            // needs a bit down and right, relative to the button) - marginLeft 12->16, marginTop
+            // 0->4; then "Result jeste vic doprava a jeste o 2px nize" (Results even more to the
+            // right, and 2px lower still) - marginLeft 16->22, marginTop 4->6.
+            titleLabel.style.marginLeft = 22f;
+            titleLabel.style.marginTop = 6f;
+            titleRow.Add(titleLabel);
+            container.Add(titleRow);
+
+            var brand = new VisualElement { style = { alignItems = Align.Center, marginTop = VisualTokens.Spacing.M } };
             var logoTex = WorldArt.LogoOnDark;
             if (logoTex != null)
             {

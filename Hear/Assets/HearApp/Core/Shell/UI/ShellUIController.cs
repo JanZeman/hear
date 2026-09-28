@@ -621,7 +621,9 @@ namespace HearApp.Core.Shell.UI
         // sized as a real touch target rather than a small icon-sized hit area.
         private const float BackNavButtonSize = 48f;
 
-        private static VisualElement MakeBackButton(bool glassy, System.Action onClick)
+        // internal, not private: ResultsScreenBuilder embeds this directly into its own header row
+        // (see BuildHeader) instead of going through AddTopLeftBackButton - see that method's note.
+        internal static VisualElement MakeBackButton(bool glassy, System.Action onClick)
         {
             var button = new VisualElement
             {
@@ -670,7 +672,12 @@ namespace HearApp.Core.Shell.UI
         /// <summary>Adds a top-left back button to a screen built via <see cref="NewScreen"/> or
         /// similar - positioned as a corner overlay so it doesn't disturb that screen's own
         /// (usually centered) content layout. Not used by <see cref="ShowPlayingHud"/>, which
-        /// weaves its back button directly into the existing HUD row instead (see there).</summary>
+        /// weaves its back button directly into the existing HUD row instead (see there); also not
+        /// used by the real Results screen any more (human request 2026-09-28: back button, a gap,
+        /// then the title, all in one horizontal row instead of the button floating over a title
+        /// stacked below it - see ResultsScreenBuilder.BuildHeader, which embeds <see
+        /// cref="MakeBackButton"/> directly into that row instead of calling this overlay
+        /// version).</summary>
         private void AddTopLeftBackButton(VisualElement screen, bool glassy, System.Action onClick)
         {
             var backButton = MakeBackButton(glassy, onClick);
@@ -1442,9 +1449,10 @@ namespace HearApp.Core.Shell.UI
             return physicalPx * (96f / dpi);
         }
 
-        /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to keep its
-        /// "Results" title below the top-left back button - see <see
-        /// cref="GetTopContentReserveLogical"/>.</summary>
+        /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to align its
+        /// header row (back button + title, side by side - see <see cref="MakeBackButton"/> and
+        /// ResultsScreenBuilder.BuildHeader) with the top-left back button every other screen
+        /// uses, so both sit at the same height regardless of device.</summary>
         // Floor below which the computed inset is treated as unreliable rather than genuinely zero
         // (human report 2026-09-28, screenshot from a second Android device, a Galaxy S9 - not the
         // S9+ this was being tested on - "cele tlacitko je moc nahore, jeho vrsek koliduje s
@@ -1460,14 +1468,6 @@ namespace HearApp.Core.Shell.UI
             float topPhysical = Screen.height - (safeArea.y + safeArea.height);
             return Mathf.Max(MinTopSafeAreaInsetLogical, PhysicalToLogical(topPhysical));
         }
-
-        /// <summary>How far down any subpage's own top content (e.g. Results' "Results" title)
-        /// must start to clear the top-left back button - human report 2026-09-27: the title
-        /// "musi jit nize, nikdy nesmi kolidovat s nasim nav barem". Mirrors
-        /// AddTopLeftBackButton's own top offset plus that button's height (kept in
-        /// BackNavButtonSize) and a further breathing-room margin below it.</summary>
-        internal static float GetTopContentReserveLogical() =>
-            GetTopSafeAreaInsetLogical() + VisualTokens.Spacing.M + BackNavButtonSize + VisualTokens.Spacing.M;
 
         /// <summary>internal, not private: ResultsScreenBuilder needs this same figure to reserve
         /// space above the floating glass nav for its ScrollView, exactly as this class already
@@ -1890,11 +1890,11 @@ namespace HearApp.Core.Shell.UI
             }
 
             var screen = NewScreen(padded: false);
+            // Back button is embedded directly in ResultsScreenBuilder.BuildHeader's own title row
+            // now (glassy: true there too, for contrast against this screen's own art background -
+            // see ResultsScreenBuilder.BuildBackground - same as Playing), not added as a separate
+            // overlay here.
             ResultsScreenBuilder.Build(screen, _flow);
-            // Results carries its own art background (see ResultsScreenBuilder.BuildBackground),
-            // not the plain Pearl0 every other screen sits on - glassy for contrast against it,
-            // same as Playing.
-            AddTopLeftBackButton(screen, glassy: true, GoBackToHome);
         }
 
         // ---------------------------------------------------------------- Settings

@@ -134,6 +134,8 @@ namespace HearApp.Worlds.VikingBoat
         // fast trials resolve anyway (observed anywhere from ~10s to the full nominal length), so
         // exact sync to SessionDurationSeconds was already more aspirational than load-bearing; a
         // slower glide reads better for however much of it a given session actually gets to show.
+        // Slowed again the same day (human report: "Ta lod nam pluje moc rychle. Trosku ji zpomal" -
+        // the ship is sailing too fast for us, slow it down a bit) to 55.
         //
         // A straight track parallel to the hull (constant X, varying only Z, always looking
         // perpendicular across) read on-device as a flat left-to-right pan, not a flight (human
@@ -147,7 +149,7 @@ namespace HearApp.Worlds.VikingBoat
         private static readonly Vector3 FlythroughStart = new(3.0f, -0.2f, -2.6f);
         private static readonly Vector3 FlythroughEnd = new(0.9f, -0.7f, 2.6f);
         private const float FlythroughLookAheadZ = 1.1f;
-        private const float FlythroughDuration = 45f;
+        private const float FlythroughDuration = 55f;
 
         private void Update()
         {
@@ -193,7 +195,6 @@ namespace HearApp.Worlds.VikingBoat
         // i o neco mensi" - the reserve shields, make them a bit smaller too) - a modest trim from
         // the previous 0.42.
         private const float HeldShieldTargetDiameter = 0.34f;
-        private const float HeldShieldScale = HeldShieldTargetDiameter / ShieldNativeDiameter;
         // Mounted-on-hull size - human report the SAME round, about the shields already on the ship:
         // "nehorazne vysoko a silene moc velke" (outrageously high AND insanely too big). Cut hard,
         // separately from the held size above - see AttachShieldRoutine, which now lerps localScale
@@ -203,7 +204,10 @@ namespace HearApp.Worlds.VikingBoat
         // original decal's own measured size (its vertex cluster's extents were only ~0.07 in Y/Z, so
         // roughly a 0.14-0.18 diameter).
         private const float MountedShieldTargetDiameter = 0.16f;
-        private const float MountedShieldScale = MountedShieldTargetDiameter / ShieldNativeDiameter;
+        // Both target diameters above are shared across every variant, held or mounted family alike -
+        // only the NATIVE diameter (what the raw asset measures at its own baked scale, i.e. the
+        // divisor in target/native) differs per family, so held/mounted scale is now computed on the
+        // fly per shield (see NativeDiameterFor) instead of being one fixed constant.
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
         // 7th variant added 2026-09-28 (human: a "Viking_Shield_1" asset placed under
         // sources/3D/VikingShields1, own full PBR set at 1k - only BaseColor -> Shield7_Albedo and
@@ -214,7 +218,38 @@ namespace HearApp.Worlds.VikingBoat
         // was added straight into the existing per-variant loop below on the assumption the shared
         // shield mesh's UV template is close enough to read correctly - unconfirmed on-device as of
         // this writing.
-        private const int ShieldVariantCount = 7;
+        private const int OldStyleVariantCount = 7;
+
+        // A second, structurally different pack added the same day (human: "pod 2 jsem vlozil jinou
+        // sadu, zkus naimportovat i tuto" - I put another set under [VikingShields]2, try to import
+        // this one too). Unlike the OldStyle family above (one shared mesh, swap the material's
+        // texture per variant), this FBX ("VikingShieldPack2") ships 8 already-complete, separately
+        // named child meshes ("Shield 1".."Shield 8"), each with its own combination of shared
+        // trim/rivet/wood submeshes plus one submesh using a material name not shared with any other
+        // shield - that odd-one-out submesh is the one with the actual painted pattern (confirmed via
+        // a throwaway InspectShieldPack2Detail diagnostic: Shield 1 and Shield 2 both use
+        // Material.002/.001/.004 for their common submeshes, but their pattern submesh's material
+        // name differs, .005 vs .006). "Shield 1" alone has a 5th submesh (Material.003) with no
+        // counterpart on any other shield - reads as its own bonus decorative bit, not worth special
+        // casing given it just gets tinted with that shield's own pattern texture like its main one.
+        //
+        // Same diagnostic measured Shield 1's raw mesh: bounds center (0, 0, 0.00327), size (0.04748,
+        // 0.04748, 0.00953) - thin along local Z exactly like the OldStyle disc (see ShieldNativeDiameter's
+        // note above), so the same ShieldMountRotation/HeldShieldLocalRotation both apply unchanged.
+        // The FBX bakes a x100 scale onto each "Shield N" child's own transform, but since we always
+        // REPLACE localScale wholesale (never compose with the source's), that baked 100 is irrelevant
+        // here - Pack2ShieldNativeDiameter below is the raw mesh bounds size directly, same convention
+        // as ShieldNativeDiameter for the OldStyle family.
+        private const int Pack2VariantCount = 8;
+        private const float Pack2ShieldNativeDiameter = 0.0475f;
+        private const int ShieldVariantCount = OldStyleVariantCount + Pack2VariantCount;
+
+        // OldStyle occupies indices 0..OldStyleVariantCount-1, Pack2 the rest - see
+        // CreateShieldVisual's dispatch. (A temporary swap put Pack2 first for easier dev-injected
+        // testing while confirming its on-device look - reverted 2026-09-28 once that was confirmed
+        // and variant selection became random anyway, see SpawnHeldShield.)
+        private static float NativeDiameterFor(int variantIndex) =>
+            variantIndex < OldStyleVariantCount ? ShieldNativeDiameter : Pack2ShieldNativeDiameter;
 
         // X re-derived 2026-09-27 (human report: "Stity se umistuji spatne... umisti je co nejblize
         // toho stitu, co uz tam defaultne je" - shields are placed wrong, put them as close as
@@ -266,8 +301,9 @@ namespace HearApp.Worlds.VikingBoat
         // which is exactly MountedShieldTargetDiameter already. Y was off by 0.02 (-0.8 vs the real
         // -0.82) and, now that the decal's own tiny 0.02 half-thickness is known precisely, the X
         // offset needed to clear it is far smaller than either previous guess - just past the decal's
-        // own outer surface (0.52 + 0.02) plus a hair of margin.
-        private const float ShieldRailX = 0.545f;
+        // own outer surface (0.52 + 0.02) plus a hair of margin. This fixed X only holds AT the
+        // decal's own Z, though - see HullSideProfile below for why every other position in the row
+        // now needs its own X instead of reusing this constant.
         private const float ShieldRailY = -0.81f;
         // Everything above this line about spreading shields along a rail (a half-span, a minimum
         // spacing, a slot grid, a centre-exclusion radius to stay clear of the original) chased a
@@ -299,23 +335,107 @@ namespace HearApp.Worlds.VikingBoat
         // than going another round through me - left as whatever is currently checked in.
         private const float ShieldRailZ = 0.185f;
 
-        // Pivoted again 2026-09-28, right after ShieldRailZ above finally landed: "Ted chci, abys
-        // stity nepokladal na ten stary stit, ale kousek nalevo a kousek napravo, tak aby se
-        // neprekryvaly s tim puvodnim. Ale pak uz je budes davat na sebe..." - don't mount on the
-        // original, put shields a bit left and a bit right instead. First version of this stacked
-        // later arrivals on top of one another in the same two spots (a "pile" on each side) -
-        // superseded within the same round: "ted zrusime kupicky. Ty stity budes davat podobne od
-        // stredoveho, jednou doleva, jednou doprava, pak o stejnou konstantu dal, doleva a doprava,
-        // atd. Tim vznikne cela rada stitu" - cancel the piles; alternate left/right same as before,
-        // but each next one on a given side goes a further multiple of the SAME gap out from centre,
-        // building one continuous row instead of two stacks. See AttachShieldRoutine: the same
-        // per-side counter now multiplies this gap by (count+1) instead of offsetting depth along X.
+        // Row layout pivoted several times across 2026-09-28. First: "Ted chci, abys stity
+        // nepokladal na ten stary stit, ale kousek nalevo a kousek napravo..." (don't mount on the
+        // original, put shields a bit left and a bit right) - piled up in two spots, then flattened
+        // into "ted zrusime kupicky... rada stitu" (cancel the piles, alternating left/right growing
+        // row instead). THAT in turn got replaced - see AttachShieldRoutine's note - by a single
+        // bow-to-stern row per the next human request, once the two-directional row turned out to be
+        // hiding a real bug (mounted shields drifting off the hull's actual surface away from
+        // midship, not just running out of room).
         //
         // Gap sized off the two things that have to clear each other: the decal's own ~0.16 diameter
-        // (see ShieldRailX's note) and this shield's matching 0.16 (MountedShieldTargetDiameter) - at
-        // 0.20 two adjacent discs' edges sit about 0.04 apart, comfortably clear without reading as a
-        // big empty gap.
-        private const float ShieldSlotGap = 0.20f;
+        // and this shield's matching 0.16 (MountedShieldTargetDiameter) - tightened from 0.20 to 0.17
+        // per human request 2026-09-28 ("pro jistotu trochu zmensi gap mezi prilepenymi stity" - just
+        // to be safe, shrink the gap between the mounted shields a bit). Edges of two adjacent discs
+        // still clear each other (~0.01 apart), just tighter than the original 0.04.
+        private const float ShieldSlotGap = 0.17f;
+
+        // The hull's side wall is NOT a flat plane at a constant X - it's widest at midship (where
+        // the original decal sits, ShieldRailZ) and tapers down toward both the bow and stern before
+        // curling up into the ornamental prow at each end. An InspectHullSideProfile Editor
+        // diagnostic (deleted after use) sampled the hull's outer-most vertex X at 0.1-unit Z slices,
+        // restricted to a +-0.15 band around ShieldRailY (mount height) - i.e. "how far out does the
+        // hull wall reach at shield height, at this point along its length". Table below is that
+        // measurement verbatim, with the Z=0.1/0.2 entries dropped (they sampled the decal's own
+        // raised geometry, not the hull wall itself, and would otherwise poke a false spike into the
+        // interpolation right where the row's skipped slot sits anyway). Root cause found this way
+        // for human report 2026-09-28 ("Ta lod nam ujizdi" - the ship is sailing away from us): every
+        // shield away from midship was mounted at the SAME fixed X as the one at midship, so it
+        // increasingly floated off the real, narrower hull surface the further it sat from centre -
+        // reading as the ship's side curving away underneath a row of shields stuck in one flat plane.
+        private static readonly (float z, float x)[] HullSideProfile =
+        {
+            (-2.0f, 0.248f), (-1.9f, 0.227f), (-1.7f, 0.149f), (-1.6f, 0.120f), (-1.5f, 0.142f),
+            (-1.4f, 0.173f), (-1.3f, 0.215f), (-1.2f, 0.266f), (-1.1f, 0.288f), (-1.0f, 0.323f),
+            (-0.9f, 0.379f), (-0.8f, 0.376f), (-0.7f, 0.400f), (-0.6f, 0.428f), (-0.5f, 0.440f),
+            (-0.4f, 0.463f), (-0.3f, 0.468f), (-0.2f, 0.540f), (-0.1f, 0.487f), (0.0f, 0.504f),
+            (0.3f, 0.524f), (0.4f, 0.504f), (0.5f, 0.487f), (0.6f, 0.487f), (0.7f, 0.468f),
+            (0.8f, 0.463f), (0.9f, 0.440f), (1.0f, 0.428f), (1.1f, 0.400f), (1.2f, 0.376f),
+            (1.3f, 0.379f), (1.4f, 0.323f), (1.5f, 0.288f), (1.6f, 0.266f), (1.7f, 0.215f),
+            (1.8f, 0.173f), (1.9f, 0.142f), (2.0f, 0.120f),
+        };
+
+        // Same clearance the original ShieldRailX used past the decal's own measured surface (0.545
+        // - 0.52) - kept here so every mounted shield sits just proud of the hull instead of
+        // z-fighting with it, same reasoning, now applied at whatever X the hull actually has at
+        // that shield's own Z instead of only at the one Z that was ever measured directly.
+        private const float HullClearance = 0.025f;
+
+        // Linear interpolation over HullSideProfile; clamps to the nearest measured end outside the
+        // table's own range (Z +-2.0, matching the note above - beyond that the hull curls out of
+        // the mount-height band the diagnostic sampled, i.e. exactly where the row should stop).
+        private static float HullOuterXAtZ(float z)
+        {
+            if (z <= HullSideProfile[0].z) return HullSideProfile[0].x + HullClearance;
+            for (int i = 1; i < HullSideProfile.Length; i++)
+            {
+                if (z <= HullSideProfile[i].z)
+                {
+                    var (z0, x0) = HullSideProfile[i - 1];
+                    var (z1, x1) = HullSideProfile[i];
+                    float t = (z - z0) / (z1 - z0);
+                    return Mathf.Lerp(x0, x1, t) + HullClearance;
+                }
+            }
+            return HullSideProfile[^1].x + HullClearance;
+        }
+
+        // Row runs bow (-Z) to stern (+Z) per human request 2026-09-28 ("sazet ty stity musis od
+        // zacatku lodi (jeji prid) a kazdy dalsi jde do prava smerem k zadi" - you have to plant the
+        // shields starting from the front of the ship, its bow, and each next one goes right toward
+        // the stern), replacing the earlier centre-outward alternating row - see ShieldSlotGap's
+        // note. Bow-at-negative-Z matches the flythrough's own best-guess direction (see
+        // FlythroughStart/End's note) and the human's "doprava" (rightward) cue: the established
+        // screen-axis mapping for this camera has screen-right pointing mostly along +Z.
+        //
+        // The row must include the ORIGINAL decal as one of its own evenly-spaced members (human
+        // report 2026-09-28: "Musi ti to vyjit tak, aby na konci vsechny stity tvorily nadhernou
+        // radu od sebe stejne vzdalenych stitu - vcetne toho PUVODNIHO" - it has to work out so
+        // that in the end all the shields form a beautiful row of equally-spaced shields, INCLUDING
+        // the original one). Picking ShieldRowStartZ as its own independent number and separately
+        // rounding to find which slot the original happens to land nearest (the previous approach)
+        // can't guarantee that - the two numbers only lined up by coincidence, and each of the two
+        // rounds of feedback below nudged this constant on its own without re-deriving it from
+        // ShieldRailZ, so the alignment silently broke both times. Defined the other way around
+        // instead, below: the original's own precisely-measured Z (ShieldRailZ) IS one of the row's
+        // slots BY CONSTRUCTION, and SlotsBeforeOriginal counts back from it to find the row's
+        // start - the two can no longer drift apart.
+        //
+        // First report ("Prvni 2 stity jsou uplne mimo lod! Dej prvni tam, kde je momentalne az
+        // ctvrty" - the first 2 shields are completely off the ship, put the first one where the
+        // fourth currently is): the original -1.95 start sat right at HullSideProfile's own measured
+        // extent, which turned out not to be reliable mount surface that close to the very tip -
+        // likely thin/sparse geometry from the curled bow decoration itself (see HullSideProfile's
+        // own note on the unexpected uptick right at Z=-2.0) rather than a real side wall. Second
+        // report the same day ("zacni jeste vice vpravo, tak do (puvodne) 6 pozice" - start even
+        // further right, at the [original] 6th position): moved forward again. SlotsBeforeOriginal =
+        // 8 below reconstructs that same "6th position" intent (measured back from ShieldRailZ
+        // instead of forward from a since-abandoned start point) while landing exactly on a real
+        // slot. No equivalent report yet on the stern end, so that side is untouched - see
+        // HullOuterXAtZ's clamp for what happens if the row ever reaches that far.
+        private const int SlotsBeforeOriginal = 8;
+        private static readonly float ShieldRowStartZ = ShieldRailZ - SlotsBeforeOriginal * ShieldSlotGap;
 
         // Held close in front of the camera (child of the camera transform, so it rides along
         // through the flythrough) - originally centred near the player's eye per human direction,
@@ -333,21 +453,35 @@ namespace HearApp.Worlds.VikingBoat
 
         private GameObject _shieldAsset;
         private Material[] _shieldMaterials;
+        private GameObject _shieldPack2Asset;
+        private Material _pack2SteelMaterial;
+        private Material _pack2WoodMaterial;
+        private Material[] _pack2PatternMaterials;
         private Transform _heldShield;
-        private int _nextVariantIndex;
+        private float _heldShieldNativeDiameter;
+        // Just a spawn counter for unique GameObject names now - which variant shows up comes from
+        // _variantBag (see SpawnHeldShield), not derived from this.
+        private int _shieldsSpawnedCount;
+
+        // Shuffle-bag for variant selection: "random" per human request 2026-09-28 must still not
+        // repeat a design until every one of the 15 has appeared once ("at se ty same stity
+        // neopakuji... minimalne ne dokud nedojdou unikatni designy" - the same shields shouldn't
+        // repeat, at least not until we run out of unique designs) - plain Random.Range per spawn
+        // (the first pass at "random") can't guarantee that, since nothing stops it drawing the same
+        // index twice in a row. Refilled with a freshly shuffled 0..ShieldVariantCount-1 run whenever
+        // it empties out.
+        private readonly List<int> _variantBag = new();
 
         private void BuildShieldRewardAssets()
         {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+
             _shieldAsset = Resources.Load<GameObject>("Worlds/VikingBoat/Models/VikingShield");
             if (_shieldAsset == null)
-            {
                 Debug.LogError("[VikingBoat] Could not load VikingShield model from Resources.");
-                return;
-            }
 
-            _shieldMaterials = new Material[ShieldVariantCount];
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            for (int i = 0; i < ShieldVariantCount; i++)
+            _shieldMaterials = new Material[OldStyleVariantCount];
+            for (int i = 0; i < OldStyleVariantCount; i++)
             {
                 var material = new Material(shader);
                 material.mainTexture = Resources.Load<Texture2D>($"Worlds/VikingBoat/Textures/Shields/Shield{i + 1}_Albedo");
@@ -361,29 +495,129 @@ namespace HearApp.Worlds.VikingBoat
                 _shieldMaterials[i] = material;
             }
 
+            _shieldPack2Asset = Resources.Load<GameObject>("Worlds/VikingBoat/Models/VikingShieldPack2");
+            if (_shieldPack2Asset == null)
+                Debug.LogError("[VikingBoat] Could not load VikingShieldPack2 model from Resources.");
+
+            // No normal maps came with this pack's Texture.rar (just BaseColor-equivalent flats), so
+            // these are plain untextured-normal materials - flatter-looking than the OldStyle family,
+            // an acceptable trade rather than fabricating fake normal data.
+            _pack2SteelMaterial = new Material(shader) { mainTexture = Resources.Load<Texture2D>("Worlds/VikingBoat/Textures/Shields/Pack2_Steel") };
+            _pack2WoodMaterial = new Material(shader) { mainTexture = Resources.Load<Texture2D>("Worlds/VikingBoat/Textures/Shields/Pack2_Wood") };
+            _pack2PatternMaterials = new Material[Pack2VariantCount];
+            for (int i = 0; i < Pack2VariantCount; i++)
+                _pack2PatternMaterials[i] = new Material(shader) { mainTexture = Resources.Load<Texture2D>($"Worlds/VikingBoat/Textures/Shields/Pack2_{i + 1}") };
+
             SpawnHeldShield();
+        }
+
+        // Builds one shield's visual - either an OldStyle instance (shared mesh, one swapped
+        // material) or a Pack2 instance (that variant's own complete "Shield N" child, its submeshes
+        // remapped by FBX material-slot name onto the shared Pack2 materials plus that variant's
+        // pattern material.
+        //
+        // Two earlier guesses at this mapping were both wrong, corrected only by actually looking at
+        // a zoomed-in screenshot (human prompt 2026-09-28: "Vidis tam ty barevny tecky? Zkus to
+        // nejdriv interpretovat" - do you see those colored dots? try to interpret it first) rather
+        // than continuing to guess from triangle counts/UV boxes alone:
+        //   1. First guess: shared slot name = shared material, the one odd name out per shield = the
+        //      pattern. Human report: shields render all-wood, color completely missing - the pattern
+        //      landed on a ~30-tri submesh (the boss dome), too small to notice.
+        //   2. Second guess, from a triangle-count/UV diagnostic: "Material.001" (the biggest submesh,
+        //      near-full 0-1 UV) is the front face and needs the pattern. Human report: colored dots
+        //      visible only around the rim and boss, in a different color per shield. Zooming into a
+        //      screenshot showed why - those "dots" are the individual rivet studs, and each one is
+        //      rendering a tiny complete copy of the whole checkered pattern image. "Material.001" is
+        //      the rivet ring (many small studs, each independently mapped 0-1, hence both the high
+        //      combined triangle count and the full UV range), not the face.
+        // The actual big flat painted face - confirmed by opening Pack2_1.png directly, which is a
+        // full circular checkered graphic - is "Material.004": a small triangle count (~74) is normal
+        // for a simple flat fan-triangulated disc, and it never changed appearance across any of the
+        // above guesses (always wood), which is exactly why the pattern always looked "missing": the
+        // one submesh actually meant to show it was hardcoded away from it the whole time.
+        // Everything else (the rim, the rivets, the boss dome) is a fixed steel look now - real
+        // Viking shields have a painted wooden face inside a plain metal fitting, which also matches
+        // what's on screen. No per-submesh z-fighting workaround is needed for the face itself since
+        // nothing else in the mesh occupies that same surface. Caller is responsible for the
+        // resulting object's local position/rotation/scale.
+        private GameObject CreateShieldVisual(int variantIndex)
+        {
+            // OldStyle occupies indices 0..OldStyleVariantCount-1, Pack2 the rest - see
+            // NativeDiameterFor's matching note.
+            if (variantIndex < OldStyleVariantCount)
+            {
+                int oldStyleIndex = variantIndex;
+                var instance = Instantiate(_shieldAsset);
+                var renderer = instance.GetComponentInChildren<Renderer>();
+                if (renderer != null) renderer.sharedMaterial = _shieldMaterials[oldStyleIndex];
+                return instance;
+            }
+            else
+            {
+                int pack2Index = variantIndex - OldStyleVariantCount;
+                var source = _shieldPack2Asset.transform.Find($"Shield {pack2Index + 1}");
+                var instance = Instantiate(source.gameObject);
+                var renderer = instance.GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    var sourceMats = renderer.sharedMaterials;
+                    var newMats = new Material[sourceMats.Length];
+                    for (int i = 0; i < sourceMats.Length; i++)
+                    {
+                        string name = sourceMats[i] != null ? sourceMats[i].name : "";
+                        newMats[i] = name switch
+                        {
+                            "Material.004" => _pack2PatternMaterials[pack2Index],
+                            _ => _pack2SteelMaterial,
+                        };
+                    }
+                    renderer.sharedMaterials = newMats;
+                }
+                return instance;
+            }
         }
 
         private void SpawnHeldShield()
         {
             // No cap here any more - every reward shield replaces the last one at the single shared
             // mount spot (see AttachShieldRoutine), so there is no "ran out of room on the rail" case
-            // left to guard against. Cycles through the 6 painted variants via modulo below for as
-            // many detections as a session produces.
-            if (_shieldAsset == null) return;
+            // left to guard against. Variant drawn from the shuffle-bag below - see _variantBag.
+            if (_shieldAsset == null || _shieldPack2Asset == null) return;
 
-            var instance = Instantiate(_shieldAsset, _camera.transform);
-            instance.name = $"HeldShield_{_nextVariantIndex}";
+            int variantIndex = DrawNextVariant();
+            var instance = CreateShieldVisual(variantIndex);
+            instance.name = $"HeldShield_{_shieldsSpawnedCount}";
+            instance.transform.SetParent(_camera.transform, false);
             instance.transform.localPosition = HeldShieldLocalPosition;
             instance.transform.localRotation = HeldShieldLocalRotation;
-            instance.transform.localScale = Vector3.one * HeldShieldScale;
+            instance.transform.localScale = Vector3.one * (HeldShieldTargetDiameter / NativeDiameterFor(variantIndex));
             SetLayerRecursively(instance, HeldShieldLayer);
 
-            var renderer = instance.GetComponentInChildren<Renderer>();
-            if (renderer != null) renderer.sharedMaterial = _shieldMaterials[_nextVariantIndex % _shieldMaterials.Length];
-
             _heldShield = instance.transform;
-            _nextVariantIndex++;
+            _heldShieldNativeDiameter = NativeDiameterFor(variantIndex);
+            _shieldsSpawnedCount++;
+        }
+
+        // Draws one variant index from _variantBag, refilling it with a freshly shuffled full run
+        // of 0..ShieldVariantCount-1 whenever it's empty - see _variantBag's note on why plain
+        // Random.Range per draw isn't enough.
+        private int DrawNextVariant()
+        {
+            if (_variantBag.Count == 0)
+            {
+                for (int i = 0; i < ShieldVariantCount; i++)
+                    _variantBag.Add(i);
+                for (int i = _variantBag.Count - 1; i > 0; i--)
+                {
+                    int j = Random.Range(0, i + 1);
+                    (_variantBag[i], _variantBag[j]) = (_variantBag[j], _variantBag[i]);
+                }
+            }
+
+            int lastIndex = _variantBag.Count - 1;
+            int variantIndex = _variantBag[lastIndex];
+            _variantBag.RemoveAt(lastIndex);
+            return variantIndex;
         }
 
         private static void SetLayerRecursively(GameObject go, int layer)
@@ -393,14 +627,10 @@ namespace HearApp.Worlds.VikingBoat
                 SetLayerRecursively(child.gameObject, layer);
         }
 
-        // Alternates left/right (see ShieldSlotGap's note) - even-numbered arrivals extend the left
-        // side of the row, odd-numbered the right. Each side's own count of shields already placed
-        // there (0-based, before this new one) becomes this new one's position in the row: the
-        // (count+1)th multiple of ShieldSlotGap out from centre, so the row grows outward one gap at a
-        // time on whichever side is due next instead of piling up in place.
+        // Sequential arrival count, bow to stern - see ShieldRowStartZ's note. The slot that must be
+        // skipped (it belongs to the original decal, already sitting there) is SlotsBeforeOriginal
+        // by construction - no rounding needed, unlike before.
         private int _totalMounted;
-        private int _leftRowCount;
-        private int _rightRowCount;
 
         private IEnumerator AttachShieldRoutine()
         {
@@ -411,14 +641,14 @@ namespace HearApp.Worlds.VikingBoat
             }
 
             Transform shield = _heldShield;
+            float nativeDiameter = _heldShieldNativeDiameter;
             _heldShield = null;
 
-            bool goLeft = _totalMounted % 2 == 0;
+            int slot = _totalMounted < SlotsBeforeOriginal ? _totalMounted : _totalMounted + 1;
             _totalMounted++;
-            int rowIndex = goLeft ? _leftRowCount++ : _rightRowCount++;
 
-            float targetZ = ShieldRailZ + (goLeft ? -1 : 1) * (rowIndex + 1) * ShieldSlotGap;
-            Vector3 targetPosition = new(ShieldRailX, ShieldRailY, targetZ);
+            float targetZ = ShieldRowStartZ + slot * ShieldSlotGap;
+            Vector3 targetPosition = new(HullOuterXAtZ(targetZ), ShieldRailY, targetZ);
 
             // Detach from the camera, keeping its current world pose as the flight's start point.
             // Reset off the held-shield overlay layer back to Default (0) at the same time - once
@@ -429,7 +659,7 @@ namespace HearApp.Worlds.VikingBoat
             Vector3 startPosition = shield.localPosition;
             Quaternion startRotation = shield.localRotation;
             Vector3 startScale = shield.localScale;
-            Vector3 targetScale = Vector3.one * MountedShieldScale;
+            Vector3 targetScale = Vector3.one * (MountedShieldTargetDiameter / nativeDiameter);
 
             const float duration = 0.6f;
             float elapsed = 0f;
