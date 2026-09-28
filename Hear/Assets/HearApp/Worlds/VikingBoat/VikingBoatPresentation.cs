@@ -37,6 +37,7 @@ namespace HearApp.Worlds.VikingBoat
         {
             BuildLighting();
             BuildEnvironment();
+            BuildSkyBackdrop();
             BuildCamera();
             BuildShieldRewardAssets();
         }
@@ -64,7 +65,16 @@ namespace HearApp.Worlds.VikingBoat
             _camera = cameraObject.AddComponent<Camera>();
             _camera.orthographic = false;
             _camera.clearFlags = CameraClearFlags.SolidColor;
-            _camera.backgroundColor = new Color(0.55f, 0.68f, 0.78f);
+            // Was a pale daytime sky-blue (0.55, 0.68, 0.78), matching the original Clouds.jpg
+            // backdrop. Human report 2026-09-28, after the NightSky.jpg swap: a light-blue band
+            // right at the horizon that "we don't want" - sampled directly from a screenshot, its
+            // colour (158,186,194 at peak) matched this exact clear colour almost exactly. There's a
+            // genuine thin seam right at the horizon between the water plane and the sky cylinder
+            // (likely float-precision/rasterisation at the near-grazing angle where they're meant to
+            // meet) that lets this colour peek through - rather than chase the seam itself, matching
+            // the clear colour to the scene's own dark night-time palette means any residual sliver
+            // blends in instead of standing out as a bright pale line.
+            _camera.backgroundColor = new Color(0.03f, 0.08f, 0.12f);
             _camera.nearClipPlane = 0.1f;
             _camera.farClipPlane = 300f;
             cameraObject.AddComponent<AudioListener>();
@@ -297,6 +307,31 @@ namespace HearApp.Worlds.VikingBoat
             // change - keep the held-shield overlay camera's projection identical so the held shield
             // never appears to shift or resize relative to the rest of the frame.
             if (_heldShieldCamera != null) _heldShieldCamera.fieldOfView = _camera.fieldOfView;
+
+            // Drift on the water's textures - see RiverDriftAmplitudeX1's note for why the wobble is
+            // four summed sine waves (two per axis) rather than one constant-velocity scroll, and
+            // RiverMainCurrentSpeed's note for the steady V-axis term layered underneath it. Each
+            // wobble axis adds a slow, large-ish sway and a faster, smaller one; since the two
+            // periods per axis don't divide evenly into each other, their sum drifts, slows near its
+            // own turning points, and reverses - "sem a tam" (back and forth) - without ever
+            // repeating on a fixed beat the way one sine alone would. The main current dominates the
+            // net motion (its own per-second increment already exceeds the wobble's total amplitude
+            // within a handful of seconds); the wobble reads as deviation around it, not an equal
+            // partner. Both maps still move together (see RiverColorTiling's note on why the colour
+            // map's own scroll was turned off, then back on once its tiling went fine enough that no
+            // single seam dominates the frame).
+            if (_riverMaterial != null)
+            {
+                float t = Time.time;
+                var offset = new Vector2(
+                    Mathf.Sin(t * RiverDriftFrequencyX1) * RiverDriftAmplitudeX1 +
+                    Mathf.Sin(t * RiverDriftFrequencyX2) * RiverDriftAmplitudeX2,
+                    t * RiverMainCurrentSpeed +
+                    Mathf.Sin(t * RiverDriftFrequencyY1) * RiverDriftAmplitudeY1 +
+                    Mathf.Sin(t * RiverDriftFrequencyY2) * RiverDriftAmplitudeY2);
+                _riverMaterial.SetTextureOffset("_BumpMap", offset);
+                _riverMaterial.mainTextureOffset = offset;
+            }
         }
 
         // Reward shields. Original idea (human, 2026-09-27): with each success, a shield should
@@ -979,6 +1014,128 @@ namespace HearApp.Worlds.VikingBoat
         private const float RiverScale = 80f;
         private const float RiverWaterlineY = -1.3f;
 
+        // Tiles per side across the whole RiverScale=80 plane - at 1x (the default UV) the normal
+        // map's own ripple pattern would stretch into one giant 80-unit wave, unrecognisable as
+        // water. 40 gives each tile 2 units, a plausible ripple size next to the ship's own ~4.58
+        // length (see the class-level hull-size note). Briefly raised 100x (to 4000, alongside
+        // RiverColorTiling) the same day to test the opposite extreme from "one giant surface" -
+        // that read as a visible diagonal moire lattice rather than fine water noise (aliasing from
+        // tiling far finer than screen resolution can resolve), so both constants came back down:
+        // "Lepe asi vypadaly ty hodne velke dlazdice. Vrat se k nim" (the very big tiles probably
+        // looked better - go back to them).
+        private const float RiverNormalTiling = 40f;
+
+        // Separate, much lower tiling for the COLOUR map - human report 2026-09-28: "Ta voda je
+        // 'rozparcelovana', muzes to natahnout na jednu obrovskou plochu?" (the water looks chopped
+        // into parcels, can you stretch it into one giant surface?). WaterColor.jpg is a real aerial
+        // photo, not a seamlessly-tileable pattern, so repeating it 40x (matching the normal map)
+        // put a visible grid of mismatched seams across the whole plane. A normal map's seams barely
+        // read (it's just ripple direction, no distinct visual content to mismatch), but a photo's
+        // do, badly - so the colour and normal maps tile independently.
+        //
+        // First attempt at this (3, covering the whole 80-unit plane - RiverScale itself, since the
+        // built-in Plane primitive's own native size is 1x1, not 10x10 as an earlier version of this
+        // comment wrongly assumed - confirmed 2026-09-28 by actually checking
+        // Resources.GetBuiltinResource<Mesh>("Plane.fbx") directly: vertexCount=121, bounds extents
+        // (0.5, 0, 0.5), i.e. a 1x1 quad grid subdivided 10x10 - in a few large stretches) still
+        // weren't large enough - human follow-up the same day: "ja tam ten pruh porad vidim...
+        // stale projizdi lod 'sachovnici', jen ty pole jsou vetsi" (I still see that band; the ship
+        // keeps passing through a "checkerboard", just the tiles are bigger). The real culprit
+        // turned out to be the scroll animation (see Update()'s note), not tile count as such:
+        // RiverNormalScrollSpeed accumulates by more than half a full UV cycle over a single ~30s
+        // session, so even large tiles eventually got scrolled across a seam. Second attempt: tiles
+        // widened further still (0.3, less than one full copy of the photo across the whole plane)
+        // with the colour map's own scroll turned off entirely - genuinely seam-free, but static,
+        // and the human missed the motion: "ale ta pohybujici se hladina vypadala mozna lepe...
+        // zkusit uplne naopak, spoustu malych ctverecku?" (but the moving surface maybe looked
+        // better - try the complete opposite, lots of small squares?). Third attempt matched the
+        // normal map's own 40x (each 80/40=2 units, not the "~20 units" an earlier version of this
+        // comment miscalculated using the wrong 800-unit plane size), scroll restored on the colour
+        // map too. Human follow-up, having actually measured the plane size claim wrong myself:
+        // "Tyto 'ctverecky' jsou porad prilis velke. Zkus je jeste 100x mensi! Ale spis to vypada,
+        // ze to cele bylo mysleno jako ty obrovske ctverce" (these "squares" are still too big, try
+        // 100x smaller - though it looks like the whole thing was meant to be those huge squares).
+        // On the "meant to be" question: the Plane mesh's own 10x10 subdivision (confirmed above) is
+        // coarse but URP Lit shades per-pixel, not per-vertex, so plain mesh facets shouldn't be
+        // directly visible the way texture-tile seams are - my best read is still that this is
+        // texture tiling, not mesh geometry. The 100x-smaller experiment (4000, alongside
+        // RiverNormalTiling) turned out worse, not better - a visible diagonal moire lattice (fine
+        // tiling aliasing against screen resolution), not water noise. Final human call the same
+        // day, back at the fourth attempt's own tiles-with-motion combination that was never
+        // actually tried (0.3 tiles WITH scroll on, rather than 0.3 static or 40 with scroll): "Lepe
+        // asi vypadaly ty hoodne velke dlazdice. Vrat se k nim. V jedne z variant ta voda i 'plula'
+        // jako voda, vrat se k tomu" (the very big tiles probably looked better - go back to them;
+        // in one of the variants the water also "flowed" like water - go back to that too).
+        private const float RiverColorTiling = 0.3f;
+
+        // Scroll speed for the normal map's UV offset (units/second, in tiles) - human request
+        // 2026-09-28: "more je ted v kontrastu neskutecne nudne! Dokazeme udelat 'vodu'?" (the sea
+        // now looks incredibly boring by contrast - can we make "water"?), after the sky backdrop
+        // made the previously-acceptable flat-colour water plane look dead by comparison. A CC0
+        // seamless water normal map (Water_002_NORM.jpg from 3dtextures.me, human request "zkus se
+        // podivat sam po internetu" - try looking for it yourself online; CC0-licensed, confirmed
+        // via the site's own FAQ/Textures License page, free for commercial use with no attribution
+        // required) gives the flat plane real-looking ripples under lighting without needing actual
+        // wave geometry - lit shading over a normal-mapped flat plane is how open water is normally
+        // done, not a modelled/animated mesh (which would just be one frozen wave shape). Slow
+        // scroll on top keeps it from reading as a static painted-on pattern.
+        //
+        // Was one constant-velocity scroll (a UV offset growing linearly with Time.time) - human
+        // follow-up 2026-09-28, once the tiling settled: "Slo by ten pohyb vody zpomalit, znahodnit
+        // rychlost a trochu take efekt 'sem a tam', kde se pohyb vody meni. To by mohlo dat vice
+        // pocit 'more'" (could the water's movement be slowed down, have its speed randomised, and
+        // get a bit of a "back and forth" effect where the motion changes - that might give more of
+        // a sense of "sea"). A single constant scroll reads as a conveyor belt, not a sea - real
+        // chop drifts, slows, reverses. Four sine terms below (two per axis, deliberately
+        // non-matching/non-round periods so the combined motion doesn't visibly repeat within any
+        // one session) replace the old linear offset - see Update()'s own note for the combination.
+        // Amplitudes are deliberately smaller than the old 0.02 constant speed (which, over a full
+        // session, moved further in one direction than any single term here ever does) - motion here
+        // is meant to read as restless drift, not travel.
+        //
+        // First pass at the frequencies below worked out to ~90/155/280s periods - human report
+        // 2026-09-28, right after: "Je to hezci nez minule, ale voda je moc staticka. Zkus ji
+        // rozpohybovat vice" (it's nicer than last time, but the water is too static - make it move
+        // more). The bug: a session only runs ~30-65s (see FlythroughDuration's whole history), so
+        // at those periods the visible motion was only ever a small, slow crawl through a fraction
+        // of one swing - never enough of the cycle to read as "back and forth" at all. Frequencies
+        // raised roughly 10x, to periods of a few seconds to ~17s, so several full swings happen
+        // within any real session; amplitudes raised too for a more visible sway. Slowed back down
+        // partway once the main current below made the combined motion read as busy - final human
+        // follow-up 2026-09-28: "Uz jenom zpomal to animaci vody a jsme hotovi" (just slow down the
+        // water animation and we're done) - periods roughly doubled again, amplitudes unchanged
+        // (same sway distance, just reached more slowly).
+        private const float RiverDriftAmplitudeX1 = 0.018f;
+        private const float RiverDriftFrequencyX1 = 0.26f; // period ~24s
+        private const float RiverDriftAmplitudeX2 = 0.010f;
+        private const float RiverDriftFrequencyX2 = 0.45f; // period ~14s
+        private const float RiverDriftAmplitudeY1 = 0.014f;
+        private const float RiverDriftFrequencyY1 = 0.19f; // period ~33s
+        private const float RiverDriftAmplitudeY2 = 0.009f;
+        private const float RiverDriftFrequencyY2 = 0.33f; // period ~19s
+
+        // Dominant current, layered under the wobble above - human follow-up 2026-09-28: "Jako
+        // dobry, ale asi by ta voda mela mit jeden HLAVNI smer a od neho se chvilemi mirne
+        // odchylovat. Ten hlavni smer jde proti lodi" (good, but the water should have one MAIN
+        // direction and occasionally deviate slightly from it - that main direction goes against the
+        // ship). The four sine terms above have no net direction (each one returns to zero), so nudged
+        // toward this instead of replacing them: a steady linear term in the current's own direction,
+        // with the existing sines still layered on top as the "occasional slight deviation".
+        //
+        // The ship's own forward is -Z, bow-first (see the direction note near FlythroughStart's old
+        // history above, confirmed since by all the shield-row work) - "against the ship" means the
+        // sea should read as flowing the opposite way, +Z, past the hull as it advances. This
+        // GameObject has no rotation applied (see BuildRiver: only position and scale are set), so
+        // its local axes match world axes directly, and Unity's default Plane UV maps V to local Z -
+        // so +Z current means a steadily INCREASING V offset. Not verified on-device yet; flip the
+        // sign here if the current reads as flowing the wrong way.
+        //
+        // Halved alongside the wobble frequencies above - same final request, "Uz jenom zpomal to
+        // animaci vody a jsme hotovi" (just slow down the water animation and we're done).
+        private const float RiverMainCurrentSpeed = 0.006f;
+
+        private Material _riverMaterial;
+
         private void BuildRiver()
         {
             // Built by hand (MeshFilter + MeshRenderer only) instead of GameObject.CreatePrimitive,
@@ -993,12 +1150,132 @@ namespace HearApp.Worlds.VikingBoat
             water.transform.SetParent(transform, false);
             water.transform.localPosition = new Vector3(0f, RiverWaterlineY, 0f);
             water.transform.localScale = Vector3.one * RiverScale;
-            water.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Plane.fbx");
+
+            // Cloned (not the shared built-in Mesh directly) so RecalculateTangents() below doesn't
+            // mutate an asset Unity might reuse elsewhere. The built-in Plane.fbx has normals and
+            // UVs but no tangent data - fine for the plain-colour material this had before, but a
+            // URP Lit material with _NORMALMAP on needs tangents to build its per-pixel
+            // tangent-to-world matrix; without them the shader's normal-mapping math runs on
+            // garbage/zero tangents, which is what actually caused human report 2026-09-28 ("Tvuj
+            // posledni build jsem poslal na android, vidim jen bilou plochu a ne more" - I sent your
+            // last build to Android, I just see a white plane, not the sea) once the normal map
+            // below was added - not a texture-loading failure, a missing-tangents one.
+            var planeMesh = Instantiate(Resources.GetBuiltinResource<Mesh>("Plane.fbx"));
+            planeMesh.RecalculateTangents();
+            water.AddComponent<MeshFilter>().sharedMesh = planeMesh;
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
-            var riverMaterial = new Material(shader) { color = new Color(0.16f, 0.40f, 0.55f) };
-            riverMaterial.SetFloat("_Smoothness", 0.75f);
-            water.AddComponent<MeshRenderer>().sharedMaterial = riverMaterial;
+            _riverMaterial = new Material(shader) { color = Color.white };
+            // 0.75 (near-mirror) was the actual cause of human report 2026-09-28 ("Ta voda stale
+            // hezka neni, ja v ni vidim jen svetle modrou az temer bilou plochu" - the water still
+            // isn't nice, I just see a light blue to almost-white plane in it): at a near-mirror
+            // smoothness, the directional sun's specular highlight blows out across a huge swath of
+            // a mostly-horizontal plane viewed near-edge-on (exactly this camera's own framing),
+            // washing out both the base colour AND the normal map's ripple shading underneath it -
+            // the normal map was never broken, just drowned out. Lowered so diffuse shading (which
+            // is what actually reveals the ripples' shape) dominates instead of one glaring blob.
+            _riverMaterial.SetFloat("_Smoothness", 0.35f);
+
+            // Upgraded the same day (human-supplied water_textures_2k.zip /
+            // water_textures_2k_normal.zip - "zkus take tyto textury na vodu" - also try these
+            // textures for the water) from a flat colour + a generic 3dtextures.me ripple normal to
+            // a matched colour+normal PAIR (an aerial water photo and its own normal map, same
+            // source) - Color.white above lets the photo's own colour carry the material instead of
+            // being multiplied by the old flat blue tint. Both resized from their original
+            // 2048x1439 16-bit (17-18MB each) down to 1024-wide 8-bit before import - full size was
+            // needlessly large for a tiled material.
+            var colorMap = Resources.Load<Texture2D>("Worlds/VikingBoat/Textures/WaterColor");
+            if (colorMap != null)
+            {
+                _riverMaterial.mainTexture = colorMap;
+                _riverMaterial.mainTextureScale = new Vector2(RiverColorTiling, RiverColorTiling);
+            }
+
+            var normalMap = Resources.Load<Texture2D>("Worlds/VikingBoat/Textures/Water_Normal");
+            if (normalMap != null)
+            {
+                _riverMaterial.EnableKeyword("_NORMALMAP");
+                _riverMaterial.SetTexture("_BumpMap", normalMap);
+                _riverMaterial.SetTextureScale("_BumpMap", new Vector2(RiverNormalTiling, RiverNormalTiling));
+                // Default bump scale (1) read as too subtle once the glare above no longer hid it -
+                // pushed up for a clearer, more visible ripple shape.
+                _riverMaterial.SetFloat("_BumpScale", 1.6f);
+            }
+
+            water.AddComponent<MeshRenderer>().sharedMaterial = _riverMaterial;
+        }
+
+        // Sky backdrop - same technique as MycMurmurPresentation.BuildForestBackdrop (human
+        // request 2026-09-28: "Jak tam pridat nejakou oblohu dozadu?... V myceniu scene jsme dali
+        // jen obrazek lesa a fungovalo to dobre" - how do I add some sky behind it? In the Mycelium
+        // scene we just used a forest image and it worked well): a photo wrapped around the inside
+        // of a large cylinder, unlit shader so it reads at full exposure regardless of this world's
+        // own lighting, backface culling off since the camera only ever sees the inside face.
+        //
+        // Swapped from the original Clouds.jpg to NightSky.jpg the same day, per explicit human
+        // direction: "V pristim pokusu zkus take NightSky.jpg... Ten obrazek pouzij jen jako nahled.
+        // Bude-li to fungovat, tak ho koupit ci najdu podobny" (try NightSky.jpg too in the next
+        // attempt... use that image only as a preview - if it works, I'll buy it or find something
+        // similar). PLACEHOLDER: the current file carries a visible "Magnific" watermark across the
+        // whole image (an AI-upscaler preview export, not a licensed download) - deliberately left
+        // in for now on the human's own instruction to evaluate the look first, but this must be
+        // swapped for a purchased or otherwise properly licensed file before this ever ships.
+        //
+        // Built by hand (MeshFilter + MeshRenderer, sourcing the mesh from
+        // Resources.GetBuiltinResource) rather than GameObject.CreatePrimitive - see BuildRiver's
+        // own note just below: CreatePrimitive implicitly tries to attach a MeshCollider, and this
+        // app's build strips the Physics module, so that call fails at runtime. Same fix, same
+        // reason, applied here too.
+        //
+        // Height raised from 20 to 100 (still radius 25) once the cylinder got centred on the
+        // camera's own eye height (see backdrop.transform.localPosition's note below) - a genuinely
+        // new problem that only showed up then: a Unity Cylinder mesh has real flat end caps, with
+        // their own separate (radial/fisheye-style) UV layout completely unlike the side wall's
+        // cylindrical mapping. At the old 20/25 ratio the caps sat only atan(10/25)=22deg above/below
+        // dead-centre - well inside this camera's own ~87-90deg vertical FOV (see BuildCamera's
+        // note) once the camera was centred in the cylinder's height and looking exactly
+        // horizontally (its LookAt target shares its own Y) - so the caps were genuinely in frame,
+        // sampling a wildly wrong (mip-averaged, near solid) colour from the photo's radial mapping.
+        // That solid colour is what human report 2026-09-28 first looked like a broken water texture
+        // over ("Tvuj posledni build jsem poslal na android, vidim jen bilou plochu" for the older
+        // white-water bug, then later a solid maroon fill for this one, both actually the sky).
+        // Pushing the caps' angle well past the camera's own vertical FOV (atan(50/25)=63deg at
+        // 100/25) keeps them out of frame regardless of viewing direction.
+        private const float SkyBackdropRadius = 25f;
+        private const float SkyBackdropHeight = 100f;
+
+        private void BuildSkyBackdrop()
+        {
+            var texture = Resources.Load<Texture2D>("Worlds/VikingBoat/Textures/SkyBackdrop");
+            if (texture == null) return;
+
+            var backdrop = new GameObject("SkyBackdrop");
+            backdrop.transform.SetParent(transform, false);
+            // The built-in Cylinder mesh is 2 units tall and 1 unit radius by default (same
+            // convention as MycMurmurPresentation.BuildForestBackdrop).
+            backdrop.transform.localScale = new Vector3(SkyBackdropRadius * 2f, SkyBackdropHeight * 0.5f, SkyBackdropRadius * 2f);
+            // Centred on the CAMERA's own eye height (FlythroughCanoePosition.y), not on a fixed
+            // offset copied from MycMurmurPresentation - that world's camera orbits well above its
+            // own backdrop's lower rim, so a fixed offset happened to centre things reasonably
+            // there, but this world's camera sits low, almost at the water line. With the old fixed
+            // offset the camera ended up almost exactly at the cylinder's own bottom edge, so nearly
+            // the whole visible frame sampled the source photo's bottom few percent instead of a
+            // balanced view - for NightSky.jpg specifically (dark starfield up top, a warm sunset
+            // glow band only right at the bottom), that meant seeing almost nothing but the glow
+            // band, filling the frame with what read as a flat sandy/tan colour instead of a night
+            // sky (human report 2026-09-28, after swapping in NightSky.jpg: mistaken at first for a
+            // broken water texture, since the warm tan colour was coming from the sky cylinder, not
+            // the water plane, and dominated most of the frame). Centring the cylinder on the
+            // camera's own height instead means the camera sits at the MIDDLE of the image's own
+            // vertical range regardless of where exactly the camera itself is positioned.
+            backdrop.transform.localPosition = new Vector3(0f, FlythroughCanoePosition.y, 0f);
+            backdrop.AddComponent<MeshFilter>().sharedMesh = Resources.GetBuiltinResource<Mesh>("Cylinder.fbx");
+
+            var shader = Shader.Find("Sprites/Default");
+            var material = new Material(shader) { mainTexture = texture };
+            material.mainTextureScale = new Vector2(3f, 1f);
+            material.SetFloat("_Cull", (float)CullMode.Off);
+            backdrop.AddComponent<MeshRenderer>().sharedMaterial = material;
         }
 
         // The three materials (map_ShipV_001/002/003) each map onto their own BaseColor + Normal
