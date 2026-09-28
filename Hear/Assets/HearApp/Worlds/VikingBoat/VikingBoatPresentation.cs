@@ -72,9 +72,30 @@ namespace HearApp.Worlds.VikingBoat
             // genuine thin seam right at the horizon between the water plane and the sky cylinder
             // (likely float-precision/rasterisation at the near-grazing angle where they're meant to
             // meet) that lets this colour peek through - rather than chase the seam itself, matching
-            // the clear colour to the scene's own dark night-time palette means any residual sliver
-            // blends in instead of standing out as a bright pale line.
-            _camera.backgroundColor = new Color(0.03f, 0.08f, 0.12f);
+            // the clear colour to the scene's own palette means any residual sliver blends in
+            // instead of standing out. Updated again the same day when NightSky.jpg (dark
+            // navy/black) was replaced with Sunset.jpg (warm orange) - see BuildSkyBackdrop's own
+            // note - to (0.784, 0.456, 0.179), the sunset photo's own average colour, scaled down to
+            // about 45% brightness so it reads as the photo's darker lower register.
+            //
+            // Sunset.jpg itself was then dropped the same day - human report, speaking Czech now:
+            // "Sunset nebyl dobry napad. Zkus Moon.jpg" (the sunset wasn't a good idea, try
+            // Moon.jpg) - swapped again to Moon.jpg (dense night starfield with a large moon), so
+            // back to a dark tone: (0.09, 0.10, 0.13), Moon.jpg's own average colour, used directly
+            // rather than scaled down, since the photo is already almost entirely near-black
+            // background.
+            //
+            // And Moon.jpg dropped too, same day - human report: "Je to taky skarede. Zkus
+            // Cloud2.jpg" (that's ugly too, try Cloud2.jpg) - a plain daytime blue-sky-with-clouds
+            // photo, effectively back to the ORIGINAL Clouds.jpg's whole daytime concept (see
+            // BuildSkyBackdrop's own history) but a different specific photo. Its own average colour
+            // (measured via `magick Cloud2.jpg -resize 1x1! txt:` -> RGB 170,179,206) is very close
+            // to the very first pale-sky-blue value this field ever had (0.55, 0.68, 0.78, before
+            // any of the NightSky/Sunset/Moon detours) - used here at close to full brightness
+            // rather than scaled down, matching how the other daytime photo (Clouds.jpg) was always
+            // treated, as distinct from the scaled-down treatment given to the darker night/sunset
+            // images.
+            _camera.backgroundColor = new Color(0.667f, 0.704f, 0.806f);
             _camera.nearClipPlane = 0.1f;
             _camera.farClipPlane = 300f;
             cameraObject.AddComponent<AudioListener>();
@@ -246,6 +267,16 @@ namespace HearApp.Worlds.VikingBoat
         // entirely and is the standard way to drive this kind of eased motion.
         private float _shipTravelled;
 
+        // How far below its own modelled resting height (Y=0 on the pivot) the hull sits, to read
+        // as sitting deeper in the water - human request 2026-09-28: "Muzes zkusit lod trochu vic
+        // ponorit do vody?" (can you try sinking the ship a bit more into the water?). Applied to
+        // the pivot itself, not RiverWaterlineY (-1.3) - the water plane's own height is unrelated
+        // to how deep the hull sits within it, and dropping the water instead would also drop the
+        // horizon/backdrop framing that was just tuned. A modest offset relative to the hull's own
+        // scale (SourceBoundsCenter.y = 1.17, i.e. the hull is a few units tall) so the deck and rail
+        // (and the mounted shields, riding the same pivot) still clear the waterline.
+        private const float ShipWaterlineSinkY = -0.2f;
+
         private void Update()
         {
             if (_camera == null || _shipPivot == null) return;
@@ -298,7 +329,7 @@ namespace HearApp.Worlds.VikingBoat
             // toward and past its own rest position - see FlythroughInitialDistance's note. Reward
             // shields, parented to this same pivot (see AttachShieldRoutine), travel with it
             // automatically.
-            _shipPivot.localPosition = new Vector3(0f, 0f, FlythroughInitialDistance - travelled);
+            _shipPivot.localPosition = new Vector3(0f, ShipWaterlineSinkY, FlythroughInitialDistance - travelled);
 
             _camera.transform.position = FlythroughCanoePosition;
             _camera.transform.LookAt(FlythroughLookTarget, Vector3.up);
@@ -1216,10 +1247,32 @@ namespace HearApp.Worlds.VikingBoat
         // direction: "V pristim pokusu zkus take NightSky.jpg... Ten obrazek pouzij jen jako nahled.
         // Bude-li to fungovat, tak ho koupit ci najdu podobny" (try NightSky.jpg too in the next
         // attempt... use that image only as a preview - if it works, I'll buy it or find something
-        // similar). PLACEHOLDER: the current file carries a visible "Magnific" watermark across the
-        // whole image (an AI-upscaler preview export, not a licensed download) - deliberately left
-        // in for now on the human's own instruction to evaluate the look first, but this must be
-        // swapped for a purchased or otherwise properly licensed file before this ever ships.
+        // similar). NightSky.jpg carried a visible "Magnific" watermark across the whole image (an
+        // AI-upscaler preview export, not a licensed download) - left in only to evaluate the look.
+        //
+        // Swapped again the same day, per explicit human direction ("zkus vymenit pozadi - tu
+        // oblohu na toto: Sunset.jpg"), to Sunset.jpg - a warm sunset/sun-and-birds photo, no
+        // watermark visible on inspection, still a placeholder pending an actual licence check
+        // before shipping. Its average colour (200,116,46 / RGB 0.784,0.456,0.179, sampled via
+        // `magick Sunset.jpg -resize 1x1! txt:`) is what BuildCamera's own backgroundColor was
+        // re-tuned against, for the same reason as the NightSky.jpg tuning: to blend the horizon
+        // seam into the new backdrop's own palette instead of the old one's.
+        //
+        // And swapped a third time the same day - human report, in Czech: "Sunset nebyl dobry
+        // napad. Zkus Moon.jpg" (the sunset wasn't a good idea, try Moon.jpg) - to Moon.jpg, a dense
+        // night starfield with one large moon. No watermark visible. BuildCamera's backgroundColor
+        // re-tuned again to match (see its own note), and SkyBackdropVerticalOffset /
+        // SkyBackdropHorizontalTiling below re-derived from scratch for this image's own layout
+        // (moon position, single-feature tiling) rather than reused from the Sunset.jpg tuning. The
+        // moon itself never actually landed in the camera's fixed view before the next swap (see
+        // SkyBackdropHorizontalOffset's own note) - only the starfield was ever confirmed on-device.
+        //
+        // And a fourth time, same day - human report: "Je to taky skarede. Zkus Cloud2.jpg" (that's
+        // ugly too, try Cloud2.jpg) - to Cloud2.jpg, a plain daytime blue-sky-with-clouds photo, no
+        // watermark visible. Unlike Sunset.jpg/Moon.jpg, this photo has no single feature (sun,
+        // moon) that must land in a specific place - its cloud cover is fairly evenly distributed
+        // across the whole frame - so SkyBackdropVerticalOffset and SkyBackdropHorizontalOffset were
+        // both reset to 0 rather than re-derived; see their own notes.
         //
         // Built by hand (MeshFilter + MeshRenderer, sourcing the mesh from
         // Resources.GetBuiltinResource) rather than GameObject.CreatePrimitive - see BuildRiver's
@@ -1241,8 +1294,76 @@ namespace HearApp.Worlds.VikingBoat
         // white-water bug, then later a solid maroon fill for this one, both actually the sky).
         // Pushing the caps' angle well past the camera's own vertical FOV (atan(50/25)=63deg at
         // 100/25) keeps them out of frame regardless of viewing direction.
+        //
+        // Height brought back down from 100 to 90 (still comfortably safe - atan(45/25)=61deg vs
+        // the ~87-90deg FOV, same ~16deg margin as before) as part of fixing a separate problem:
+        // human report 2026-09-28, after the Sunset.jpg swap, speaking Czech from here on - "To
+        // neni sunset ale pomeranc. Nejak sance to udelat verohodnejsi?" (that's not a sunset, it's
+        // just orange. Any way to make it more believable?). At height=100 the camera's own
+        // ~87-90deg vertical FOV only ever samples the MIDDLE ~48% of the image's V range (window
+        // half-span in world units is roughly radius*tan(halfFOV)=25*tan(44deg)=24, i.e. 24 out of
+        // the cylinder's own 50-unit half-height) - and with no offset, that middle band sits well
+        // above the photo's actual sun/horizon: a per-column vertical scan of Sunset.jpg (`magick
+        // Sunset.jpg -crop 1x381+390+0 +repage txt:`, near-white pixels) found the sun disc at rows
+        // 354-364 of 381, i.e. V=(381-359)/381=0.058 (V=0 is the image's bottom edge) - only ~6% up
+        // from the very bottom, well outside the old unshifted middle-band window. So the sky was
+        // rendering nothing but the photo's flat mid-gradient, missing the sun, the hills, and most
+        // of the colour variation entirely - hence "jen pomeranc". See SkyBackdropVerticalOffset for
+        // the fix: shifting the sampled window down to include that band instead.
         private const float SkyBackdropRadius = 25f;
-        private const float SkyBackdropHeight = 100f;
+        private const float SkyBackdropHeight = 90f;
+
+        // Shifts the vertical texture window down so the camera's own horizontal look direction
+        // (mesh V=0.5, since the cylinder is centred on the camera's own eye height) samples close
+        // to the photo's sun/horizon band (V=0.058, see SkyBackdropHeight's note) instead of the
+        // image's arbitrary geometric middle. Capped at -0.23 rather than the more direct -0.44
+        // (0.058-0.5) specifically to avoid wrapping past the image's own V=0 edge - the visible
+        // window is about 0.54 of the full V range (2*24/90, see the half-span figure above), so a
+        // window centred any lower than offset=-0.23 would start sampling wrapped-around content
+        // from the TOP of the image (grey clouds) at the BOTTOM of the screen, a visible seam. At
+        // -0.23 the window covers V=[0, 0.54] with no wraparound - its lower edge lands right at the
+        // image's own bottom edge (the dark hill silhouette, appropriate right at the water
+        // horizon), the sun sits low in the visible sky rather than dead centre (also appropriate -
+        // real sunsets put the sun near the horizon, not centre-frame), and the upper edge still
+        // reaches into the mid cloud band for colour variation.
+        //
+        // Re-derived the same day for Moon.jpg, per the human's next direction: "Sunset nebyl dobry
+        // napad. Zkus Moon.jpg" (the sunset wasn't a good idea, try Moon.jpg). Moon.jpg has no
+        // horizon feature to chase - it is a dense, fairly uniform starfield (1214x650) with one
+        // bright moon+glow, located (found the same way, scanning columns for near-white pixels via
+        // `magick Moon.jpg -crop 1x650+200+0 +repage txt:`) spanning roughly rows 90-300 of 650,
+        // centred around row 185, i.e. V=(650-185)/650=0.715. Rather than put the moon dead ahead at
+        // the camera's own horizontal look direction (mesh V=0.5, which would place it awkwardly at
+        // screen-centre / water level, not up in the sky where a moon belongs), the offset instead
+        // targets mesh V=0.65 (part-way up the visible window, comfortably above the horizon line)
+        // for that V=0.715 moon band: offset = 0.715 - 0.65 = 0.065.
+        //
+        // Reset to 0 the same day for Cloud2.jpg (see the swap-history note above) - a plain
+        // daytime cloud photo with fairly even cover top to bottom and no single feature (sun, moon)
+        // that needs its own band of the image lined up with the horizon, so there is nothing here
+        // to derive a specific offset FROM - the image's own geometric middle is as good a window
+        // centre as any other.
+        private const float SkyBackdropVerticalOffset = 0f;
+
+        // How many times the image repeats around the cylinder's full 360 degrees. First tried 1
+        // (exactly one copy of Moon.jpg wrapped once around the full circle, reasoning that Moon.jpg
+        // has exactly one moon and tiling it 3x like Sunset.jpg would put 3 moons evenly spaced
+        // around the sky) - on-device this instead turned the whole starfield into soft white
+        // blobs/smears rather than sharp points: at tiling=1 each of the image's own 1214 texture
+        // columns is stretched across a full 360/1214=0.30deg of the cylinder's circumference (vs
+        // 0.09deg at tiling=3), i.e. individual few-pixel-wide stars get magnified roughly 3x wider
+        // on screen than the display can resolve them at, blurring into mush. Reverted to 3 to bring
+        // per-star magnification back down to a legible level - the "3 moons" concern doesn't
+        // actually apply here: each repeat still spans 360/3=120deg, comfortably wider than this
+        // camera's own ~87-90deg horizontal FOV, so only one repeat (and therefore at most one moon)
+        // is ever in frame at once regardless of which repeat the fixed camera direction lands on.
+        private const float SkyBackdropHorizontalTiling = 3f;
+
+        // Was being tuned to hunt down Moon.jpg's own moon within the camera's fixed slice (see the
+        // superseded note this replaces, still in git history) when Moon.jpg itself was dropped for
+        // Cloud2.jpg - reset to 0 for the same reason as SkyBackdropVerticalOffset: Cloud2.jpg's
+        // cloud cover is fairly even left-to-right too, so there is no single feature to aim for.
+        private const float SkyBackdropHorizontalOffset = 0f;
 
         private void BuildSkyBackdrop()
         {
@@ -1273,7 +1394,8 @@ namespace HearApp.Worlds.VikingBoat
 
             var shader = Shader.Find("Sprites/Default");
             var material = new Material(shader) { mainTexture = texture };
-            material.mainTextureScale = new Vector2(3f, 1f);
+            material.mainTextureScale = new Vector2(SkyBackdropHorizontalTiling, 1f);
+            material.mainTextureOffset = new Vector2(SkyBackdropHorizontalOffset, SkyBackdropVerticalOffset);
             material.SetFloat("_Cull", (float)CullMode.Off);
             backdrop.AddComponent<MeshRenderer>().sharedMaterial = material;
         }
