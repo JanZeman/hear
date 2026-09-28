@@ -95,7 +95,16 @@ namespace HearApp.Worlds.VikingBoat
             // rather than scaled down, matching how the other daytime photo (Clouds.jpg) was always
             // treated, as distinct from the scaled-down treatment given to the darker night/sunset
             // images.
-            _camera.backgroundColor = new Color(0.667f, 0.704f, 0.806f);
+            //
+            // Same day, human report alongside the water-tint request: "mozna trochu min nasycenou
+            // barvu u pozadi" (maybe a bit less saturated colour for the background) - rather than
+            // desaturate just this clear colour (which would leave it mismatched against the still
+            // fully-saturated Cloud2.jpg backdrop texture at the horizon seam), the SOURCE photo
+            // itself was desaturated first (`magick Cloud2.jpg -modulate 100,72,100 ...` - 100%
+            // brightness, 72% saturation, unchanged hue) and re-imported, so the texture and this
+            // clear colour stay matched. This value is that desaturated version's own new average
+            // (RGB 175,182,200).
+            _camera.backgroundColor = new Color(0.686f, 0.714f, 0.784f);
             _camera.nearClipPlane = 0.1f;
             _camera.farClipPlane = 300f;
             cameraObject.AddComponent<AudioListener>();
@@ -577,7 +586,24 @@ namespace HearApp.Worlds.VikingBoat
         // - 0.52) - kept here so every mounted shield sits just proud of the hull instead of
         // z-fighting with it, same reasoning, now applied at whatever X the hull actually has at
         // that shield's own Z instead of only at the one Z that was ever measured directly.
-        private const float HullClearance = 0.025f;
+        //
+        // Raised from 0.025 the same day - human report with a screenshot, 2026-09-28: a shield
+        // mounted near the bow visibly poking into the railing/rigging above it, with the diagnosis
+        // "Mozna je to tim, ze lod je zakrivena, ale my ty stity sazime do primku. Dat je o kousicek
+        // dal od lodi a problem zmizi si myslim" (maybe it's because the ship is curved but we mount
+        // shields in a straight line - put them a bit further from the ship and I think the problem
+        // goes away). Correct diagnosis: HullOuterXAtZ is a piecewise-LINEAR interpolation between
+        // HullSideProfile's own sample points, but the real hull surface is a smooth curve - between
+        // two samples the true surface can bulge out further than the straight chord connecting
+        // them, most visibly right where the bow starts curling into its ornamental prow (see
+        // HullSideProfile's own big, sometimes coarsely-spaced swings from Z=-1.4 to -2.0, e.g. the
+        // 0.2-wide gap between -1.9 and -1.7 with no -1.8 sample at all). A shield placed at the
+        // interpolated (underestimated) X in that stretch ends up sitting closer to the hull's
+        // centreline than the real, more-flared bow surface actually reaches, poking into the
+        // railing that follows the real surface. Rather than re-measure the profile at a finer
+        // resolution (the diagnostic that produced it was a throwaway, already deleted), widening
+        // this uniform clearance is the same fix the human proposed, applied everywhere.
+        private const float HullClearance = 0.07f;
 
         // Linear interpolation over HullSideProfile; clamps to the nearest measured end outside the
         // table's own range (Z +-2.0, matching the note above - beyond that the hull curls out of
@@ -1196,7 +1222,16 @@ namespace HearApp.Worlds.VikingBoat
             water.AddComponent<MeshFilter>().sharedMesh = planeMesh;
 
             var shader = Shader.Find("Universal Render Pipeline/Lit");
-            _riverMaterial = new Material(shader) { color = Color.white };
+            // Was Color.white (see the note below on WaterColor.jpg's own colour carrying the
+            // material unmultiplied) until human report 2026-09-28: "Zatim nejlepsi. Zkus udelat
+            // vodu trochu modrejsi, ted je az do zelena" (best so far. Try making the water a bit
+            // more blue, right now it leans green) - WaterColor.jpg's own average colour is RGB
+            // 83,131,156 (measured via `magick WaterColor.jpg -resize 1x1! txt:`), already
+            // blue>green but only by a narrow margin (156 vs 131) so the shaded result reads as
+            // green-tinted teal rather than blue. First tint tried was (0.82, 0.90, 1.08); pushed
+            // further blue the same day per the human's immediate follow-up ("Jeste trochu
+            // modrejsi vodu") to widen the red/green-vs-blue gap more.
+            _riverMaterial = new Material(shader) { color = new Color(0.72f, 0.84f, 1.15f) };
             // 0.75 (near-mirror) was the actual cause of human report 2026-09-28 ("Ta voda stale
             // hezka neni, ja v ni vidim jen svetle modrou az temer bilou plochu" - the water still
             // isn't nice, I just see a light blue to almost-white plane in it): at a near-mirror
