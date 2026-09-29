@@ -619,7 +619,10 @@ namespace HearApp.Worlds.VikingBoat
         // midship, where the hull is wide and the profile changes gently) actually needs.
         // Pulled in again the same day - human, after seeing 0.03 on-device: "jeste zkus blizeji"
         // (try even closer).
-        private const float HullClearance = 0.015f;
+        // And once more, after the per-shield rotation fix made the row look "velice slusne"
+        // (quite decent): "Zkus je vsechny o trosicku priblizit k trupu" (try bringing them all a
+        // tiny bit closer to the hull).
+        private const float HullClearance = 0.012f;
 
         // The original shield decal is centred here in the recentered ship mesh. The reward row
         // passes through its apparent height in the fixed canoe camera.
