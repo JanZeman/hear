@@ -342,6 +342,8 @@ namespace HearApp.Worlds.VikingBoat
 
             _camera.transform.position = FlythroughCanoePosition;
             _camera.transform.LookAt(FlythroughLookTarget, Vector3.up);
+            if (ShieldPlacement == ShieldPlacementMode.Original && _lastMountedShield != null)
+                _lastMountedShield.localPosition = OriginalShieldMountPosition();
 
             // CoreSafeSquareFit can change the main camera's fieldOfView on an aspect/orientation
             // change - keep the held-shield overlay camera's projection identical so the held shield
@@ -414,6 +416,10 @@ namespace HearApp.Worlds.VikingBoat
         // only the NATIVE diameter (what the raw asset measures at its own baked scale, i.e. the
         // divisor in target/native) differs per family, so held/mounted scale is now computed on the
         // fly per shield (see NativeDiameterFor) instead of being one fixed constant.
+        // No longer used for mounting - see HullOuterNormalYawDegreesAtZ/ShieldRotationAtZ, which
+        // compute a per-shield yaw instead. Left defined: it's exactly what that function returns at
+        // zero local hull slope, and the mesh-axis note below (Euler(0,90,0) sends local Z to world
+        // X) still explains the underlying convention both use.
         private static readonly Quaternion ShieldMountRotation = Quaternion.Euler(0f, 90f, 0f);
         // 7th variant added 2026-09-28 (human: a "Viking_Shield_1" asset placed under
         // sources/3D/VikingShields1, own full PBR set at 1k - only BaseColor -> Shield7_Albedo and
@@ -510,7 +516,7 @@ namespace HearApp.Worlds.VikingBoat
         // own outer surface (0.52 + 0.02) plus a hair of margin. This fixed X only holds AT the
         // decal's own Z, though - see HullSideProfile below for why every other position in the row
         // now needs its own X instead of reusing this constant.
-        private const float ShieldRailY = -0.81f;
+        private const float ShieldRailY = -0.82f;
         // Everything above this line about spreading shields along a rail (a half-span, a minimum
         // spacing, a slot grid, a centre-exclusion radius to stay clear of the original) chased a
         // moving target across several rounds of human feedback and never actually landed - most
@@ -538,8 +544,9 @@ namespace HearApp.Worlds.VikingBoat
         // the direction of the fix was right, just too large a step. Split the difference between the
         // decal's own measured 0.20 (read as too far right) and 0.15 (too far left). Human then
         // fine-tuned this value directly (own build, see the note above AttachShieldRoutine) rather
-        // than going another round through me - left as whatever is currently checked in.
-        private const float ShieldRailZ = 0.185f;
+        // than going another round through me. The later confirmed mesh centre supersedes that
+        // screen-space guess and also anchors the retained sequential row.
+        private const float ShieldRailZ = 0.20f;
 
         // Row layout pivoted several times across 2026-09-28. First: "Ted chci, abys stity
         // nepokladal na ten stary stit, ale kousek nalevo a kousek napravo..." (don't mount on the
@@ -582,10 +589,7 @@ namespace HearApp.Worlds.VikingBoat
             (1.8f, 0.173f), (1.9f, 0.142f), (2.0f, 0.120f),
         };
 
-        // Same clearance the original ShieldRailX used past the decal's own measured surface (0.545
-        // - 0.52) - kept here so every mounted shield sits just proud of the hull instead of
-        // z-fighting with it, same reasoning, now applied at whatever X the hull actually has at
-        // that shield's own Z instead of only at the one Z that was ever measured directly.
+        // Clearance past the measured hull surface at each slot.
         //
         // Raised from 0.025 the same day - human report with a screenshot, 2026-09-28: a shield
         // mounted near the bow visibly poking into the railing/rigging above it, with the diagnosis
@@ -603,11 +607,44 @@ namespace HearApp.Worlds.VikingBoat
         // railing that follows the real surface. Rather than re-measure the profile at a finer
         // resolution (the diagnostic that produced it was a throwaway, already deleted), widening
         // this uniform clearance is the same fix the human proposed, applied everywhere.
-        private const float HullClearance = 0.07f;
+        //
+        // Brought back down from 0.07 the same day X went back to curve-following (see
+        // ShieldPositionAtZ's own note) - human report, comparing shields side by side on-device:
+        // "Zkus je ale trochu k lodi opet priblizit. Vsechny stejne. Jak vidis ty vedle te
+        // prostredni jsou o dost 'venku' nez ta prostredni sama" (try bringing them a bit closer to
+        // the ship again. All the same. As you can see, the ones next to the middle one are quite a
+        // bit more "outside" than the middle one itself). This constant is the one lever that
+        // shifts every shield by the same amount regardless of Z, so it's the direct fix for "all
+        // equally" - 0.07 was sized for the worst-case bow gap, more than the rest of the row (near
+        // midship, where the hull is wide and the profile changes gently) actually needs.
+        // Pulled in again the same day - human, after seeing 0.03 on-device: "jeste zkus blizeji"
+        // (try even closer).
+        private const float HullClearance = 0.015f;
 
-        // Linear interpolation over HullSideProfile; clamps to the nearest measured end outside the
-        // table's own range (Z +-2.0, matching the note above - beyond that the hull curls out of
-        // the mount-height band the diagnostic sampled, i.e. exactly where the row should stop).
+        // The original shield decal is centred here in the recentered ship mesh. The reward row
+        // passes through its apparent height in the fixed canoe camera.
+        private const float OriginalShieldX = 0.52f;
+        private const float OriginalShieldY = ShieldRailY;
+        private const float OriginalShieldZ = ShieldRailZ;
+        private static readonly Vector3 OriginalShieldCenter =
+            new(OriginalShieldX, OriginalShieldY, OriginalShieldZ);
+        // The reward face needs to clear the decal's raised surface. Moving toward the camera
+        // along its ray through the decal centre keeps both projected centres identical.
+        private const float OriginalShieldCameraClearance = 0.06f;
+        private enum ShieldPlacementMode { Original, Alternating, Sequential }
+        private const ShieldPlacementMode ShieldPlacement = ShieldPlacementMode.Alternating;
+        // Temporary layout preview: show the complete row before any player interaction.
+        private const bool ShowShieldLayoutPreview = true;
+        private const int ShieldLayoutPreviewCount = 12;
+
+        private Vector3 OriginalShieldMountPosition()
+        {
+            Vector3 eye = _shipPivot.InverseTransformPoint(_camera.transform.position);
+            return OriginalShieldCenter + (eye - OriginalShieldCenter).normalized * OriginalShieldCameraClearance;
+        }
+
+        // Linear interpolation over HullSideProfile; clamps to the nearest measured end outside
+        // the table's range.
         private static float HullOuterXAtZ(float z)
         {
             if (z <= HullSideProfile[0].z) return HullSideProfile[0].x + HullClearance;
@@ -622,6 +659,78 @@ namespace HearApp.Worlds.VikingBoat
                 }
             }
             return HullSideProfile[^1].x + HullClearance;
+        }
+
+        // Per-shield yaw so each one faces straight out from the hull's own surface angle at its Z,
+        // instead of every shield sharing one fixed rotation (ShieldMountRotation) - human request
+        // 2026-09-29, once X was back to hugging the curve and the row's position looked right:
+        // "bylo by potreba ty jednotlivy stity vertikalne mirne natocit. Dokazes to vypocitat?" (the
+        // individual shields would need a slight vertical [i.e. yaw] rotation - can you calculate
+        // that?).
+        //
+        // First cut used the LOCAL slope between whichever pair of HullSideProfile samples bracket
+        // z (the same segment HullOuterXAtZ interpolates X from) - rejected on-device the same day:
+        // "Individualni vypocty dobre nebudou. Chce to odhadnout krivku lodi a natacet ty stity
+        // podle ni. Musis si predstavit jako by sedely vsechny na kruznici ci elipse velikeho
+        // polomeru" (individual [per-segment] calculations won't be good. It needs to estimate the
+        // ship's own curve and rotate the shields according to THAT - imagine them all sitting on a
+        // circle or ellipse of large radius). Correct - HullSideProfile is real measured data, noisy
+        // between adjacent samples (see HullClearance's own note on the diagnostic re-measurement
+        // finding spikes/dips a coarse table happens to sample around); a slope taken between two
+        // adjacent noisy points amplifies that noise directly into the rotation, even though the
+        // X POSITION lookup (an interpolation, which averages rather than differentiates) stays
+        // smooth enough to look right.
+        //
+        // Fixed by fitting one smooth curve through the WHOLE table with least squares - a
+        // quadratic, x = HullSlopeFitA*z^2 + HullSlopeFitB*z + c (c unused, only the shape matters
+        // here), which is exactly the human's "large-radius circle/ellipse" - a circle/ellipse of
+        // large radius is locally indistinguishable from a parabola over a span this short relative
+        // to that radius. The fit's own analytic derivative, 2*HullSlopeFitA*z + HullSlopeFitB, is
+        // used as the slope in place of the old per-segment one - continuous and noise-free by
+        // construction, since it comes from ALL 37 samples at once instead of any single adjacent
+        // pair. Position (HullOuterXAtZ) is untouched - it still tracks the real measured hull, only
+        // the rotation now follows the idealised curve instead of it.
+        private static readonly (float a, float b) HullSlopeFit = FitHullSlopeQuadratic();
+
+        private static (float a, float b) FitHullSlopeQuadratic()
+        {
+            // Ordinary least-squares fit of x = a*z^2 + b*z + c over HullSideProfile, solved via the
+            // normal equations (3x3, Cramer's rule) - standard closed-form polynomial regression,
+            // computed once here rather than pasting in the resulting constants so this stays
+            // correct automatically if HullSideProfile itself is ever re-measured.
+            double sz0 = HullSideProfile.Length, sz1 = 0, sz2 = 0, sz3 = 0, sz4 = 0, sx0 = 0, sx1 = 0, sx2 = 0;
+            foreach (var (z, x) in HullSideProfile)
+            {
+                double zd = z, xd = x;
+                sz1 += zd; sz2 += zd * zd; sz3 += zd * zd * zd; sz4 += zd * zd * zd * zd;
+                sx0 += xd; sx1 += zd * xd; sx2 += zd * zd * xd;
+            }
+
+            double Det3(double m00, double m01, double m02, double m10, double m11, double m12, double m20, double m21, double m22) =>
+                m00 * (m11 * m22 - m12 * m21) - m01 * (m10 * m22 - m12 * m20) + m02 * (m10 * m21 - m11 * m20);
+
+            double d = Det3(sz4, sz3, sz2, sz3, sz2, sz1, sz2, sz1, sz0);
+            double a = Det3(sx2, sz3, sz2, sx1, sz2, sz1, sx0, sz1, sz0) / d;
+            double b = Det3(sz4, sx2, sz2, sz3, sx1, sz1, sz2, sx0, sz0) / d;
+            return ((float)a, (float)b);
+        }
+
+        private static float HullOuterNormalYawDegreesAtZ(float z)
+        {
+            float slope = 2f * HullSlopeFit.a * z + HullSlopeFit.b;
+            return Mathf.Atan2(1f, -slope) * Mathf.Rad2Deg;
+        }
+
+        private static Quaternion ShieldRotationAtZ(float z) => Quaternion.Euler(0f, HullOuterNormalYawDegreesAtZ(z), 0f);
+
+        // X follows the curved hull. Adjusting Y puts all shield centres in the vertical plane
+        // through the camera and the original decal, parallel to the ship's Z axis. Every centre
+        // therefore projects onto one straight line while the ship travels along Z.
+        private float ShieldRailYAtX(float x)
+        {
+            Vector3 eye = _shipPivot.InverseTransformPoint(_camera.transform.position);
+            float t = (x - eye.x) / (OriginalShieldX - eye.x);
+            return Mathf.LerpUnclamped(eye.y, ShieldRailY, t);
         }
 
         // Row runs bow (-Z) to stern (+Z) per human request 2026-09-28 ("sazet ty stity musis od
@@ -769,7 +878,28 @@ namespace HearApp.Worlds.VikingBoat
             for (int i = 0; i < Pack2VariantCount; i++)
                 _pack2PatternMaterials[i] = new Material(shader) { mainTexture = Resources.Load<Texture2D>($"Worlds/VikingBoat/Textures/Shields/Pack2_{i + 1}") };
 
-            SpawnHeldShield();
+            if (ShowShieldLayoutPreview)
+                SpawnShieldLayoutPreview();
+            else
+                SpawnHeldShield();
+        }
+
+        private void SpawnShieldLayoutPreview()
+        {
+            if (_shieldAsset == null || _shieldPack2Asset == null) return;
+
+            for (int i = 0; i < ShieldLayoutPreviewCount; i++)
+            {
+                int variantIndex = DrawNextVariant();
+                var shield = CreateShieldVisual(variantIndex);
+                shield.name = $"ShieldLayoutPreview_{i + 1}";
+                shield.transform.SetParent(_shipPivot, false);
+                Vector3 previewPosition = ShieldAlternatingPosition(i);
+                shield.transform.localPosition = previewPosition;
+                shield.transform.localRotation = ShieldRotationAtZ(previewPosition.z);
+                shield.transform.localScale = Vector3.one *
+                    (MountedShieldTargetDiameter / NativeDiameterFor(variantIndex));
+            }
         }
 
         // Builds one shield's visual - either an OldStyle instance (shared mesh, one swapped
@@ -888,10 +1018,56 @@ namespace HearApp.Worlds.VikingBoat
                 SetLayerRecursively(child.gameObject, layer);
         }
 
-        // Sequential arrival count, bow to stern - see ShieldRowStartZ's note. The slots that must
-        // be skipped (the original decal's own slot, SlotsBeforeOriginal, plus its protected
-        // neighbours - see ProtectedSlotRadius) are known by construction - no rounding needed.
+        // Exact ship-space anchor: (0.52, -0.82, 0.20). With a 0.17 slot gap and one protected
+        // slot beside the original, alternating arrivals use these Z positions:
+        // 1 left -0.14, 2 right 0.54, 3 left -0.31, 4 right 0.71,
+        // 5 left -0.48, 6 right 0.88, 7 left -0.65, 8 right 1.05,
+        // 9 left -0.82, 10 right 1.22, 11 left -0.99, 12 right 1.39.
+        // Was X = HullOuterXAtZ(z) (follows the curved hull), Y = ShieldRailYAtX(x) (a camera-space
+        // trick to make that curved-X row still PROJECT onto a straight line for this fixed camera).
+        // Dropped for one build the same day per direct human instruction, tired of the curve
+        // chasing after a full day on it: "Zakriveni trupu ignoruj, nech 90 stupnu. Jen zajisti, at
+        // jsou ty stity v jedne primce!" (ignore the hull's curvature, leave it at 90 degrees. Just
+        // make sure the shields are in one straight line!) - briefly a literal straight line in 3D,
+        // constant X and Y. ShieldRailYAtX is left defined, unused, rather than deleted: a separate
+        // session the same owner was running overnight (see .agents/fixes/viking-shield-row-
+        // alignment.md and its linked session notes) explicitly asked to keep this geometric-rail
+        // approach in the source for a later stage.
+        // Went constant (ShieldRowX, since removed) for one build, then straight back to the curve -
+        // human question, once the constant-X gap was actually visible on-device: "Chapes, jak to ma
+        // vypadat, aby to pusobilo realne? Co myslis, ze je mym cilem s temi stity?" (do you
+        // understand what this should look like to read as real? What do you think my goal with
+        // these shields is?). The goal was never a mathematically straight line for its own sake -
+        // it's a believable Viking shield wall hung on the actual rail, which only looks right if it
+        // follows the hull's own curve (the rail isn't straight; a ship this size never is). The
+        // X goes back to hugging the real surface via HullOuterXAtZ, unchanged since it was left
+        // defined-but-unused rather than deleted. Y stays the plain ShieldRailY constant, not
+        // ShieldRailYAtX's camera-projection trick - nothing here asked for that extra layer.
+        // Rotation followed a similar arc: fixed at fixed 90deg for a few builds per that same day's
+        // earlier instruction, then given its own per-Z calculation again once the human, having
+        // seen the curve-following row on-device, asked for it directly - see
+        // HullOuterNormalYawDegreesAtZ's own note.
         private int _totalMounted;
+        private Transform _lastMountedShield;
+
+        private Vector3 ShieldPositionAtZ(float z) => new(HullOuterXAtZ(z), ShieldRailY, z);
+
+        private Vector3 ShieldAlternatingPosition(int mountedIndex)
+        {
+            int distanceInSlots = ProtectedSlotRadius + 1 + mountedIndex / 2;
+            int side = mountedIndex % 2 == 0 ? -1 : 1;
+            float z = OriginalShieldZ + side * distanceInSlots * ShieldSlotGap;
+            return ShieldPositionAtZ(z);
+        }
+
+        private Vector3 ShieldRowPosition(int mountedIndex)
+        {
+            int protectedZoneStart = SlotsBeforeOriginal - ProtectedSlotRadius;
+            int protectedZoneSlotCount = 2 * ProtectedSlotRadius + 1;
+            int slot = mountedIndex < protectedZoneStart ? mountedIndex : mountedIndex + protectedZoneSlotCount;
+            float z = ShieldRowStartZ + slot * ShieldSlotGap;
+            return ShieldPositionAtZ(z);
+        }
 
         private IEnumerator AttachShieldRoutine()
         {
@@ -905,17 +1081,14 @@ namespace HearApp.Worlds.VikingBoat
             float nativeDiameter = _heldShieldNativeDiameter;
             _heldShield = null;
 
-            // slots 0..protectedZoneStart-1 land bow-ward of the original (smaller Z); the whole
-            // protected zone around SlotsBeforeOriginal (see ProtectedSlotRadius's note) is never
-            // assigned; every slot after that lands stern-ward of it (larger Z) - see
-            // ShieldRowStartZ's derivation.
-            int protectedZoneStart = SlotsBeforeOriginal - ProtectedSlotRadius;
-            int protectedZoneSlotCount = 2 * ProtectedSlotRadius + 1;
-            int slot = _totalMounted < protectedZoneStart ? _totalMounted : _totalMounted + protectedZoneSlotCount;
+            Vector3 targetPosition = ShieldPlacement switch
+            {
+                ShieldPlacementMode.Original => OriginalShieldMountPosition(),
+                ShieldPlacementMode.Alternating => ShieldAlternatingPosition(_totalMounted),
+                _ => ShieldRowPosition(_totalMounted),
+            };
+            Quaternion targetRotation = ShieldRotationAtZ(targetPosition.z);
             _totalMounted++;
-
-            float targetZ = ShieldRowStartZ + slot * ShieldSlotGap;
-            Vector3 targetPosition = new(HullOuterXAtZ(targetZ), ShieldRailY, targetZ);
 
             // Detach from the camera, keeping its current world pose as the flight's start point.
             // Reset off the held-shield overlay layer back to Default (0) at the same time - once
@@ -939,14 +1112,22 @@ namespace HearApp.Worlds.VikingBoat
                 float t = Mathf.Clamp01(elapsed / duration);
                 float eased = 1f - Mathf.Pow(1f - t, 3f);
                 shield.localPosition = Vector3.Lerp(startPosition, targetPosition, eased);
-                shield.localRotation = Quaternion.Slerp(startRotation, ShieldMountRotation, eased);
+                shield.localRotation = Quaternion.Slerp(startRotation, targetRotation, eased);
                 shield.localScale = Vector3.Lerp(startScale, targetScale, eased);
                 yield return null;
             }
 
             shield.localPosition = targetPosition;
-            shield.localRotation = ShieldMountRotation;
+            shield.localRotation = targetRotation;
             shield.localScale = targetScale;
+
+            // Only one reward face should cover the original at a time. Overlapping reward meshes
+            // at the same depth flicker, making this centre-position check unreadable.
+            if (ShieldPlacement == ShieldPlacementMode.Original)
+            {
+                if (_lastMountedShield != null) Destroy(_lastMountedShield.gameObject);
+                _lastMountedShield = shield;
+            }
 
             SpawnHeldShield();
             RaiseListeningSafe();
@@ -1499,6 +1680,12 @@ namespace HearApp.Worlds.VikingBoat
 
         public override void PresentOutcome(OutcomePresentationContext outcome)
         {
+            if (ShowShieldLayoutPreview)
+            {
+                RaiseListeningSafe();
+                return;
+            }
+
             if (outcome.Outcome != TrialOutcome.CorrectDetection)
             {
                 RaiseListeningSafe();
