@@ -42,34 +42,70 @@ namespace HearApp.Core.HearingEngine
         /// so this stays a plain delegate rather than a direct reference to Shell/UI types.</summary>
         public Func<Vector2, bool> IsScreenPointOverBlockingUI;
 
-        /// <summary>True once a session has been ended early by <see
-        /// cref="AbortSessionFranticTapping"/> - its results should be shown as uncounted, not as
-        /// a normal completed session.</summary>
-        public bool SessionInvalidatedByFranticTapping { get; private set; }
-
         /// <summary>True once the player has deliberately ended a session early via the pause
-        /// menu's "Quit to Home" (human request 2026-09-26: "dovol hru přerušit a navrátit se") -
-        /// distinct from <see cref="SessionInvalidatedByFranticTapping"/> so the Shell can show a
-        /// neutral message instead of a warning.</summary>
+        /// menu's "Quit to Home" (human request 2026-09-26: "dovol hru přerušit a navrátit se").</summary>
         public bool SessionEndedByUserQuit { get; private set; }
 
-        /// <summary>Fires with the strike number (1, 2, 3) each time a burst of rapid/frantic
-        /// tapping is detected within <see cref="FranticTapWindowSeconds"/> - human request
-        /// 2026-09-26: pause + warn on strikes 1-2, end the session (uncounted) on strike 3. The
-        /// Shell owns all the pause/warning/results UI this drives; the engine only detects and
-        /// (on strike 3) aborts.</summary>
-        public event Action<int> FranticTappingStrike;
+        /// <summary>Fires the first time a burst of rapid/frantic tapping is detected within
+        /// <see cref="FranticTapWindowSeconds"/> - human request 2026-09-26: originally pause and
+        /// warn on strikes 1-2, end the session (uncounted) on strike 3. Simplified 2026-09-29
+        /// once negative in-world feedback existed to make frantic tapping self-penalizing on its
+        /// own: "Opravdu je nebudeme potrebovat, protoze tim, ze zavedeme negativni body se to
+        /// freneticke tapani propise do spatnych vysledku. Ale ... pro nekoho, kdo to jeste
+        /// nepochopil, bychom to pri opravdu frenetickem tapani ukazat mohli - prave proto,
+        /// abychom vysvetlili, proc ... uz ztratil dost bodu ... Ukazal bych to ale jenom
+        /// jedenkrat." (we won't really need [the escalating warnings] any more, since introducing
+        /// negative points means frantic tapping already shows up in bad results on its own. But
+        /// for someone who still hasn't understood, we could still show it during genuinely
+        /// frantic tapping - precisely to explain why they've already lost a lot of points. I'd
+        /// show it only once, though). No more strike count, no forced session-abort - the Shell
+        /// shows one plain explanation and lets the session keep running exactly as dealt.
+        ///
+        /// "Only once" was first read as once per SESSION - human correction the same day, having
+        /// now seen it fire again on a later session: "Ten dialog, ze se klika moc, to staci
+        /// ukazat jednou behem lifetime aplikace. Dalsi takovy se ukaze jen kdyz se restartuje
+        /// app" (that dialog about tapping too much only needs to show once during the app's
+        /// whole lifetime - the next one only if the app restarts). <see
+        /// cref="_franticTappingWarned"/> is therefore deliberately never reset in <see
+        /// cref="BeginSession"/> any more - it lives as long as this TrialEngine instance does,
+        /// which (see GameFlowController's own DontDestroyOnLoad singleton) is the whole app
+        /// process, not any one session.</summary>
+        public event Action FranticTappingDetected;
+
+        /// <summary>Fires every 2nd wasted tap (see <see cref="RegisterWastedTap"/>) with the
+        /// (negative) point delta docked, so the Shell can show it landing visibly, the same way
+        /// a CorrectDetection's own points show up as a floating "+N".</summary>
+        public event Action<int> TapPenalty;
 
         // More sensitive than the original 8-taps/2.5s (human feedback 2026-09-26: it only
         // triggered after a truly excessive number of taps).
         private const int FranticTapCountThreshold = 5;
         private const float FranticTapWindowSeconds = 1.8f;
 
-        private IWorldPresentation _world;
+        // Human report 2026-09-29, after the first "drop the last shield on Miss/FalsePositive"
+        // cut: "tapu jako blazen, ale 'schodit' stit se mi povede jen vyjimecne! Musis to udelat
+        // citlivejsi... Ja bych navrhoval: kazde 2-he tapnuti 'mimo vysec' = jeden stit dolu! A
+        // kazda takova udalost musi znamenat take VIDITELNE body dolu" (I'm tapping like crazy,
+        // but 'knocking down' a shield only happens rarely - you have to make it more sensitive.
+        // I'd suggest: every 2nd tap 'outside the target zone' = one shield down, and every such
+        // event must also mean VISIBLE points going down). Real Miss/FalsePositive classification
+        // is honest audio-test data (see TrialOutcome's own doc comment) and can't be made more
+        // frequent just to feel more responsive without corrupting the actual hearing measurement
+        // - only ~1 trial in 7 is even a catch trial FalsePositive can fire on, and rapid tapping
+        // during a REAL tone trial's window generally just produces MORE CorrectDetections, not
+        // fewer. A "wasted tap" is a separate, raw-input signal instead: one that landed with no
+        // open response window to catch it, or an extra tap after the first one already claimed
+        // it - i.e. taps that couldn't possibly be an honest, deliberate response to a tone.
+        // Frantic tapping reliably produces many of these very quickly, independent of luck/timing.
+        private const int TapPenaltyPoints = 10;
+        private bool _responseWindowOpen;
+        private int _wastedTapCount;
+
+        private WorldPresentationBase _world;
         private TonePlayer _tonePlayer;
         private bool _tapReceived;
         private bool _abortRequested;
-        private int _franticStrikeCount;
+        private bool _franticTappingWarned;
         private readonly List<float> _recentTapTimes = new();
         private float _sessionElapsedSeconds;
         private float _estimatedTotalSeconds;
@@ -98,7 +134,16 @@ namespace HearApp.Core.HearingEngine
                     Vector2 pos = Pointer.current.position.ReadValue();
                     bool blockedByUi = IsScreenPointOverBlockingUI != null && IsScreenPointOverBlockingUI(pos);
                     if (!blockedByUi)
+                    {
+                        // Wasted: either no response window is even open right now (idle gap,
+                        // or still inside the previous trial's ProcessTrial/ListeningSafe wait),
+                        // or one already claimed this window and this is an extra/redundant tap.
+                        // Checked BEFORE setting _tapReceived, since that's exactly the flag this
+                        // is checking the prior state of.
+                        bool wasted = !_responseWindowOpen || _tapReceived;
                         _tapReceived = true;
+                        if (wasted) RegisterWastedTap();
+                    }
                 }
             }
 
@@ -117,7 +162,7 @@ namespace HearApp.Core.HearingEngine
         /// cycling through the trial plan as many times as it takes rather than stopping once a
         /// fixed trial count is exhausted - see <see cref="RunSession"/>. The progress bar tracks
         /// real elapsed time against this exact value, not an estimate.</param>
-        public void BeginSession(IWorldPresentation world, WorldContext context, float targetSessionSeconds)
+        public void BeginSession(WorldPresentationBase world, WorldContext context, float targetSessionSeconds)
         {
             _world = world ?? throw new ArgumentNullException(nameof(world));
             CurrentResult = new SessionResult();
@@ -125,37 +170,39 @@ namespace HearApp.Core.HearingEngine
             _sessionElapsedSeconds = 0f;
             Progress = 0f;
             _abortRequested = false;
-            SessionInvalidatedByFranticTapping = false;
             SessionEndedByUserQuit = false;
-            _franticStrikeCount = 0;
+            // _franticTappingWarned deliberately NOT reset here - see its own note, this now
+            // fires at most once across the app's whole lifetime, not once per session.
+            _responseWindowOpen = false;
+            _wastedTapCount = 0;
             _recentTapTimes.Clear();
             IsRunning = true;
             _world.Initialize(context);
         }
 
+        /// <summary>See the human request quoted above <see cref="TapPenaltyPoints"/>. Every 2nd
+        /// wasted tap docks points (visibly, via <see cref="TapPenalty"/>) and tells the active
+        /// world (<see cref="WorldPresentationBase.PresentTapPenalty"/>) - a raw input signal, not
+        /// a classified TrialOutcome, so it never touches CurrentResult/SessionResult.</summary>
+        private void RegisterWastedTap()
+        {
+            _wastedTapCount++;
+            if (_wastedTapCount % 2 != 0) return;
+
+            _world?.PresentTapPenalty();
+            TapPenalty?.Invoke(-TapPenaltyPoints);
+        }
+
         private void TrackFranticTapping(float nowUnscaled)
         {
+            if (_franticTappingWarned) return; // only ever fires once per app lifetime now
+
             _recentTapTimes.Add(nowUnscaled);
             _recentTapTimes.RemoveAll(t => nowUnscaled - t > FranticTapWindowSeconds);
             if (_recentTapTimes.Count < FranticTapCountThreshold) return;
 
-            _recentTapTimes.Clear(); // a fresh burst is needed to trigger the next strike
-            _franticStrikeCount++;
-            FranticTappingStrike?.Invoke(_franticStrikeCount);
-            if (_franticStrikeCount >= 3)
-                AbortSessionFranticTapping();
-        }
-
-        /// <summary>Ends the session early and marks it uncounted - called automatically on the
-        /// third frantic-tapping strike (see <see cref="FranticTappingStrike"/>).</summary>
-        public void AbortSessionFranticTapping()
-        {
-            if (!IsRunning) return;
-            _abortRequested = true;
-            SessionInvalidatedByFranticTapping = true;
-            IsRunning = false;
-            _world.SetSessionProgress(1f);
-            _world.CompleteSession(CurrentResult);
+            _franticTappingWarned = true;
+            FranticTappingDetected?.Invoke();
         }
 
         /// <summary>Ends the session early because the player chose to, via the pause menu - see
@@ -181,7 +228,7 @@ namespace HearApp.Core.HearingEngine
             int i = 0;
             while (_sessionElapsedSeconds < _estimatedTotalSeconds)
             {
-                if (_abortRequested) yield break; // AbortSessionFranticTapping/UserQuit already completed things
+                if (_abortRequested) yield break; // AbortSessionUserQuit already completed things
 
                 if (i >= plan.Count)
                 {
@@ -197,12 +244,17 @@ namespace HearApp.Core.HearingEngine
                 if (!spec.IsCatchTrial)
                     _tonePlayer.PlayTone(spec.FrequencyHz, 0.16f, spec.Channel);
 
+                // Open only for the genuine response window - see RegisterWastedTap's own note.
+                // A tap during the idle wait above, or during ProcessTrial's own wait below, finds
+                // this false and counts as wasted.
+                _responseWindowOpen = true;
                 float elapsed = 0f;
                 while (elapsed < ActiveWindowSeconds && !_tapReceived)
                 {
                     elapsed += Time.deltaTime;
                     yield return null;
                 }
+                _responseWindowOpen = false;
 
                 TrialOutcome outcome = spec.IsCatchTrial
                     ? (_tapReceived ? TrialOutcome.FalsePositive : TrialOutcome.CorrectRejection)

@@ -1069,6 +1069,13 @@ namespace HearApp.Worlds.VikingBoat
         private int _totalMounted;
         private Transform _lastMountedShield;
 
+        // Every shield currently mounted in the growing row (Sequential/Alternating only - see its
+        // own note in DropShieldRoutine), in mount order, so a later Miss/FalsePositive can pop the
+        // most recent one back off. ShieldPlacementMode.Original doesn't use this list - it already
+        // has its own single-slot replace-and-destroy tracking via _lastMountedShield above, and the
+        // two schemes would conflict if both tried to own the same shield's lifetime.
+        private readonly List<Transform> _mountedShields = new();
+
         private Vector3 ShieldPositionAtZ(float z) => new(HullOuterXAtZ(z), ShieldRailY, z);
 
         private Vector3 ShieldAlternatingPosition(int mountedIndex)
@@ -1147,8 +1154,73 @@ namespace HearApp.Worlds.VikingBoat
                 if (_lastMountedShield != null) Destroy(_lastMountedShield.gameObject);
                 _lastMountedShield = shield;
             }
+            else
+            {
+                _mountedShields.Add(shield);
+            }
 
             SpawnHeldShield();
+            RaiseListeningSafe();
+        }
+
+        // How far below the water plane's own surface (RiverWaterlineY) a dropped shield sinks to
+        // before being destroyed - just enough that it's fully hidden under the (opaque) water
+        // surface from this camera's own near-horizontal angle, not merely touching it.
+        private const float DropSubmergeDepth = 0.3f;
+
+        // See PresentOutcome's own note for the human request this implements and why it's
+        // cosmetic-only. Parented to the stationary world `transform` (the same parent BuildRiver
+        // uses for the water plane, so RiverWaterlineY is directly comparable), NOT `_shipPivot` -
+        // a dropped shield should fall straight down and get left behind as the ship keeps
+        // sailing, not travel along with it.
+        //
+        // First cut dropped the HELD (reserve/queued) shield - rejected the same day once the
+        // human noticed what was actually being animated: "Ty nechavas spadnout ty 'ze zasobniku'.
+        // Ja si predstavoval, ze budou padat ty, co uz predtim byly pripnute" (you're dropping the
+        // ones from the reserve. I imagined the ones that were ALREADY MOUNTED would fall). Asked
+        // which one specifically, chose the most recently mounted (over a random one from
+        // anywhere in the row): "Posledne pripnuty" - keeps the row visually contiguous (it only
+        // ever shrinks from its own growing end, never gets a hole in the middle), and needs no
+        // extra bookkeeping to close a gap. Pops from _mountedShields (pushed there by
+        // AttachShieldRoutine) instead of consuming _heldShield - the player's next-up reserve
+        // shield is untouched by a miss, only real prior progress is.
+        private IEnumerator DropShieldRoutine()
+        {
+            if (_mountedShields.Count == 0)
+            {
+                // Nothing mounted yet to undo - a miss here has nothing to take back.
+                RaiseListeningSafe();
+                yield break;
+            }
+
+            int lastIndex = _mountedShields.Count - 1;
+            Transform shield = _mountedShields[lastIndex];
+            _mountedShields.RemoveAt(lastIndex);
+            _totalMounted--; // frees this same row slot for the next successful mount to reuse
+
+            shield.SetParent(transform, true);
+            Vector3 startPosition = shield.localPosition;
+            Vector3 targetPosition = new(startPosition.x, RiverWaterlineY - DropSubmergeDepth, startPosition.z);
+
+            const float duration = 0.7f;
+            const float spinDegreesPerSecond = 540f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                // Ease-IN (t*t, accelerating) - the opposite of AttachShieldRoutine's ease-out flight
+                // to the rail; a real fall speeds up, it doesn't decelerate into place.
+                float eased = t * t;
+                shield.localPosition = Vector3.Lerp(startPosition, targetPosition, eased);
+                shield.Rotate(Vector3.right, spinDegreesPerSecond * Time.deltaTime, Space.World);
+                yield return null;
+            }
+
+            // No SpawnHeldShield() here, unlike AttachShieldRoutine - the player's queued/reserve
+            // shield (_heldShield) was never touched by this routine, so it's still waiting exactly
+            // as it was; nothing was consumed from it to refill.
+            Destroy(shield.gameObject);
             RaiseListeningSafe();
         }
 
@@ -1697,6 +1769,30 @@ namespace HearApp.Worlds.VikingBoat
         {
         }
 
+        // Human idea 2026-09-29: "Napadlo me vlozit negativni prvek. Kdyz uzivatel klikne 'mimo
+        // vysec', tak se stane opak toho, cim se ilustruje uspech. V pripade lodi by treba ten
+        // stit upadnul dolu pod lod do vody a naskocily by negativni body. Muzes to zkusit?
+        // Pozdeji bychom museli vymyslet, jak to ilustrovat v ostatnich svetech." (I thought of
+        // adding a negative element - when the user clicks "outside the target zone", the
+        // opposite of whatever illustrates success happens. For the ship, the shield could fall
+        // below the ship into the water and negative points would pop up. Can you try it? Later
+        // we'll need to work out how to illustrate this in the other worlds too.)
+        //
+        // Only for genuine errors (Miss/FalsePositive) - CorrectRejection is a silent catch trial
+        // correctly NOT responded to, still a correct outcome, so it stays on the same quiet path
+        // every other outcome used before this (see every sibling world's own PresentOutcome -
+        // "stay quiet, no punishment" was the deliberate, consistent design until now; this is a
+        // first, explicit exception for this one world only).
+        //
+        // The "negativni body" (negative points) half of this couldn't be wired up for real: this
+        // world's OutcomePresentationContext carries no score field, and points are computed
+        // entirely inside TrialEngine and rendered by ShellUIController's own private
+        // AnimatePointsPopup (screen-space shell UI, not reachable from world code) - and that
+        // system only ever awards points, it has no deduction/penalty concept to plug into even if
+        // it were reachable. A floating "-1" label would also need a TextMeshPro font asset, and
+        // none exists anywhere in this project yet. So DropShieldRoutine below is COSMETIC only
+        // for now (the shield sinks; no score anywhere actually changes) - flagged back to the
+        // human rather than silently building a fake number.
         public override void PresentOutcome(OutcomePresentationContext outcome)
         {
             if (ShowShieldLayoutPreview)
@@ -1705,13 +1801,34 @@ namespace HearApp.Worlds.VikingBoat
                 return;
             }
 
-            if (outcome.Outcome != TrialOutcome.CorrectDetection)
+            switch (outcome.Outcome)
             {
-                RaiseListeningSafe();
-                return;
+                case TrialOutcome.CorrectDetection:
+                    StartCoroutine(AttachShieldRoutine());
+                    break;
+                case TrialOutcome.Miss:
+                case TrialOutcome.FalsePositive:
+                    StartCoroutine(DropShieldRoutine());
+                    break;
+                default:
+                    RaiseListeningSafe();
+                    break;
             }
+        }
 
-            StartCoroutine(AttachShieldRoutine());
+        // Human report 2026-09-29: real Miss/FalsePositive was too rare to feel responsive when
+        // deliberately tapping fast - "tapu jako blazen, ale 'schodit' stit se mi povede jen
+        // vyjimecne" (I'm tapping like crazy, but 'knocking down' a shield only happens rarely).
+        // See TrialEngine.RegisterWastedTap's own note for the fix: a separate, raw-input "wasted
+        // tap" signal fires this every 2nd tap that couldn't have been an honest response, on top
+        // of (not instead of) the real Miss/FalsePositive path above. Reuses DropShieldRoutine
+        // as-is - which shield falls, and how, doesn't depend on why it's falling. No
+        // RaiseListeningSafe here: unlike PresentOutcome, this isn't part of the trial-pacing
+        // handshake, so there's nothing for the engine to wait on.
+        public override void PresentTapPenalty()
+        {
+            if (ShowShieldLayoutPreview) return;
+            StartCoroutine(DropShieldRoutine());
         }
 
         public override void SetSessionProgress(float normalizedProgress)

@@ -197,7 +197,8 @@ namespace HearApp.Core.Shell.UI
             // A tap on interactive HUD chrome (the pause button) must not also register as a
             // hearing-test response - human report 2026-09-26: tapping pause scored points.
             _flow.Engine.IsScreenPointOverBlockingUI = ScreenPointOverInteractiveHudElement;
-            _flow.Engine.FranticTappingStrike += OnFranticTappingStrike;
+            _flow.Engine.FranticTappingDetected += OnFranticTappingDetected;
+            _flow.Engine.TapPenalty += OnTapPenalty;
             OnStateChanged(_flow.State);
         }
 
@@ -217,7 +218,10 @@ namespace HearApp.Core.Shell.UI
             _flow.StateChanged -= OnStateChanged;
             _flow.SelectedWorldIndexChanged -= OnSelectedWorldChanged;
             if (_flow.Engine != null)
-                _flow.Engine.FranticTappingStrike -= OnFranticTappingStrike;
+            {
+                _flow.Engine.FranticTappingDetected -= OnFranticTappingDetected;
+                _flow.Engine.TapPenalty -= OnTapPenalty;
+            }
         }
 
         private void Update()
@@ -1676,6 +1680,15 @@ namespace HearApp.Core.Shell.UI
             }
         }
 
+        /// <summary>See TrialEngine.TapPenalty's own note - a negative amount, shown the same way
+        /// a CorrectDetection's own points are, just with a "-" instead of a "+" and a different
+        /// color (see AnimatePointsPopup) so a docked point reads as visibly different from an
+        /// earned one, not just a smaller version of the same thing.</summary>
+        private void OnTapPenalty(int amount)
+        {
+            StartCoroutine(AnimatePointsPopup(amount));
+        }
+
         /// <summary>Shared look for the pause menu and the frantic-tapping warning: a dimmed
         /// full-screen backdrop plus a centered card. Returns the (unparented) backdrop so the
         /// caller can add its own content to <paramref name="card"/> and remove the backdrop
@@ -1746,35 +1759,32 @@ namespace HearApp.Core.Shell.UI
             _pauseIcon.image = WorldArt.Icon("pause");
         }
 
-        /// <summary>Frantic/rapid-tapping defense (human request 2026-09-26): strikes 1 and 2
-        /// pause the session and show an escalating warning; strike 3 is handled by the engine
-        /// itself (<see cref="TrialEngine.AbortSessionFranticTapping"/>, called from inside
-        /// TrackFranticTapping), which ends the session - <see cref="ShowResultsScreen"/> reports
-        /// it as uncounted once <see cref="GameFlowController.ShellState.Results"/> arrives, so
-        /// there is nothing left to show here for strike 3.</summary>
-        private void OnFranticTappingStrike(int strike)
+        /// <summary>Frantic/rapid-tapping defense (human request 2026-09-26): originally paused
+        /// and showed an escalating 2-strike warning, ending the session uncounted on a 3rd.
+        /// Simplified 2026-09-29 (see <see cref="TrialEngine.FranticTappingDetected"/>'s own note)
+        /// to a single, one-time explanation, no forced abort - negative in-world feedback (e.g.
+        /// VikingBoat's shield dropping into the water on a miss) now makes frantic tapping
+        /// self-penalizing without the Shell needing to intervene.</summary>
+        private void OnFranticTappingDetected()
         {
-            if (strike >= 3 || _flow.State != GameFlowController.ShellState.Playing) return;
+            if (_flow.State != GameFlowController.ShellState.Playing) return;
 
             _isPaused = true;
             Time.timeScale = 0f;
             if (_pauseIcon != null)
                 _pauseIcon.image = WorldArt.Icon("play");
 
-            ShowFranticTappingWarning(strike);
+            ShowFranticTappingWarning();
         }
 
-        private void ShowFranticTappingWarning(int strike)
+        private void ShowFranticTappingWarning()
         {
             var backdrop = BuildModalBackdrop(out var card);
 
-            string title = strike == 1 ? "Slow down" : "Seriously, slow down";
-            string body = strike == 1
-                ? "It looks like you're just tapping randomly. Only tap when you actually hear a tone - otherwise the test doesn't mean anything."
-                : "That's rapid tapping again. One more time and this session will end early, with its results not counted.";
-
-            card.Add(MakeLabel(title, VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, 0f, VisualTokens.Spacing.S));
-            card.Add(MakeModalBody(body));
+            card.Add(MakeLabel("Slow down", VisualTokens.Type.Headline, VisualTokens.Colors.Ink900, 0f, VisualTokens.Spacing.S));
+            card.Add(MakeModalBody(
+                "It looks like you're just tapping randomly. Only tap when you actually hear a tone - " +
+                "otherwise the test doesn't mean anything, and you'll see it in your results."));
 
             var continueButton = MakePrimaryButton("Continue", () =>
             {
@@ -1788,14 +1798,16 @@ namespace HearApp.Core.Shell.UI
             _screenLayer.Add(backdrop);
         }
 
-        /// <summary>A "+20" pops up near the middle of the screen and flies into the points
-        /// badge, arcing and shrinking/fading as it goes, then the badge's own number updates and
         /// <summary>Hop-and-fade near the middle of the screen (where a catch happens), not a
         /// flight across the screen into the badge - human feedback 2026-09-25/26: flying all the
         /// way to the corner was distracting, and a `worldBound`-based pixel position landed the
         /// popup in the top-left corner instead of center screen (a layout-timing/coordinate-
         /// space bug). Anchored with `Length.Percent` instead, which the layout engine resolves
-        /// correctly on its own - no manual pixel math, no race with layout settling.</summary>
+        /// correctly on its own - no manual pixel math, no race with layout settling.
+        ///
+        /// <paramref name="amount"/> may be negative (see TrialEngine.TapPenalty) - shown as
+        /// "-N" in a warning red rather than "+N" in the usual amber, so a docked point reads as
+        /// a genuinely different kind of event, not just a smaller reward.</summary>
         private IEnumerator AnimatePointsPopup(int amount)
         {
             // Outer anchor: fixed at 50%/40% of the screen, centered on that point via a
@@ -1810,7 +1822,10 @@ namespace HearApp.Core.Shell.UI
                 },
                 pickingMode = PickingMode.Ignore
             };
-            var popup = MakeLabel($"+{amount}", new VisualTokens.TypeStyle(34, 700), new Color(0.96f, 0.77f, 0.32f));
+            bool isPenalty = amount < 0;
+            string sign = isPenalty ? "-" : "+";
+            Color popupColor = isPenalty ? new Color(0.87f, 0.31f, 0.27f) : new Color(0.96f, 0.77f, 0.32f);
+            var popup = MakeLabel($"{sign}{Mathf.Abs(amount)}", new VisualTokens.TypeStyle(34, 700), popupColor);
             popup.pickingMode = PickingMode.Ignore;
             anchor.Add(popup);
             _screenLayer.Add(anchor);
@@ -1831,7 +1846,8 @@ namespace HearApp.Core.Shell.UI
             }
             _screenLayer.Remove(anchor);
 
-            _hudPoints += amount;
+            // Clamped at 0 - a penalty can't ever show as a confusing negative badge total.
+            _hudPoints = Mathf.Max(0, _hudPoints + amount);
             _hudPointsLabel.text = _hudPoints.ToString();
             yield return PopBadge();
         }
@@ -1858,37 +1874,11 @@ namespace HearApp.Core.Shell.UI
         // See sources/Results/hear-results-handoff-v1.0 for the design handoff this follows.
         private void ShowResultsScreen()
         {
-            // Ended early by 3 frantic-tapping strikes (human request 2026-09-26) - tell the
-            // player plainly instead of showing normal/historical results (which, per
-            // GameFlowController.EnterWorldRoutine, deliberately never got this session appended
-            // to SessionHistoryStore), per "rict, ze body se nezapocetnou".
-            if (_flow.Engine != null && _flow.Engine.SessionInvalidatedByFranticTapping)
-            {
-                var invalidScreen = NewScreen();
-                AddTopLeftBackButton(invalidScreen, glassy: false, GoBackToHome);
-                invalidScreen.Add(MakeLabel("Session ended", VisualTokens.Type.Title, VisualTokens.Colors.Ink900));
-                var invalidatedBody = new Label(
-                    "We ended this session early because of repeated rapid tapping. Results from " +
-                    "this session are not counted - give it another try and tap only when you " +
-                    "actually hear a tone.")
-                {
-                    style =
-                    {
-                        fontSize = VisualTokens.Type.Body.Size, unityFontStyleAndWeight = VisualTokens.Type.Body.Style,
-                        color = VisualTokens.Colors.Ink700, marginTop = VisualTokens.Spacing.S, marginBottom = VisualTokens.Spacing.XL,
-                        whiteSpace = WhiteSpace.Normal, maxWidth = 360, unityTextAlign = TextAnchor.MiddleCenter
-                    }
-                };
-                invalidScreen.Add(invalidatedBody);
-                invalidScreen.Add(ResultsScreenBuilder.BuildNonMedicalReminder());
-
-                var backEarly = MakeSecondaryButton("Back to Worlds", () => _flow.ReturnToSelectorFromResults());
-                backEarly.style.width = 200;
-                backEarly.style.maxWidth = Length.Percent(85);
-                invalidScreen.Add(backEarly);
-                return;
-            }
-
+            // Used to special-case a session ended early by 3 frantic-tapping strikes (human
+            // request 2026-09-26) with a plain "not counted" screen instead of normal results.
+            // Removed 2026-09-29 along with the strike/abort mechanism itself - see
+            // TrialEngine.FranticTappingDetected's own note; every session now runs its full
+            // course and shows normal results regardless of tapping pattern.
             var screen = NewScreen(padded: false);
             // Back button is embedded directly in ResultsScreenBuilder.BuildHeader's own title row
             // now (glassy: true there too, for contrast against this screen's own art background -

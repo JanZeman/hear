@@ -229,14 +229,11 @@ namespace HearApp.Core.Shell
             // two later (a jarring flash back to Results after already leaving).
             if (Engine.SessionEndedByUserQuit) yield break;
 
-            // Frantic-tap-invalidated sessions are explicitly "not counted" (human request
-            // 2026-09-26 - see ShellUIController.ShowResultsScreen) - don't persist them into
-            // history either, only real/normal completions.
-            if (!Engine.SessionInvalidatedByFranticTapping)
-            {
-                var record = SessionHistoryEntry.FromResult(entry.Id, Engine.CurrentResult);
-                SessionHistoryStore.Append(record);
-            }
+            // Used to skip persisting frantic-tap-invalidated sessions (human request 2026-09-26) -
+            // that whole abort path is gone now (see TrialEngine.FranticTappingDetected's own
+            // note), so every completed session is real and gets recorded.
+            var record = SessionHistoryEntry.FromResult(entry.Id, Engine.CurrentResult);
+            SessionHistoryStore.Append(record);
 
             HasJustCompletedSession = true;
             SessionCompleted?.Invoke(Engine.CurrentResult);
