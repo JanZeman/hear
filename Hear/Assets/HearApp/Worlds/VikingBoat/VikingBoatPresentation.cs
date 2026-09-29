@@ -635,9 +635,25 @@ namespace HearApp.Worlds.VikingBoat
         // along its ray through the decal centre keeps both projected centres identical.
         private const float OriginalShieldCameraClearance = 0.06f;
         private enum ShieldPlacementMode { Original, Alternating, Sequential }
-        private const ShieldPlacementMode ShieldPlacement = ShieldPlacementMode.Alternating;
-        // Temporary layout preview: show the complete row before any player interaction.
-        private const bool ShowShieldLayoutPreview = true;
+        // Was Alternating (zigzag out from the original, both directions) while the row's own
+        // position/rotation math was under tuning, so every awarded shield stayed close to the
+        // original and visible in the preview's own tight frame. Switched to Sequential once that
+        // tuning was done and the real "shields only appear on success" flow came back - human:
+        // "ty stity se pridavaji, ale maji se pridavat od leva do prava, od pridi smerem k zadi
+        // lodi" (the shields are being added, but they should be added left to right, from the
+        // bow toward the stern) - matching the row's own original bow-to-stern design intent (see
+        // ShieldRowPosition's note).
+        private const ShieldPlacementMode ShieldPlacement = ShieldPlacementMode.Sequential;
+        // Temporary layout preview: show the complete row before any player interaction. Used
+        // through several rounds of tuning position/rotation (see HullClearance and
+        // HullOuterNormalYawDegreesAtZ's own notes) so every change was visible on-device at once
+        // instead of needing many correct answers to refill the row each time. Turned back off the
+        // same day the row was actually approved - human: "Ted je potreba vratit ten herni prvek,
+        // tj. ze na zacatku ty stity nejsou na lodi, ale pridavaji se pouze pri 'uspechu'" (now the
+        // game element needs to come back - the shields aren't on the ship at the start, they only
+        // get added on "success"). PresentOutcome already had the real per-outcome path underneath
+        // this flag the whole time (see its own body) - flipping it off is the only change needed.
+        private const bool ShowShieldLayoutPreview = false;
         private const int ShieldLayoutPreviewCount = 12;
 
         private Vector3 OriginalShieldMountPosition()
