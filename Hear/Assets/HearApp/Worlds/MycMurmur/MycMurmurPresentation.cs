@@ -426,6 +426,46 @@ namespace HearApp.Worlds.MycMurmur
             return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
         }
 
+        // Human request 2026-09-30, after VikingBoat's own "shield falls into the water on a
+        // miss": "Jak by mely vypadat 'trestne animace' u dalsich svetu? U mycenia by asi mela
+        // houba opet zmizet do zeme. Nebo se alespon vyrazne zmensit." (how should the "penalty
+        // animations" look for the other worlds? For Mycelium the mushroom should probably
+        // disappear into the ground again, or at least shrink drastically) - "the simple one
+        // first", per the immediate follow-up. Mirrors VikingBoat's own DropShieldRoutine exactly:
+        // undo the LAST successful growth (not some arbitrary one), reusing the same slot/scale
+        // state GrowNextMushroomRoutine already tracks, and free _revealIndex back down so the
+        // next CorrectDetection regrows that same slot rather than skipping ahead.
+        private IEnumerator ShrinkLastMushroomRoutine()
+        {
+            if (_revealIndex == 0)
+            {
+                // Nothing grown yet to undo - same "nothing to lose" guard as VikingBoat's
+                // DropShieldRoutine when its own mounted-shield list is empty.
+                RaiseListeningSafe();
+                yield break;
+            }
+
+            _revealIndex--;
+            var mushroom = _mushroomSlots[_revealIndex];
+            Vector3 grownScale = _mushroomTargetScales[_revealIndex];
+
+            const float duration = 0.5f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                // Ease-IN (accelerating) - the same "opposite of the eased-out grow-in" logic as
+                // VikingBoat's fall: sinking into the ground speeds up, it doesn't decelerate.
+                float eased = t * t;
+                if (mushroom != null) mushroom.localScale = Vector3.Lerp(grownScale, Vector3.zero, eased);
+                yield return null;
+            }
+
+            if (mushroom != null) mushroom.localScale = Vector3.zero;
+            RaiseListeningSafe();
+        }
+
         // Ambient, always-on (not reward-gated) - the pack's own Fireflies.prefab couldn't be
         // reused directly (this project builds everything procedurally at runtime, no prefab
         // pipeline - see every other world), so this is a small hand-rolled equivalent: warm
@@ -549,13 +589,29 @@ namespace HearApp.Worlds.MycMurmur
 
         public override void PresentOutcome(OutcomePresentationContext outcome)
         {
-            if (outcome.Outcome != TrialOutcome.CorrectDetection)
+            switch (outcome.Outcome)
             {
-                RaiseListeningSafe();
-                return;
+                case TrialOutcome.CorrectDetection:
+                    StartCoroutine(GrowNextMushroomRoutine());
+                    break;
+                case TrialOutcome.Miss:
+                case TrialOutcome.FalsePositive:
+                    // See ShrinkLastMushroomRoutine's own note - VikingBoat's exact pattern.
+                    StartCoroutine(ShrinkLastMushroomRoutine());
+                    break;
+                default:
+                    RaiseListeningSafe();
+                    break;
             }
+        }
 
-            StartCoroutine(GrowNextMushroomRoutine());
+        // See ShrinkLastMushroomRoutine's own note - VikingBoat's exact pattern (TrialEngine's
+        // wasted-tap signal, separate from real Miss/FalsePositive classification above). No
+        // RaiseListeningSafe here: not part of the trial-pacing handshake, same as VikingBoat's
+        // own override.
+        public override void PresentTapPenalty()
+        {
+            StartCoroutine(ShrinkLastMushroomRoutine());
         }
 
         public override void SetSessionProgress(float normalizedProgress)
