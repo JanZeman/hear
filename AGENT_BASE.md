@@ -316,6 +316,9 @@ Recommended agent-specific folders:
     `.agents/agent-base/standards/human-interruptions.md`
 - `scripts/agent-autonomy.py`
   - Four-vendor sandbox/automatic-review diagnostics and explicit machine-wide lifecycle
+  - Session-start diagnostics are scoped by `AGENT_BASE_VENDOR`; explicit
+    `acknowledge-manual-step --vendor <runtime> --step <id>` records completion of
+    unverifiable one-time steps in private autonomy state
   - The guard inspects actual machine, project, and VS Code state
   - Root `vendor.sh` audits, requests explicit consent, backs up changed settings, and prints a
     validated restore command before the helper applies Agent Base-owned values

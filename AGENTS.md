@@ -167,7 +167,10 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   Before autonomy or permission work, first load
   `.agents/agent-base/standards/human-interruptions.md`.
 - `AB-HUMAN-002` [`P1`]: Silent success. On agent-base failure, repair or roadmap; downstream
-  agents prepare an agent-base repair prompt. Details: `.agents/agent-base/standards/human-interruptions.md`.
+  agents prepare an agent-base repair prompt. After a successful guard, defer its notices to the
+  end of the first completed response unless an owning rule makes one a stop or approval gate; no
+  continuation prompt. A notice does not authorize its named action. Details:
+  `.agents/agent-base/standards/human-interruptions.md`.
 - `AB-UPDATE-001` [`P0`]: Before sync work, first load
   `.agents/agent-base/skills/agent-base-sync/SKILL.md`. During an agent-base update/migration,
   never guess ambiguous target, state, or action. Stop that scope and state missing evidence or
@@ -232,6 +235,10 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   operator-local policy in `wikis.json`; use a known result without re-asking, and resolve
   `unknown` before exposing private content. Details:
   `.agents/agent-base/standards/wiki-visibility.md`.
+- `AB-MCP-001` [`P1`]: When an MCP tool call fails with an authentication or authorization error,
+  suspect a stale process-level credential environment and recommend restarting the host
+  application before concluding the credential is invalid or proposing rotation. Details:
+  `.agents/agent-base/standards/mcp-credential-diagnostics.md`.
 <!-- AGENT-BASE-RULES:END -->
 
 ## Overrides

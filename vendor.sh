@@ -17,6 +17,7 @@ usage() {
 Usage:
   vendor.sh --codex|--claude|--copilot|--warp|--all
   vendor.sh --support-status
+  vendor.sh acknowledge-manual-step --vendor <runtime> --step <id>
   vendor.sh --codex|--claude|--copilot --restore BACKUP_DIR
 
 The default action audits the selected vendor first. If managed settings need to
@@ -28,6 +29,8 @@ USAGE
 vendor=""
 restore_dir=""
 support_status=false
+acknowledge=false
+manual_step=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --codex|--claude|--copilot|--warp|--all)
@@ -40,13 +43,33 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --support-status)
-      if [[ -n "$vendor" || "$support_status" == true || -n "$restore_dir" ]]; then
+      if [[ -n "$vendor" || "$support_status" == true || -n "$restore_dir" || "$acknowledge" == true ]]; then
         echo "--support-status cannot be combined with another option." >&2
         usage >&2
         exit 2
       fi
       support_status=true
       shift
+      ;;
+    acknowledge-manual-step)
+      acknowledge=true
+      shift
+      ;;
+    --vendor)
+      if [[ $# -lt 2 ]]; then
+        echo "--vendor requires a runtime." >&2
+        exit 2
+      fi
+      vendor="$2"
+      shift 2
+      ;;
+    --step)
+      if [[ $# -lt 2 ]]; then
+        echo "--step requires a step id." >&2
+        exit 2
+      fi
+      manual_step="$2"
+      shift 2
       ;;
     --restore)
       if [[ "$support_status" == true ]]; then
@@ -78,6 +101,15 @@ if [[ "$support_status" == true ]]; then
     exec python3 "$ROOT_DIR/scripts/vendor-support.py" status
   fi
   exec python3 "$ROOT_DIR/template/scripts/vendor-support.py" status
+fi
+
+if [[ "$acknowledge" == true ]]; then
+  if [[ -z "$vendor" || -z "$manual_step" ]]; then
+    echo "acknowledge-manual-step requires --vendor and --step." >&2
+    exit 2
+  fi
+  exec python3 "$AUTONOMY_SCRIPT" acknowledge-manual-step \
+    --vendor "$vendor" --step "$manual_step"
 fi
 
 if [[ -z "$vendor" ]]; then

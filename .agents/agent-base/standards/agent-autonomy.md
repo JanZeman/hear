@@ -33,7 +33,18 @@ and accepts only an explicit `yes` before a write. Each existing settings file t
 copied byte-for-byte into a private timestamped directory under the Agent Base operator config;
 the printed `vendor.sh --<vendor> --restore <backup-dir>` command validates vendor and target,
 backs up the current file, and then restores the selected snapshot atomically.
-Every downstream session guard runs only `check`. If action is needed, its output tells the agent
+Every downstream session guard runs only `check` for the runtime that launched the session, using
+`AGENT_BASE_VENDOR`; the Codex and Claude native startup hooks set that value, and sync updates
+the known legacy Claude hook command. It does not surface another runtime's pending manual work.
+A one-time
+unverifiable step remains pending until the human confirms it explicitly, for example:
+
+```bash
+bash vendor.sh acknowledge-manual-step --vendor warp --step agent-decides
+```
+
+The acknowledgement is stored in the existing private autonomy state and does not change settings.
+If action is needed, its output tells the agent
 which installed vendors and machine values already comply, reads the repository and VS Code user
 settings for conflicts, and distinguishes writable machine fixes from manual IDE/UI work. The
 agent directs the human to the consent-gated command, which reruns the check afterward and turns

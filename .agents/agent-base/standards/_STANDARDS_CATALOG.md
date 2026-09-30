@@ -23,6 +23,7 @@ sync.
 | [vendor-support.md](./vendor-support.md) | Vendor support tiers, local priority profile, and release coverage (`AB-VENDOR-001`) |
 | [model-routing.md](./model-routing.md) | Tool-first model routing, bounded LOW packets, route receipts, and Primary Claude coverage (`AB-MODEL-001`) |
 | [venture-staffing.md](./venture-staffing.md) | Staffing a work unit with the cheapest sufficient Actor: capability ladder, write lease, invocation contract, recovery (`AB-MODEL-001`) |
+| [mcp-credential-diagnostics.md](./mcp-credential-diagnostics.md) | Staged, secret-safe MCP connection diagnostics for fresh and managed hosts (`AB-MCP-001`) |
 
 Plain `kebab-name.md` filenames, no numeric prefix - this directory is small and grows rarely;
 a stable descriptive name is enough.

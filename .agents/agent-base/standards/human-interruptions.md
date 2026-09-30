@@ -30,6 +30,13 @@ diagnose and repair the failure when it is safe and in scope; otherwise create o
 relevant roadmap item. In a downstream client, do not guess at an upstream repair: prepare a
 copy-paste prompt for an agent-base agent with the visible failure and relevant checks.
 
+When a startup guard succeeds, its notices are informational unless a finding's owning rule makes
+one a stop or approval gate. Finish the requested work, then include a concise note at the end of
+the first completed response. Do not ask the human to defer the notice or confirm that work may
+continue. A notice does not authorize its named action: for example, reporting a missing sandbox
+setting does not authorize changing that setting. A failed check and any separate explicit stop or
+approval gate remain binding.
+
 ## Counting model
 
 - **Human request**: one distinct question, approval, confirmation, or requested human action.

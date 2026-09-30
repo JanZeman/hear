@@ -147,8 +147,9 @@ fi
 # Machine fixes go through consent-gated vendor.sh with timestamped backups. Manual-only IDE/UI
 # findings are handed off as exact user steps; undocumented editor state is never rewritten.
 if [[ -f "scripts/agent-autonomy.py" ]]; then
-  python3 scripts/agent-autonomy.py check --vendor all --repo "$ROOT_DIR" || \
-    warn "Agent autonomy diagnostics could not run; use: python3 scripts/agent-autonomy.py status --vendor all --repo ."
+  _autonomy_vendor="${AGENT_BASE_VENDOR:-all}"
+  python3 scripts/agent-autonomy.py check --vendor "$_autonomy_vendor" --repo "$ROOT_DIR" || \
+    warn "Agent autonomy diagnostics could not run; use: python3 scripts/agent-autonomy.py status --vendor $_autonomy_vendor --repo ."
 fi
 # AGENT-BASE-AUTONOMY-CHECK:END
 # AGENT-BASE-TOPIC-QUEUE-CHECK:START

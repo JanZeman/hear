@@ -55,6 +55,13 @@ COPILOT_SCALARS = {
     ("permissions", "disableBypassPermissionsMode"): "allow-auto-only",
 }
 VENDORS = ("codex", "claude", "copilot", "warp")
+MANUAL_STEPS = {
+    "warp": {
+        "agent-decides": (
+            "Review Warp Agent Decides sandbox recommendations in the Warp UI."
+        )
+    }
+}
 
 
 def config_home() -> Path:
@@ -245,6 +252,34 @@ def load_state() -> dict:
     if data.get("version") != STATE_VERSION or not isinstance(data.get("vendors"), dict):
         raise ValueError(f"unsupported state in {state_path()}")
     return data
+
+
+def manual_step(vendor: str, step: str) -> str:
+    steps = MANUAL_STEPS.get(vendor)
+    if steps is None or step not in steps:
+        known = ", ".join(sorted(steps or {})) or "none"
+        raise ValueError(f"unknown manual step {vendor}/{step}; known steps: {known}")
+    return steps[step]
+
+
+def manual_step_acknowledged(state: dict, vendor: str, step: str) -> bool:
+    acknowledged = state["vendors"].get(vendor, {}).get("manual_steps", {})
+    return isinstance(acknowledged, dict) and step in acknowledged
+
+
+def acknowledge_manual_step(vendor: str, step: str) -> None:
+    description = manual_step(vendor, step)
+    state = load_state()
+    vendor_state = state["vendors"].setdefault(vendor, {})
+    acknowledged = vendor_state.setdefault("manual_steps", {})
+    acknowledged[step] = {
+        "profile": AUTONOMY_PROFILE_VERSION,
+        "acknowledged_at": dt.datetime.now(dt.timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z"),
+    }
+    atomic_json(state_path(), state)
+    print(f"Acknowledged manual step {vendor}/{step}: {description}")
 
 
 def get_nested(data: dict, path: tuple[str, ...]) -> tuple[bool, object | None]:
@@ -661,14 +696,14 @@ def jsonc_scalar(text: str, key: str) -> object | None:
         return None
 
 
-def vscode_warnings() -> list[str]:
+def vscode_warnings(vendors: list[str]) -> list[str]:
     path = vscode_settings_path()
     if not path.exists():
         return []
     text = path.read_text(encoding="utf-8", errors="replace")
     warnings = []
     claude_mode = jsonc_scalar(text, "claudeCode.initialPermissionMode")
-    if claude_mode is not None:
+    if "claude" in vendors and claude_mode is not None:
         warnings.append(
             f"{path}: remove claudeCode.initialPermissionMode={claude_mode!r}; it cannot "
             "select Auto and overrides the extension's remembered/user-level Auto mode. "
@@ -682,7 +717,7 @@ def vscode_warnings() -> list[str]:
             "chat.tools.global.autoApprove",
         )
     )
-    if vscode_copilot_installed() or copilot_keys_present:
+    if "copilot" in vendors and (vscode_copilot_installed() or copilot_keys_present):
         assisted = jsonc_scalar(text, "chat.assistedPermissions.enabled")
         if assisted is not True:
             warnings.append(
@@ -731,11 +766,11 @@ def managed_findings(vendors: list[str]) -> list[str]:
         if not vendor_available(vendor):
             continue
         if vendor == "warp":
-            presented = state["vendors"].get("warp", {}).get("recommendation_presented")
-            if presented != AUTONOMY_PROFILE_VERSION:
+            if not manual_step_acknowledged(state, vendor, "agent-decides"):
                 findings.append(
-                    "Warp: review the current Agent Decides sandbox recommendations; "
-                    "Warp has no documented local settings API that agent-base can verify"
+                    "Warp: manual step agent-decides pending - review the current Agent "
+                    "Decides sandbox recommendations; Warp has no documented local settings "
+                    "API that agent-base can verify"
                 )
             continue
 
@@ -778,7 +813,7 @@ def advisory_findings(vendors: list[str], repo: Path) -> list[str]:
     if "claude" in vendors and vendor_available("claude"):
         findings.extend(project_claude_override(repo))
     if "claude" in vendors or "copilot" in vendors:
-        findings.extend(vscode_warnings())
+        findings.extend(vscode_warnings(vendors))
     return findings
 
 
@@ -800,7 +835,8 @@ def print_status(vendors: list[str], repo: Path) -> int:
         vendor_issues = [item for item in issues if vendor_has_finding(vendor, [item])]
         if vendor_issues:
             for item in vendor_issues:
-                print(f"MISSING {item}")
+                prefix = "PENDING" if vendor in MANUAL_STEPS else "MISSING"
+                print(f"{prefix} {item}")
         elif vendor == "warp":
             print(f"MANUAL warp recommendation presented for profile {AUTONOMY_PROFILE_VERSION}")
         else:
@@ -819,26 +855,35 @@ def print_status(vendors: list[str], repo: Path) -> int:
 def print_check(vendors: list[str], repo: Path) -> int:
     managed = managed_findings(vendors)
     advisory = advisory_findings(vendors, repo)
-    if not managed and not advisory:
+    manual = [
+        finding
+        for finding in managed
+        if any(finding.startswith(f"{vendor.capitalize()}:") for vendor in MANUAL_STEPS)
+    ]
+    machine = [finding for finding in managed if finding not in manual]
+    if not machine and not manual and not advisory:
         return 0
     print("\nAGENT AUTONOMY DIAGNOSTIC ACTION REQUIRED")
     for vendor in vendors:
         if vendor_available(vendor) and not vendor_has_finding(vendor, managed):
             label = "recommendation already presented" if vendor == "warp" else "managed settings compliant"
             print(f"  ALREADY OK: {vendor}: {label}")
-    for finding in managed:
+    for finding in machine:
         print(f"  MACHINE: {finding}")
+    for finding in manual:
+        print(f"  MANUAL: {finding}")
     for finding in advisory:
         print(f"  MANUAL: {finding}")
-    if managed:
-        print("  Run: bash vendor.sh --all")
+    if machine:
+        selection = vendors[0] if len(vendors) == 1 else "all"
+        print(f"  Run: bash vendor.sh --{selection}")
         print("  The helper repeats the audit, requests explicit consent, creates backups,")
         print("  applies only Agent Base-owned settings, and reports remaining MANUAL steps.")
     else:
         print("  No install approval is needed: give the human these exact MANUAL steps now,")
         print("  with the reason for each. Do not ask whether the agent should perform UI work.")
     print("  Summarize; do not repeat this diagnostic verbatim.")
-    if advisory:
+    if advisory or manual:
         print("  Never rewrite undocumented IDE/Warp state automatically.")
     return 0
 
@@ -870,6 +915,12 @@ def main() -> int:
                 action="store_true",
                 help="confirm that the human explicitly approved the proposed machine writes",
             )
+    acknowledge = sub.add_parser(
+        "acknowledge-manual-step",
+        help="record that the human completed one documented manual step",
+    )
+    acknowledge.add_argument("--vendor", choices=VENDORS, required=True)
+    acknowledge.add_argument("--step", required=True)
     restore = sub.add_parser("restore")
     restore.add_argument("--vendor", choices=VENDORS, required=True)
     restore.add_argument("--backup", type=Path, required=True)
@@ -881,6 +932,9 @@ def main() -> int:
     args = parser.parse_args()
     vendors = selected_vendors(args.vendor)
     try:
+        if args.command == "acknowledge-manual-step":
+            acknowledge_manual_step(args.vendor, args.step)
+            return 0
         if args.command == "status":
             return print_status(vendors, args.repo.resolve())
         if args.command == "check":
