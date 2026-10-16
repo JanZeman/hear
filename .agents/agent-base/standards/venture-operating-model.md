@@ -61,11 +61,25 @@ automatically reopened unless the human requests it or a material contradiction 
 
 ## Review
 
-The guard periodically surfaces that a Venture hierarchy review is due; it never performs or
-blocks on the judgment. `venture-review` checks whether Strategy still serves Vision, Goals remain
-traceable to Purpose or Vision, roadmap work cites live objectives, and accumulated exceptions
-reveal a contradiction. A coherent review is silent. Findings are non-blocking and return to
-`venture-discovery` before approved Venture intent is changed.
+Each Venture declares one recurring **Cycle anchor** date in `.agents/VENTURE.md` (own section,
+next to Strategy): the day its OKR cycle first started. Cycles repeat every 3 calendar months from
+that month and day, clamped to the shorter month where the day does not exist. A per-Venture
+anchor, rather than one shared calendar date, is what keeps a fleet's reviews from landing on the
+same day; each Venture is staggered by whatever date its own human picked. The guard prints the
+current cycle position every session (`scripts/venture.py cycle-status`) -- which cycle, which day
+within it, and the next boundary date -- so the question "where are we" needs no separate lookup.
+
+A review becomes due exactly when today crosses a cycle boundary that has not yet been checked;
+there is no lead-time warning before it and no grace window after it, only the boundary itself.
+`venture-review` performs the check and never blocks on it: it looks at whether Strategy still
+serves Vision, Goals remain traceable to Purpose or Vision, roadmap work cites live objectives, and
+accumulated exceptions reveal a contradiction. A coherent review is silent. Findings are
+non-blocking and return to `venture-discovery` before approved Venture intent is changed.
+
+A Venture without a Cycle anchor yet (every one seeded before this existed) falls back to the
+legacy 30-day rolling check instead of failing `AB-VENTURE-001` -- backfilling the anchor is a
+per-Venture human decision about when its cycle should start, not something inferred the day this
+field shipped.
 
 ## Categories
 

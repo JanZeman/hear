@@ -141,9 +141,10 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   Strategy. When it plausibly moves that Objective, load its file and name the Key Result and
   direction; if it serves none, ask. First load
   `.agents/agent-base/standards/roadmap-workflow.md`.
-- `AB-ROADMAP-001` [`P0`]: Before any task, read `_ROADMAP_CATALOG.md`. If off-roadmap, low
-  priority, or leaving work unfinished, warn and await explicit confirmation, offering do-now,
-  roadmap, or both. First load `.agents/agent-base/standards/roadmap-workflow.md`.
+- `AB-ROADMAP-001` [`P0`]: Before a task past minutes of genuinely small, no-design-choice
+  work, read `_ROADMAP_CATALOG.md`. If off-roadmap, low priority, or leaving work unfinished,
+  warn and await explicit confirmation, offering do-now, roadmap, or both. First load
+  `.agents/agent-base/standards/roadmap-workflow.md`.
 - `AB-ROADMAP-003` [`P1`]: Idea, step, and archive share one file and row; `Status` tracks their
   lifecycle. Before adding one, check `.agents/roadmap/_ROADMAP_HISTORY.md` and the catalog's
   `Idea` rows for a match.

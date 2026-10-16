@@ -97,23 +97,21 @@ the correction is the next message. An unsent message may still be corrected, be
 instructions is worse than the record being tidy. This is the same discipline `AB-SESSION-001`
 applies to session snapshots and for the same reason: a record that can be revised cannot be cited.
 
-## Show the draft before it is sent
+## Send it, then say so
 
-Write the reply yourself, then show it to the human before it leaves. They say send it, or they
-correct something. Both are one look rather than a round trip: they are already the transport.
+Write the reply yourself and send it; do not wait for a look first. Tell the human what went out,
+name the file, and say plainly that they can send a correction as the next message if something was
+misread. That is one notice instead of one round trip.
 
 This is not a softening of independence. The point of a second correspondent is a view that was not
-steered, so the draft is yours and arrives unprompted; what the human is being given is the chance
-to catch a misreading before it becomes permanent. A message is immutable, so a misunderstanding
-sent is a misunderstanding that stays, answered in the next letter and never removed from the one
-that made it. That makes review before sending more important here than in ordinary conversation,
-not less.
+steered, so the draft was always written and sent unprompted; what changed is only when the human
+sees it. A message is immutable either way, so a pre-send look and a post-send correction differ
+only in whether a miscommunication costs one letter or two. The human who set this default is
+trading a round trip on every message for an extra letter on the rare one that needs it, having
+said yes to the look often enough that the look stopped paying for itself.
 
-The failure this exists for is mundane: a word read the wrong way. A correspondent that translates
-"bake" into a word the other side reads as "pack" has produced a letter that will be answered
-carefully and beside the point, and the record will carry both.
-
-Skip the look only when the human has said to.
+Ask before sending, instead, only when the human has said to for that specific correspondence or
+that specific kind of message. Absent that, the default is: send, then tell.
 
 ## Whose turn it is
 

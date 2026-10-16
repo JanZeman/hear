@@ -23,7 +23,11 @@ let work proceed against an undefined target. Catalog: `.agents/goals/_GOALS_CAT
 
 ## Before starting a task (AB-ROADMAP-001)
 
-Before starting any task:
+This never gates a genuinely small task: minutes, one obvious correction, no design choice, and
+describing it would cost more than doing it -- the same bar used below for work discovered inside
+other work. A one-off helper script with no design decision in it is the common case this
+exempts; stating its roadmap alignment would cost more than writing it. For anything past that
+bar:
 
 1. Read `_ROADMAP_CATALOG.md` and any relevant roadmap files.
 2. List `.agents/sessions/` -- the filenames alone are enough, since the leading timestamp already

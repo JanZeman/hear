@@ -180,6 +180,7 @@ fi
 _venture_helper="scripts/venture.py"
 _venture_wiki_due=false
 _venture_review_due=false
+_venture_cycle_status=""
 if [[ -f "$_venture_helper" ]]; then
   _venture_refresh="$(python3 "$_venture_helper" --root "$ROOT_DIR" refresh-summary 2>&1)" ||
     warn "Venture Summary could not be refreshed: $_venture_refresh"
@@ -191,6 +192,7 @@ if [[ -f "$_venture_helper" ]]; then
     && [[ "$(python3 "$_venture_helper" --root "$ROOT_DIR" check-due --kind review 2>/dev/null || true)" == "due" ]]; then
     _venture_review_due=true
   fi
+  _venture_cycle_status="$(python3 "$_venture_helper" --root "$ROOT_DIR" cycle-status 2>/dev/null || true)"
 fi
 # AGENT-BASE-VENTURE-PREPARE:END
 # AGENT-BASE-QUALITY:START
@@ -720,6 +722,9 @@ if [[ -f "${_venture_helper:-scripts/venture.py}" ]]; then
   if [[ "${_venture_review_due:-false}" == true ]]; then
     echo -e "${DIM}  Venture hierarchy review is due. Load venture-review; a coherent review${NC}"
     echo -e "${DIM}  stays silent and any finding is non-blocking.${NC}"
+  fi
+  if [[ -n "${_venture_cycle_status:-}" ]]; then
+    echo -e "${DIM}  ${_venture_cycle_status}${NC}"
   fi
 else
   echo ""

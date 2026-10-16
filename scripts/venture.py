@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import calendar
 import hashlib
 import json
 import os
+from datetime import date, timedelta
 from pathlib import Path, PurePosixPath
 import re
 import sys
@@ -48,6 +50,11 @@ IDENTITY_FALLBACK_LABELS = {
 IDENTITY_RECOMMENDED_MAX_WORDS = 25
 CONTEXT_MAX_WORDS = 250
 DEFINED_SECTIONS = ("Purpose", "Vision", "Strategy")
+# Deliberately not in DEFINED_SECTIONS, same reasoning as IDENTITY_SECTION: it was added after
+# ventures already existed, so a missing anchor falls back to the legacy day-count review cadence
+# instead of failing AB-VENTURE-001 for every repository that has not backfilled one yet.
+CYCLE_SECTION = "Cycle anchor"
+CYCLE_MONTHS = 3
 MIRRORED_CATEGORIES = {
     "departments",
     "feedback",
@@ -178,6 +185,72 @@ def load_identity(root: Path) -> str | None:
     if not path.is_file():
         return None
     return _section_value(path.read_text(encoding="utf-8"), IDENTITY_SECTION)
+
+
+def load_cycle_anchor(root: Path) -> date | None:
+    """The date this Venture's recurring OKR cycle started, or None when undefined.
+
+    Staggering every Venture's cycle off one shared calendar date (e.g. every quarter starting
+    January 1st) would pile every fleet review onto the same day; the anchor lets each Venture
+    pick its own recurring start instead. Only the month and day repeat -- the year is where the
+    human-chosen start happened to fall, not a claim that stays meaningful across years.
+    """
+    path = root / ".agents" / "VENTURE.md"
+    if not path.is_file():
+        return None
+    value = _section_value(path.read_text(encoding="utf-8"), CYCLE_SECTION)
+    if value is None:
+        return None
+    match = re.fullmatch(r"(\d{4})-(\d{2})-(\d{2})", value.strip())
+    if not match:
+        raise VentureError(
+            f"'{CYCLE_SECTION}' must be a single YYYY-MM-DD date, found: {value!r}"
+        )
+    try:
+        return date(int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    except ValueError as error:
+        raise VentureError(f"'{CYCLE_SECTION}' is not a valid calendar date: {error}") from error
+
+
+def _add_months(start: date, months: int) -> date:
+    """Calendar-month addition, clamped to the target month's last day.
+
+    A plain day-count cycle (e.g. 91 days) drifts off its original date within a few repeats.
+    Calendar months keep "starts the 1st" meaning the 1st every time, at the cost of one edge
+    case: a 31st anchor lands on the last day of a shorter target month instead of overflowing
+    into the next one.
+    """
+    month_index = start.month - 1 + months
+    year = start.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(start.day, calendar.monthrange(year, month)[1])
+    return date(year, month, day)
+
+
+def cycle_position(anchor: date, today: date) -> dict[str, Any] | None:
+    """Where `today` falls in the recurring cycle that started on `anchor`.
+
+    Returns None before the cycle has started yet. Otherwise returns the 1-based cycle number,
+    the day within it (1-based), its total length in days, and the boundary dates on each side --
+    everything the guard needs to print one line and everything `check_due` needs to decide
+    whether the current cycle has already been reviewed.
+    """
+    if today < anchor:
+        return None
+    cycle_number = 1
+    start = anchor
+    next_start = _add_months(start, CYCLE_MONTHS)
+    while next_start <= today:
+        start = next_start
+        next_start = _add_months(start, CYCLE_MONTHS)
+        cycle_number += 1
+    return {
+        "cycle": cycle_number,
+        "start": start,
+        "next": next_start,
+        "day": (today - start).days + 1,
+        "length": (next_start - start).days,
+    }
 
 
 def _goals_line(goals: list[tuple[str, str]]) -> str:
@@ -440,11 +513,42 @@ def checked_path(root: Path, kind: str = "wiki") -> Path:
 
 
 def check_due(root: Path, ttl: int, kind: str = "wiki") -> bool:
+    if kind == "review":
+        anchor = load_cycle_anchor(root)
+        if anchor is not None:
+            position = cycle_position(anchor, date.today())
+            if position is None:
+                return False
+            boundary = time.mktime(position["start"].timetuple())
+            try:
+                checked = int(checked_path(root, kind).read_text(encoding="utf-8").strip())
+            except (OSError, ValueError):
+                return True
+            return checked < boundary
     try:
         checked = int(checked_path(root, kind).read_text(encoding="utf-8").strip())
     except (OSError, ValueError):
         return True
     return time.time() - checked >= ttl
+
+
+def cycle_status_line(root: Path) -> str | None:
+    """One guard-ready line naming where this Venture sits in its OKR cycle, or None to print
+    nothing -- no anchor defined yet, or a malformed one, is reported elsewhere (AB-VENTURE-001
+    coverage), not duplicated here."""
+    try:
+        anchor = load_cycle_anchor(root)
+    except VentureError:
+        return None
+    if anchor is None:
+        return None
+    position = cycle_position(anchor, date.today())
+    if position is None:
+        return f"Cycle not started yet; begins {anchor.isoformat()}."
+    return (
+        f"Cycle {position['cycle']}, day {position['day']} of {position['length']}, "
+        f"next OKR review {position['next'].isoformat()}."
+    )
 
 
 def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
@@ -565,6 +669,7 @@ def build_parser() -> argparse.ArgumentParser:
     due.add_argument("--ttl", type=int)
     checked = subparsers.add_parser("mark-checked")
     checked.add_argument("--kind", choices=tuple(CHECK_STAMPS), default="wiki")
+    subparsers.add_parser("cycle-status")
     config = subparsers.add_parser("wiki-config")
     config.add_argument("--registry", type=Path)
     visibility = subparsers.add_parser("wiki-visibility")
@@ -602,6 +707,10 @@ def main() -> int:
         elif args.command == "mark-checked":
             atomic_write(checked_path(root, args.kind), f"{int(time.time())}\n")
             print("checked")
+        elif args.command == "cycle-status":
+            line = cycle_status_line(root)
+            if line is not None:
+                print(line)
         elif args.command == "wiki-config":
             print(json.dumps(wiki_config(root, args.registry), sort_keys=True))
         elif args.command == "wiki-visibility":
