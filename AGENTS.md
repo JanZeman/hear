@@ -119,6 +119,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   update procedure may stage, commit, and push only its audited release or sync paths. A human
   reply of `kk` or `ok` (not bare `k`) to that exact block is the other exception: run it via
   `scripts/run-confirmed-commit.sh`, unedited. Details: `.agents/agent-base/standards/git.md`.
+- `AB-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
+  clean, branch, ahead or behind), re-read it with read-only Git after your last action in this
+  turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/agent-base/standards/git.md`.
 - `AB-SYNC-001` [`P1`]: "Update AB", "sync AB", or `ab.sh` means load
   `.agents/agent-base/skills/agent-base-sync/SKILL.md` before acting. Bare "AB" does not trigger
   it.

@@ -64,6 +64,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; CHECK=\"$ROOT/_sub/agent-base/template/scripts/check-git-state-claim.py\"; [[ -n \"$ROOT\" && -f \"$CHECK\" ]] && python3 \"$CHECK\" codex || true'"
+          }
+        ]
+      }
     ]
   }
 }

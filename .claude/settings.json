@@ -40,6 +40,14 @@
             "command": "STRIP=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/permission-auto-strip.sh\"; [[ -f \"$STRIP\" ]] && bash \"$STRIP\" || true"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-git-state-claim.py\"; [[ -f \"$CHECK\" ]] && python3 \"$CHECK\" claude || true"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

@@ -133,6 +133,27 @@ one merely because files synchronized.
 
 The user may ignore any of this at any time.
 
+## Fresh Git state before every claim (AB-GIT-003)
+
+Git state changes outside the agent's view: the human commits or pushes from their own terminal, a
+worktree sync merges branches, another session works in a sibling worktree. A sentence like "my
+changes in the second worktree are still uncommitted" is therefore a claim about the present, and
+what the agent saw earlier in the session is evidence only about the past.
+
+Before stating any Git state -- committed or not, pushed or not, clean or dirty, current branch,
+ahead or behind, untracked or staged -- run a read-only check after your last action that could
+change it, in the same turn, for every repository and worktree the statement names:
+`git -C <path> status -sb`, plus `git -C <path> log --oneline -3` or `git worktree list` where the
+claim needs it. Report what that output says, not what you remember. When you cannot check, say
+the state is unverified instead of stating it.
+
+**Enforcement**: `scripts/check-git-state-claim.py` runs as a `Stop` hook for Claude Code and
+Codex. When the agent's outgoing message states Git state and the current turn has no read-only
+Git check after its last file edit or state-changing command, it blocks the stop once and asks the
+agent to re-check and correct itself. It fires at most once per stop (`stop_hook_active`), always
+exits 0, and is a heuristic phrase match in English and Czech: it can miss a claim and can ask for
+a check that turns out unnecessary, which costs one `git status`.
+
 ## Cross-references
 
 - Behavior rules and rule IDs: see `AGENTS.md`

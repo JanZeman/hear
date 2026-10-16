@@ -53,8 +53,9 @@ where a script can run without the agent having to remember to run it itself.
    let it through with an added note or block it outright. The only one of the three that can see
    the *specific target* of the next action, not just the general moment.
 
-A fourth category (after a tool runs, session end, compaction) exists on at least one vendor but
-has no shipped agent-base mechanism yet; this file gets extended when one does.
+A fourth category, after the agent's turn ends (`Stop`), is described under "When each abstract
+layer is actually used" below. After a tool runs, session end, and compaction exist on at least
+one vendor but have no shipped agent-base mechanism yet; this file gets extended when one does.
 
 ## Concrete implementation per vendor
 
@@ -158,14 +159,15 @@ already requires, rather than assuming parity with Claude Code and Codex.
   structured JSON envelope on *both* vendors, unlike every-turn and session-start, where Claude
   Code also accepts plain stdout -- budget for a wrapper script per vendor here even when one
   vendor would otherwise need none.
-- **After the agent's turn ends** (a `Stop`-shaped event) exists on both vendors and can even force
-  the turn to continue rather than end, but no agent-base mechanism uses it yet. Checked while
-  designing the `AB-GIT-002` reminder above and deliberately not used for it: Codex's payload
-  carries a `stop_hook_active` guard against an infinite continuation loop, but Claude Code's does
-  not, so a blocking implementation here is asymmetric risk between vendors, not just asymmetric
-  effort. Reach for this point only for something that must react to the agent's own outgoing
-  message specifically, and prefer a purely observational use (log, do not block) until a
-  Claude-side loop guard is designed with the same care as the other three points above.
+- **After the agent's turn ends** (a `Stop`-shaped event) exists on both vendors and can force the
+  turn to continue (`{"decision": "block", "reason": ...}`) rather than end. Both vendors pass
+  `stop_hook_active` (true when the turn is already continuing because of a Stop hook) and
+  `last_assistant_message`; the earlier note here that Claude Code lacked `stop_hook_active` was
+  superseded by a check of the shipped Claude Code CLI on 2026-10-16. Reach for this point only
+  for something that must react to the agent's own outgoing message, and always let a turn with
+  `stop_hook_active` set end, so a hook bug can cost at most one extra continuation. Built as
+  `check-git-state-claim.py` (`AB-GIT-003`): one shared script for both vendors, blocking once when
+  the message states Git state without a fresh read-only Git check in the same turn.
 
 ## Cross-references
 
