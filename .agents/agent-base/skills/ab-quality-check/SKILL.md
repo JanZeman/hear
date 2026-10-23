@@ -57,7 +57,7 @@ python3 scripts/venture.py --root . context
 
 A non-zero exit means Identity, Purpose, Vision, Strategy, or Goals is missing or unfilled. Report
 `Venture compatible: No - Venture Context unavailable; load venture-discovery first` and stop
-there; the ten conditions below are not individually meaningful until this clears.
+there; the eleven conditions below are not individually meaningful until this clears.
 
 Give one table, most severe first:
 
@@ -65,8 +65,8 @@ Give one table, most severe first:
 | --- | --- | --- | --- | --- |
 
 State plainly when everything passes; a quality check that always finds something is a check
-nobody trusts. End with one line: `Venture compatible: Yes` when all ten conditions in the table
-are clear, otherwise `Venture compatible: No (N of 10 conditions below standard)`. This is computed
+nobody trusts. End with one line: `Venture compatible: Yes` when all eleven conditions in the table
+are clear, otherwise `Venture compatible: No (N of 11 conditions below standard)`. This is computed
 fresh from the table above, never cached or written anywhere; see
 `.agents/agent-base/standards/ab-quality.md`'s Compatibility section for what the term means and
 why the Categories tree (Products, Feedback, Resources, ...) is deliberately not part of it. Then

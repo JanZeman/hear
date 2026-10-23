@@ -112,13 +112,14 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `.agents/agent-base/standards/git.md`. Human controls history; only stash, submodule, the
   explicit `create-worktrees-by-convention` slots, and a verified direct `Update AB`, `publish AB`,
   or named fleet update (including its one-way `integration -> slot` worktree propagation) permit
-  mutations.
+  mutations. Git remote URLs use SSH; HTTPS only in an emergency.
 - `AB-GIT-002` [`P1`]: Outside a verified direct `Update AB`, `publish AB`, or named fleet update,
   show a block starting with `cd "<absolute current-worktree root>"`, then `git add .` and
   `git commit -m "<principle-centered English message>"`; never run its Git commands. The verified
-  update procedure may stage, commit, and push only its audited release or sync paths. A human
-  reply of `kk` or `ok` (not bare `k`) to that exact block is the other exception: run it via
-  `scripts/run-confirmed-commit.sh`, unedited. Details: `.agents/agent-base/standards/git.md`.
+  update procedure may stage, commit, and push only its audited release or sync paths. Only a human
+  reply starting with `kk` (never `ok` or bare `k`) to that exact block is the other exception: run it via
+  `scripts/run-confirmed-commit.sh`, unedited. Every commit uses the repository's configured Git
+  identity and no attribution trailer. Details: `.agents/agent-base/standards/git.md`.
 - `AB-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
   clean, branch, ahead or behind), re-read it with read-only Git after your last action in this
   turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/agent-base/standards/git.md`.

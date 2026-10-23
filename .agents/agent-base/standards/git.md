@@ -73,6 +73,21 @@ invites exactly the back-and-forth the handoff exists to avoid.
 `.claude/settings.json` deny lists. Other vendors rely on this contract and their sandbox or
 reviewer boundaries.
 
+## Remote URLs: SSH by default (AB-GIT-001)
+
+Every Git remote URL an agent writes or proposes uses the SSH form, `git@<host>:<owner>/<repo>.git`:
+`git submodule add`, `.gitmodules`, `git remote add` or `set-url`, a clone command handed to the
+human, and any URL recorded in a project file, config, or script. HTTPS is a last resort for an
+emergency only: SSH is genuinely unavailable, the work cannot wait, and the agent says so and names
+the URL it used, so the human can switch it back. Convenience, an unfamiliar environment, or a
+template that happens to show HTTPS is not an emergency.
+
+An environment that rewrites SSH to HTTPS at transport time (for example a cloud session's
+`url.<base>.insteadOf`) does not change what gets recorded: write the SSH URL and let the rewrite
+apply. A clone the environment itself created over HTTPS is the environment's, not an agent-written
+URL; leave it as it is. A separate tool or registry whose own documented contract requires HTTPS
+keeps that contract.
+
 ## Commit suggestions (AB-GIT-002)
 
 At every completed-work handoff, resolve the current worktree root with
@@ -115,18 +130,46 @@ Do not include `git push` for an ordinary local checkpoint. Include it for an Ag
 an explicit publication request, or a workflow that requires a pushed result. A verified direct
 Agent Base update is the narrow exception that may execute those commands itself.
 
-**Running a shown block on the human's reply (`AB-GIT-002`).** A bare `k` after this block keeps
-`AB-INPUT-001`'s ordinary meaning and does not authorize running it. `kk` or `ok` -- not bare `k`
--- means the human wants the shown block run on their behalf: the commit still carries the
-human's own configured Git identity, the agent only executes it. Run
-`scripts/run-confirmed-commit.sh --root "<the exact cd path just shown>" --message "<the exact
-message just shown>"` from that same root (agent-base's own upstream root instead runs
-`template/scripts/run-confirmed-commit.sh`, since it has no synced top-level copy of its own
-scripts), adding `--push` only if the block itself included `git push`. Never edit the root or the
-message before running them, and never run this for a block a different reply is answering -- it
-authorizes exactly the block just displayed, once, and lapses the moment another response is
-shown. This is a narrow, explicit exception to `AB-GIT-001`, not a general grant to run Git
-commands after any short reply.
+**Running a shown block on the human's reply (`AB-GIT-002`).** Only a reply whose first word is
+`kk` authorizes running the block just shown. Anything after that word is a comment, such as
+`kk, and push`; it neither adds nor removes authority. Case is ignored, and the word ends at the
+first character that is not a letter or digit. `ok`, a bare `k`, a reply that merely contains `kk`
+later, and every other reply keep their ordinary meaning (a bare `k` keeps `AB-INPUT-001`'s) and
+authorize nothing: `ok` is too easy to type by reflex as "understood". On `kk`, the human wants the shown block run on their behalf: the commit
+still carries the human's own configured Git identity, the agent only executes it. Run
+`scripts/run-confirmed-commit.sh --reply "<the human's reply, verbatim>" --root "<the exact cd path
+just shown>" --message "<the exact message just shown>"` from that same root (agent-base's own
+upstream root instead runs `template/scripts/run-confirmed-commit.sh`, since it has no synced
+top-level copy of its own scripts), adding `--push` only if the block itself included `git push`.
+The script refuses any reply whose first word is not `kk`. Never edit the root or the message before running
+them, and never run this for a block a different reply is answering -- it authorizes exactly the
+block just displayed, once, and lapses the moment another response is shown. This is a narrow,
+explicit exception to `AB-GIT-001`, not a general grant to run Git commands after any short reply.
+
+**Commit identity (`AB-GIT-002`).** These four clauses hold for every commit an agent creates or
+runs in a real repository, including through `scripts/run-confirmed-commit.sh` and a verified Agent
+Base update. Throwaway fixture repositories that tests and rehearsals create are not covered:
+
+1. **Identity source.** The commit uses the repository's configured `user.name` and `user.email`,
+   exactly as `git config user.name` and `git config user.email` resolve them. The agent never
+   passes `-c user.name=...`, `-c user.email=...`, `--author`, or `GIT_AUTHOR_*`/`GIT_COMMITTER_*`
+   values, and never writes a name or an email into a file or a rule. Agent Base itself contains
+   no identity.
+2. **Missing identity.** When either value is unset, the agent stops and asks the human to set it
+   in that repository (`git config user.name "<your name>"`, `git config user.email "<your
+   email>"`). It does not guess, borrow a value from somewhere else, or use a placeholder.
+3. **No attribution trailers.** The agent adds no `Co-Authored-By` trailer and no "Generated
+   with" or other tool-attribution line to commit messages or PR descriptions, even when its host
+   tool would add one by default. The human owns the history (`AB-GIT-001`).
+4. **Overrides.** A different identity for one client, such as another email, is set in that
+   client's Git config (`.git/config` or a file it includes). It is not a rule override and not an
+   `AGENTS.md` edit.
+
+Git config is never versioned, so a fresh clone starts without an identity; the session-start
+guard reports that as `AB-Q007` without printing either value, and
+`scripts/run-confirmed-commit.sh` refuses to run until both are set. A submodule such as
+`_sub/agent-base` keeps its own separate Git config. Reading it needs no identity, and agents
+never commit there; a human who commits inside it sets its identity there separately.
 
 **Syncing agent-base** remains routine maintenance, not a project roadmap step -- don't file
 one merely because files synchronized.

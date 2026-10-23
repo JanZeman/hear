@@ -269,6 +269,20 @@ if [[ -f "scripts/venture.py" ]]; then
   fi
 fi
 
+# AB-Q007: commits carry the identity in this clone's own Git config (AB-GIT-002), and Git
+# config is never versioned, so a fresh clone starts without it. Name the missing key, never a
+# value: the guard output lands in agent context and logs.
+_q_missing_identity=""
+for _q_key in user.name user.email; do
+  if [[ -z "$(git -C "$ROOT_DIR" config "$_q_key" 2>/dev/null || true)" ]]; then
+    _q_missing_identity="${_q_missing_identity:+$_q_missing_identity and }$_q_key"
+  fi
+done
+if [[ -n "$_q_missing_identity" ]]; then
+  _q_verb="is"; [[ "$_q_missing_identity" == *" and "* ]] && _q_verb="are"
+  _q_add "AB-Q007: Git $_q_missing_identity $_q_verb not set in this repository, so no commit can carry your identity. Set it here: git config user.name \"<your name>\" and git config user.email \"<your email>\"."
+fi
+
 if [[ -n "$_q_findings" ]]; then
   strong "AB quality: $(printf '%s' "$_q_findings" | grep -c '^') condition(s) below standard."
   printf '%s' "$_q_findings"

@@ -47,6 +47,7 @@ Mechanical conditions are enforced by the guard. Judged conditions are worked th
 | `AB-Q004` | guard | `strong` | Every answered request carries a `Blocks` value, so the way back exists |
 | `AB-Q005` | guard | `strong` | Every request file has a row in `_REQUESTS_CATALOG.md`, so the index and the directory agree |
 | `AB-Q006` | guard | `strong` | This repository has a wiki mapping in the operator-local `wikis.json` registry |
+| `AB-Q007` | guard | `strong` | This clone's Git config sets `user.name` and `user.email`, so a commit can carry the human's identity (`AB-GIT-002`); the guard names a missing key, never a value |
 | `AB-Q101` | skill | `strong` | `## Identity` says what the Venture is and how it is run, in words nobody could infer from the repository |
 | `AB-Q102` | skill | `strong` | A competent agent reading only the rendered `## Venture` block would open the canonical sources |
 | `AB-Q103` | skill | `strong` | Open requests are genuinely generic where they claim to be, and carry reproducible evidence |
@@ -55,12 +56,12 @@ Mechanical conditions are enforced by the guard. Judged conditions are worked th
 ## Compatibility
 
 "Venture compatible" is a defined, computed term, not a feeling: `AB-VENTURE-001`'s hard stop
-clears (`python3 scripts/venture.py --root . context` exits `0`) and all ten `strong`/`advice`
+clears (`python3 scripts/venture.py --root . context` exits `0`) and all eleven `strong`/`advice`
 conditions above are clear. Nothing else counts and nothing less does. The Categories tree
 (Products, Feedback, Resources, ...) is deliberately excluded: most of it is legitimately inactive
 for most Ventures, and requiring it would contradict Anti-bureaucracy.
 
-If the hard stop does not clear, compatibility is `No` outright and the ten conditions are not
+If the hard stop does not clear, compatibility is `No` outright and the eleven conditions are not
 individually meaningful; report that a human needs `venture-discovery` first rather than a partial
 count. The verdict is computed fresh every time it is asked, by `ab-quality-check`, never stored:
 a stored flag would go stale the moment one condition changes, which is exactly the failure mode
