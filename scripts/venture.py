@@ -648,11 +648,6 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
         data = _read_json_object(root / WIKI_FILE, str(WIKI_FILE))
         result = _validated_mapping(data)
         _validated_mirror(data)
-        purpose = data.get("purpose")
-        if purpose is not None:
-            if not isinstance(purpose, str) or not purpose.strip():
-                raise VentureError(f"wiki purpose in {WIKI_FILE} must be a non-empty sentence")
-            result["purpose"] = purpose.strip()
         return result, data.get("visibility"), "repository"
     if registry is None:
         registry = legacy_wiki_registry()
@@ -804,14 +799,6 @@ def main() -> int:
                 print(line)
         elif args.command == "wiki-config":
             print(json.dumps(wiki_config(root, args.registry), sort_keys=True))
-            if args.registry is None and wiki_source(root) == "repository" and "purpose" not in (
-                wiki_config(root)
-            ):
-                print(
-                    f"Venture: {WIKI_FILE} has no `purpose` saying what the wiki is for and who "
-                    "reads it",
-                    file=sys.stderr,
-                )
             if args.registry is None and wiki_source(root) == "legacy":
                 print(
                     f"Venture: the wiki mapping is still only in the operator-local registry; run "

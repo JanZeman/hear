@@ -46,7 +46,7 @@ Mechanical conditions are enforced by the guard. Judged conditions are worked th
 | `AB-Q003` | guard | `strong` | `## Identity` is not a verbatim restatement of `## Purpose` |
 | `AB-Q004` | guard | `strong` | Every answered request carries a `Blocks` value, so the way back exists |
 | `AB-Q005` | guard | `strong` | Every request file has a row in `_REQUESTS_CATALOG.md`, so the index and the directory agree |
-| `AB-Q006` | guard | `strong` | This repository has a valid wiki mapping in its own `.agents/wiki.json`, with a `purpose` naming what the wiki is for and who reads it |
+| `AB-Q006` | guard | `strong` | This repository has a valid wiki mapping in its own `.agents/wiki.json` |
 | `AB-Q007` | guard | `strong` | This clone's Git config sets `user.name` and `user.email`, so a commit can carry the human's identity (`AB-GIT-002`); the guard names a missing key, never a value |
 | `AB-Q101` | skill | `strong` | `## Identity` says what the Venture is and how it is run, in words nobody could infer from the repository |
 | `AB-Q102` | skill | `strong` | A competent agent reading only the rendered `## Venture` block would open the canonical sources |

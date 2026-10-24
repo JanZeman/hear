@@ -27,18 +27,17 @@ does not replace the batch's explicit write approval below.
 
 ## What belongs on the wiki
 
-A wiki page exists for a human reader. `.agents/wiki.json` states the wiki's `purpose`: what it is
-for in this Venture and who reads it. If it is missing, ask for it before proposing any write. By
-default the inventory maps only what describes the Venture to its people: `VENTURE.md`, goals,
-products and features, departments, resources, and feedback. Skills, standards, and workflows
+Read "What the wiki is for" in `venture-operating-model.md` first: the wiki is the human's window
+into the Venture, the repository is the superset, and nothing agents need in order to work ever
+appears on the wiki. By default the inventory maps only what describes the Venture to its
+people: `VENTURE.md`, goals, products and features, departments, resources, and feedback. Skills, standards, and workflows
 instruct agents and are not mirrored; one a human really reads (a runbook, a procedure the operator
 follows by hand) is added to the file's `mirror` list, by `.agents`-relative path or by a directory
 ending in `/`. Agent-base framework content is never mirrored. Before proposing a page, name its
 reader; a page with no reader is not proposed, even when the inventory lists it.
 
-Pages a human wrote directly on the wiki, under the mapped root or elsewhere, are wiki-owned: the
-sync never maps, overwrites, moves, or deletes them. Only pages recorded in `.agents/WIKI_SYNC.json`
-are sync-owned.
+Never overwrite, move, or delete an existing wiki page without the human's approval of that item.
+Only pages recorded in `.agents/WIKI_SYNC.json` are sync-owned.
 
 ## Read-only check
 
@@ -74,7 +73,10 @@ First adoption (no `.agents/WIKI_SYNC.json` yet) always starts with a read-only 
 batch is proposed: list every existing page under the mapped root and under any older location the
 human or the Venture's documents name, read them, and say what each holds. Then present one
 concise plan: for each proposed page its reader, source, path, Markdown conversion, and conflict
-with existing content; which existing pages stay wiki-owned; and rationale and risks. Never
+with existing content; how each existing page becomes known to the repository; and rationale and
+risks. Keep the existing pages and their structure; propose a restructuring only where the
+Venture's definition requires it, naming that rule for each change ("Converting an existing wiki"
+in `venture-operating-model.md`). Never
 invent a placeholder Product or automatically move flat `.agents/features/` content. Clear items
 may proceed while ambiguous items remain untouched.
 

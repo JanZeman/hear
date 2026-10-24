@@ -179,6 +179,26 @@ required correctness and verifies it; Security addresses malicious threats; Safe
 accidental harm and its likelihood, severity, controls, and safe failure. Marketing owns brand and
 positioning; UX owns usability and experience; Sales operates acquisition and commercial channels.
 
+## What the wiki is for
+
+The wiki is for the human. It is a human-friendly window into the Venture: a person opens it to
+understand quickly what the Venture is, where it is going, its Goals and Products, and the
+procedures a person reads. Agents do not need it; they work from the repository. Pages read as
+pages for a person, not as a dump of repository files.
+
+The repository is the superset. Everything on the wiki is also known in the repository, never the
+reverse: whatever agents need in order to work (skills, standards, catalogs, the roadmap,
+agent-base framework content, and any other agent technicality) never appears on the wiki.
+
+### Converting an existing wiki
+
+When a Venture adopts a wiki that already holds content, the conversion must not damage that
+information. Keep the existing pages and their structure as they are. Restructure (for example,
+splitting content by Department) only where the Venture's own definition requires it, and state
+for each such change which rule of the Venture requires it; without such a rule, the structure
+stays. The existing content becomes known to the repository as part of the conversion, so the
+repository remains the superset.
+
 ## Repository authority
 
 When a repository artifact and its mapped wiki page represent the same fact, repository state is

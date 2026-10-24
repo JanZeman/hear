@@ -222,14 +222,13 @@ repository's own `.agents/wiki.json`:
   "root": "en/ventures/venture-slug",
   "host": "wiki.example.com",
   "visibility": {"default": "public", "private_path_segments": ["internal"]},
-  "purpose": "What the wiki is for in this Venture and who reads it.",
   "mirror": ["skills/hand-run-procedure/"]
 }
 ```
 
-`purpose` is required (`AB-Q006`). A wiki page exists for a human reader, so by default only the
-Venture's human-facing categories are mirrored; `mirror` opts in a skill, standard, or workflow a
-human really reads. On a dedicated host, `root` is normally `en/internal`; on a shared host it is normally
+The wiki is the human's window into the Venture (see "What the wiki is for" in
+`venture-operating-model.md`), so by default only the Venture's human-facing categories are
+mirrored; `mirror` opts in a skill, standard, or workflow a human really reads. On a dedicated host, `root` is normally `en/internal`; on a shared host it is normally
 `en/ventures/<venture-slug>`. The connector selects the wiki connection, while `host` and
 `visibility` classify privacy by exact host and complete path segment. Run
 `python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
