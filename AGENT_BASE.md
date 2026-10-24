@@ -211,40 +211,31 @@ when they contain real information; framework creation templates live under
 The detailed boundaries, anti-bureaucracy test, routing rules, and wiki authority model live in
 `.agents/agent-base/standards/venture-operating-model.md`.
 
-### Operator-local wiki mapping
+### Repository wiki mapping
 
-The optional wiki registry lives at
-`${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/wikis.json`. It maps any local Venture, including
-Agent Base itself, without making that repository a downstream fleet member:
+A Venture's wiki mapping is a permanent property of its repository, so it lives in the
+repository's own `.agents/wiki.json`:
 
 ```json
 {
-  "wikis": [
-    {
-      "path": "/absolute/local/repository",
-      "connector": "operator-connector-id",
-      "root": "en/ventures/venture-slug",
-      "host": "wiki.example.com"
-    }
-  ],
-  "visibility_policies": {
-    "wiki.example.com": {"default": "public", "private_path_segments": ["internal"]}
-  }
+  "connector": "operator-connector-id",
+  "root": "en/ventures/venture-slug",
+  "host": "wiki.example.com",
+  "visibility": {"default": "public", "private_path_segments": ["internal"]}
 }
 ```
 
 On a dedicated host, `root` is normally `en/internal`; on a shared host it is normally
 `en/ventures/<venture-slug>`. The connector selects the wiki connection, while `host` and
-`visibility_policies` classify privacy by exact host and complete path segment. Run
+`visibility` classify privacy by exact host and complete path segment. Run
 `python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
-`.agents/agent-base/standards/wiki-visibility.md` for unknown or arbitrary targets. This
-configuration is local operational context, not Venture content: never copy its concrete values,
-absolute paths, host URLs, or credentials into the repository.
+`.agents/agent-base/standards/wiki-visibility.md` for unknown or arbitrary targets. Never put
+credentials or absolute URLs in the file.
 
-For transition compatibility, `venture.py` reads nested `wiki` objects from the operator's legacy
-`downstreams.json` only when `wikis.json` does not exist. This fallback is read-only; fleet
-eligibility remains determined independently by the entries in `downstreams.json`, which should
-contain only actual clients.
+For transition, `venture.py` still reads a mapping from the operator-local
+`${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/wikis.json` (or a legacy `downstreams.json`) when
+`.agents/wiki.json` is absent, and the guard reports it under `AB-Q006` until
+`python3 scripts/venture.py --root . migrate-wiki` writes the repository file.
 
 ## Recommended File Topology
 
@@ -330,8 +321,7 @@ Recommended agent-specific folders:
   - Refuses ambiguous or unsafe deletion; see `.agents/agent-base/standards/session-continuity.md`
 - `scripts/worktree-consolidate.sh` and root `worktrees.sh`
   - The keep-in-sync engine validates and consolidates only project-declared worktree slots; with
-    `--repo-id CODE` it discovers `<CODE><N>` slots, checks the main worktree folder is `<CODE>`,
-    and merges their `_<code><N>` branches
+    `--repo-id CODE` it discovers `<CODE><N>` slots and merges their `_<code><N>` branches
   - The customize-once wrapper declares nothing itself: it reads `stable_branch` and `repo_id`
     from `development-workflow.md`; using it does not expand agent Git authority beyond the one
     narrow, one-way `--to-slots-only` case a verified fleet update runs (`AB-GIT-001`, git.md)

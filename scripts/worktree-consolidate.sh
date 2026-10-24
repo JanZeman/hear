@@ -227,13 +227,7 @@ if [[ -n "$repo_id" ]]; then
   step "Discovering '$repo_id' worktree slots"
   # Slot folders use the uppercase form (<REPO_ID><N>); slot branches use lowercase (_<repo_id><N>).
   repo_id_upper="$(printf '%s' "$repo_id" | tr '[:lower:]' '[:upper:]')"
-  # The main worktree must be cloned into a folder named exactly <REPO_ID>. The whole slot naming
-  # scheme is derived from that, so a mismatch is a hard stop, not a guess.
-  if [[ "${primary_path##*/}" != "$repo_id_upper" ]]; then
-    error "Main worktree folder is '${primary_path##*/}', not '$repo_id_upper'."
-    error "Clone this repository into a folder named '$repo_id_upper' (see development-workflow.md)."
-    exit 1
-  fi
+  # The main worktree folder name is free; only the sibling slot folders follow <REPO_ID><N>.
   declare -a discovered_numbers=()
   for i in "${!wt_paths[@]}"; do
     [[ "${wt_paths[$i]}" == "$primary_path" ]] && continue

@@ -11,16 +11,18 @@ wiki edits are valid incoming proposals, not disposable copies.
 
 Read `.agents/agent-base/standards/venture-operating-model.md` first. Use
 `python3 scripts/venture.py --root . inventory` for the canonical repository inventory and
-deterministic relative wiki paths. Resolve the operator-local connector and Venture root with
-`python3 scripts/venture.py --root . wiki-config`; its source is the operator's `wikis.json`, not
-the downstream fleet registry. Never write that mapping, credentials, or absolute URLs into
-tracked Venture files. If it is absent, ask for configuration only when a wiki operation is
-requested; ordinary repository work continues.
+deterministic relative wiki paths. Resolve the connector and Venture root with
+`python3 scripts/venture.py --root . wiki-config`; its source is this repository's own
+`.agents/wiki.json`, a permanent property of the repository. Never write credentials or absolute
+URLs there. If it is absent, ask for the connector, root, host, and visibility only when a wiki
+operation is requested, then write the file; ordinary repository work continues. If the mapping
+still lives only in a legacy operator-local `wikis.json`, run
+`python3 scripts/venture.py --root . migrate-wiki` and commit `.agents/wiki.json`.
 
 Before a proposed wiki write, run `python3 scripts/venture.py --root . wiki-visibility` for the
 mapped root and classify every target path under it. Use a known result without re-asking about
-visibility; resolve `unknown` with the human before publishing. The procedure and operator-local
-policy schema are in `.agents/agent-base/standards/wiki-visibility.md`. Privacy classification
+visibility; resolve `unknown` with the human before publishing. The procedure and policy schema
+are in `.agents/agent-base/standards/wiki-visibility.md`. Privacy classification
 does not replace the batch's explicit write approval below.
 
 ## Read-only check

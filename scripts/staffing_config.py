@@ -8,8 +8,7 @@ The predicate this module enforces, stated before any code reads it:
 
 Two consequences follow, and both are deliberate.
 
-**The mapping lives outside the repository**, beside `vendor-support.json`, `downstreams.json`, and
-`wikis.json`. Which models an operator can actually reach depends on subscriptions and prices that
+**The mapping lives outside the repository**, beside `vendor-support.json`. Which models an operator can actually reach depends on subscriptions and prices that
 change monthly, and `GEN-001` keeps concrete infrastructure out of this repository. A default
 shipped here would be wrong within a release or two and would quietly teach every client the wrong
 answer in the meantime.

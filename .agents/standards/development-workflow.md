@@ -29,9 +29,9 @@ Branch deletion is always a manual, human-only action (`AB-GIT-001`).
 | `stable_branch` | `main` | The trunk. Defaults to `main`; change only if this project's trunk has a different name. |
 | `topic_prefixes` | `feature/ bugfix/ ci/` | Space-separated allowed prefixes for the optional short-lived topic branches. |
 
-- The **main worktree** is cloned into a folder named `<REPO_ID>` (the uppercase form of
-  `repo_id`, e.g. `AB`). This is enforced: `worktrees.sh` hard-fails and the session guard shows
-  a red non-compliance block if the folder name does not match.
+- The **main worktree** folder may have any name. Naming it `<REPO_ID>` (the uppercase form of
+  `repo_id`, e.g. `AB`) is a recommendation, never enforced, so local paths and symlinks keep
+  working.
 - **Linked worktree slots** are sibling folders `<REPO_ID>1`, `<REPO_ID>2`, and so on. Each slot
   has one dedicated branch `_<repo_id><N>` in lowercase (`_ab1` for `AB1`).
 - `_<repo_id><N>` carries that slot's work and is merged into `main` on consolidation. When the
@@ -80,7 +80,7 @@ Agent Base seeds a project-owned root `worktrees.sh` wrapper and keeps its gener
 `scripts/worktree-consolidate.sh` engine synchronized. The wrapper declares nothing: it reads
 `stable_branch` and `repo_id` from the table above and passes `--repo-id` to the engine, which
 discovers the `<REPO_ID><N>` slots and merges their `_<repo_id><N>` branches into the trunk and
-back. It hard-fails on a main worktree folder that is not `<REPO_ID>`, on a slot that is not on
+back. It hard-fails on a slot that is not on
 exactly its own `_<repo_id><N>` branch, and on an orphaned `_<repo_id><N>` branch with no
 worktree. It reports and ignores unrelated worktrees.
 

@@ -190,16 +190,15 @@ write.
 
 Wiki mapping and batch reconciliation are defined by the `venture-wiki-sync` skill. Framework
 content under `.agents/agent-base/`, session continuity, templates, local throttle state, and the
-sync manifest itself are not mirrored. Connector identity and the host-relative Venture wiki root
-live only in the operator-local `wikis.json` registry.
+sync manifest itself are not mirrored. Connector identity, the host-relative Venture wiki root, and the
+host's visibility live in the repository's own `.agents/wiki.json`.
 
 Roadmap is a canonical Venture category but is never mirrored, for this Venture or any downstream
 one. It is a working document for agents, not something a Product's beneficiaries or a Venture's
 human read on the wiki; mirroring it would be ceremony with no reader. An update to a roadmap item
 is made directly in the repository and needs no wiki republication.
 
-A wiki mapping is mandatory (`AB-Q006`): every Venture, whether or not an operator-local registry
-exists at all, must have one to be venture compatible. The guard reports a missing one every
+A wiki mapping is mandatory (`AB-Q006`): every Venture must have one in `.agents/wiki.json` to be venture compatible. The guard reports a missing one every
 session as a `strong`, never-blocking finding, naming the exact gap without naming any actual wiki
 host or path. Reconciliation itself remains on-demand: an unconfigured mapping still triggers no
 recurring *sync* work until the human asks for a wiki operation, only the recurring notice that one

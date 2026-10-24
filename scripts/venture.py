@@ -551,25 +551,53 @@ def cycle_status_line(root: Path) -> str | None:
     )
 
 
-def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
-    root = root.resolve()
-    if registry is None:
-        config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-        registry = config_home / "agent-base" / "wikis.json"
-        if not registry.exists():
-            registry = config_home / "agent-base" / "downstreams.json"
-    try:
-        data = json.loads(registry.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise VentureError(f"wiki registry is unavailable or invalid: {error}") from error
-    if not isinstance(data, dict):
-        raise VentureError("wiki registry root must be an object")
+WIKI_FILE = Path(".agents") / "wiki.json"
 
+
+def legacy_wiki_registry() -> Path:
+    """Transition only: the operator-local registry that `.agents/wiki.json` replaces."""
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    registry = config_home / "agent-base" / "wikis.json"
+    if not registry.exists():
+        registry = config_home / "agent-base" / "downstreams.json"
+    return registry
+
+
+def _validated_mapping(mapping: Any) -> dict[str, str]:
+    if not isinstance(mapping, dict):
+        raise VentureError("this Venture has no wiki mapping")
+    connector = mapping.get("connector")
+    wiki_root = mapping.get("root")
+    if not isinstance(connector, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", connector):
+        raise VentureError("wiki connector must be a non-empty local identifier")
+    if not _safe_relative(wiki_root) or "://" in wiki_root:
+        raise VentureError("wiki root must be a safe relative path below the connector host")
+    result = {"connector": connector, "root": wiki_root.strip("/")}
+    host = mapping.get("host")
+    if host is not None:
+        if not isinstance(host, str) or not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", host):
+            raise VentureError("wiki host must be a lowercase hostname")
+        result["host"] = host
+    return result
+
+
+def _read_json_object(path: Path, what: str) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise VentureError(f"{what} is unavailable or invalid: {error}") from error
+    if not isinstance(data, dict):
+        raise VentureError(f"{what} root must be an object")
+    return data
+
+
+def _legacy_entry(root: Path, registry: Path) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The matched mapping and the whole registry, from a legacy path-keyed registry file."""
+    data = _read_json_object(registry, "wiki registry")
     legacy = "wikis" not in data and "repositories" in data
     entries = data.get("repositories" if legacy else "wikis")
     if not isinstance(entries, list):
         raise VentureError("wiki registry wikis must be an array")
-
     matched: dict[str, Any] | None = None
     seen_paths: set[Path] = set()
     for item in entries:
@@ -590,33 +618,54 @@ def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
             matched = item
     if matched is None:
         raise VentureError("this Venture has no entry in the wiki registry")
-    mapping = matched.get("wiki") if legacy else matched
-    if not isinstance(mapping, dict):
-        raise VentureError("this Venture has no wiki mapping")
-    connector = mapping.get("connector")
-    wiki_root = mapping.get("root")
-    if not isinstance(connector, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", connector):
-        raise VentureError("wiki connector must be a non-empty local identifier")
-    if not _safe_relative(wiki_root) or "://" in wiki_root:
-        raise VentureError("wiki root must be a safe relative path below the connector host")
-    result = {"connector": connector, "root": wiki_root.strip("/")}
-    host = mapping.get("host")
-    if host is not None:
-        if not isinstance(host, str) or not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", host):
-            raise VentureError("wiki host must be a lowercase hostname")
-        result["host"] = host
-    return result
+    return (matched.get("wiki") if legacy else matched), data
+
+
+def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, str]:
+    """Mapping, visibility policy, and source ("repository" or "legacy").
+
+    The mapping is a permanent property of the repository, so `.agents/wiki.json` is the source.
+    An explicit or operator-local legacy registry is read only for the transition."""
+    root = root.resolve()
+    if registry is None and (root / WIKI_FILE).is_file():
+        data = _read_json_object(root / WIKI_FILE, str(WIKI_FILE))
+        return _validated_mapping(data), data.get("visibility"), "repository"
+    if registry is None:
+        registry = legacy_wiki_registry()
+        if not registry.exists():
+            raise VentureError(f"this Venture has no {WIKI_FILE}")
+    mapping, data = _legacy_entry(root, registry)
+    result = _validated_mapping(mapping)
+    policies = data.get("visibility_policies")
+    policy = policies.get(result["host"]) if "host" in result and isinstance(policies, dict) else None
+    return result, policy, "legacy"
+
+
+def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
+    return _load_wiki(root, registry)[0]
+
+
+def wiki_source(root: Path, registry: Path | None = None) -> str:
+    return _load_wiki(root, registry)[2]
+
+
+def migrate_wiki(root: Path, registry: Path | None = None) -> bool:
+    """Write the legacy registry's mapping for this Venture into `.agents/wiki.json`."""
+    root = root.resolve()
+    if (root / WIKI_FILE).exists():
+        return False
+    mapping, policy, _ = _load_wiki(root, registry or legacy_wiki_registry())
+    data: dict[str, Any] = dict(mapping)
+    if isinstance(policy, dict):
+        data["visibility"] = policy
+    atomic_write(root / WIKI_FILE, json.dumps(data, indent=2) + "\n")
+    return True
 
 
 def wiki_visibility(
     root: Path, registry: Path | None = None, path: str | None = None
 ) -> dict[str, str | None]:
-    if registry is None:
-        config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-        registry = config_home / "agent-base" / "wikis.json"
-        if not registry.exists():
-            registry = config_home / "agent-base" / "downstreams.json"
-    mapping = wiki_config(root, registry)
+    mapping, policy, _ = _load_wiki(root, registry)
     target_path = path if path is not None else mapping["root"]
     if not _safe_relative(target_path) or any(char in target_path for char in "?#%\\"):
         raise VentureError("wiki visibility path must be a safe host-relative path")
@@ -628,12 +677,6 @@ def wiki_visibility(
     }
     if host is None:
         return result
-    try:
-        data = json.loads(registry.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise VentureError(f"wiki registry is unavailable or invalid: {error}") from error
-    policies = data.get("visibility_policies")
-    policy = policies.get(host) if isinstance(policies, dict) else None
     if not isinstance(policy, dict) or policy.get("default") not in ("private", "public"):
         return result
     private_segments = policy.get("private_path_segments", [])
@@ -675,6 +718,8 @@ def build_parser() -> argparse.ArgumentParser:
     visibility = subparsers.add_parser("wiki-visibility")
     visibility.add_argument("--registry", type=Path)
     visibility.add_argument("--path")
+    migrate = subparsers.add_parser("migrate-wiki")
+    migrate.add_argument("--registry", type=Path)
     return parser
 
 
@@ -713,6 +758,14 @@ def main() -> int:
                 print(line)
         elif args.command == "wiki-config":
             print(json.dumps(wiki_config(root, args.registry), sort_keys=True))
+            if args.registry is None and wiki_source(root) == "legacy":
+                print(
+                    f"Venture: the wiki mapping is still only in the operator-local registry; run "
+                    f"`python3 scripts/venture.py --root . migrate-wiki` and commit {WIKI_FILE}",
+                    file=sys.stderr,
+                )
+        elif args.command == "migrate-wiki":
+            print("written" if migrate_wiki(root, args.registry) else f"unchanged: {WIKI_FILE} exists")
         elif args.command == "wiki-visibility":
             print(json.dumps(wiki_visibility(root, args.registry, args.path), sort_keys=True))
     except VentureError as error:

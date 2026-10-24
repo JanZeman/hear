@@ -238,7 +238,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   load `venture-wiki-sync`.
   Before writing any wiki page, load `.agents/skills/wiki-edit/SKILL.md` first.
 - `AB-WIKI-002` [`P1`]: Before any wiki write, classify its exact host and path using the
-  operator-local policy in `wikis.json`; use a known result without re-asking, and resolve
+  policy in `.agents/wiki.json`; use a known result without re-asking, and resolve
   `unknown` before exposing private content. Details:
   `.agents/agent-base/standards/wiki-visibility.md`.
 - `AB-MCP-001` [`P1`]: When an MCP tool call fails with an authentication or authorization error,

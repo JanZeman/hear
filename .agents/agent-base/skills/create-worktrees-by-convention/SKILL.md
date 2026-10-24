@@ -49,7 +49,6 @@ From the main repository worktree, verify all of the following before running an
 
 - `git rev-parse --show-toplevel` is the current directory and `git rev-parse --git-dir` equals
   `git rev-parse --git-common-dir`, proving this is the main rather than a linked worktree.
-- The main worktree folder name equals the uppercase `repo_id` (e.g. `AB` for `ab`).
 - `git status --porcelain=v1 --untracked-files=all` is empty.
 - Every base reference resolves, and each equals the branch currently checked out in the primary
   worktree.

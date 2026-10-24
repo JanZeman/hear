@@ -257,15 +257,15 @@ if [[ -d .agents/requests ]]; then
   done
 fi
 
-# AB-Q006: unconditional, per the human's explicit direction. Every Venture, whether or not an
-# operator-local wiki registry even exists, must have a wiki mapping to be venture
-# compatible. Structure only, never content: this reads scripts/venture.py's own error, which
-# names the missing piece (no registry, no repository entry, no wiki mapping, or a malformed
-# connector/root) without this guard knowing or naming any actual wiki host or path (GEN-001).
+# AB-Q006: unconditional, per the human's explicit direction. Every Venture must have a wiki
+# mapping in its own .agents/wiki.json to be venture compatible. Structure only, never content:
+# this reads scripts/venture.py's own message, which names the missing piece (no file, a malformed
+# connector/root, or a mapping still only in the legacy operator-local registry) without this
+# guard naming any actual wiki host or path.
 if [[ -f "scripts/venture.py" ]]; then
   _q_wiki_error="$(python3 scripts/venture.py --root "$ROOT_DIR" wiki-config 2>&1 >/dev/null || true)"
   if [[ -n "$_q_wiki_error" ]]; then
-    _q_add "AB-Q006: ${_q_wiki_error#Venture: }. Configure a wiki mapping; see venture-wiki-sync."
+    _q_add "AB-Q006: ${_q_wiki_error#Venture: }. See venture-wiki-sync."
   fi
 fi
 
@@ -347,9 +347,8 @@ fi
 # AGENT-BASE-WORKFLOW-CHECK:START
 # --- Trunk-based + worktree workflow compliance (read-only, never blocks the guard) ---
 # .agents/standards/development-workflow.md defines a trunk-based model (only `main`, no
-# dev/develop), a two-letter `repo_id`, the `<REPO_ID>` main-worktree folder rule, and the
-# `<REPO_ID><N>` / `_<repo_id><N>` slot convention. worktrees.sh hard-fails on the folder and
-# branch rules; this block only surfaces them once per session, loudly, in red. It must never
+# dev/develop), a two-letter `repo_id`, and the `<REPO_ID><N>` / `_<repo_id><N>` slot convention.
+# The main worktree folder name is free. worktrees.sh hard-fails on the slot branch rules; this block only surfaces them once per session, loudly, in red. It must never
 # touch exit_code: a non-zero guard strips the session's rules and Venture Context, the wrong
 # outcome for a repo that has simply not finished migrating.
 _wf_file=".agents/standards/development-workflow.md"
@@ -417,23 +416,13 @@ if [[ -f "$_wf_file" ]]; then
         done
       fi
     fi
-    # 2. Main worktree folder must be the uppercase repo_id. Only checkable in the main worktree.
-    _wf_top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-    _wf_gd="$(git rev-parse --path-format=absolute --git-dir 2>/dev/null || true)"
-    _wf_cd="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
-    if [[ -n "$_wf_top" && -n "$_wf_gd" && "$_wf_gd" == "$_wf_cd" ]]; then
-      _wf_want="$_wf_upper"
-      if [[ "${_wf_top##*/}" != "$_wf_want" ]]; then
-        _wf_problems="${_wf_problems}  - Main worktree folder is '${_wf_top##*/}', not '$_wf_want'. Clone this repository into a folder named '$_wf_want'.\n"
-      fi
-    fi
   fi
 fi
 if [[ -n "$_wf_problems" ]]; then
   echo ""
   echo -e "${RED}${BOLD}=== DEVELOPMENT WORKFLOW: NOT COMPLIANT ===${NC}"
   printf "${RED}%b${NC}" "$_wf_problems"
-  echo -e "${DIM}  Standard: $_wf_file. Branch deletion and folder moves are manual, human-only (AB-GIT-001).${NC}"
+  echo -e "${DIM}  Standard: $_wf_file. Branch deletion is manual, human-only (AB-GIT-001).${NC}"
 fi
 # AGENT-BASE-WORKFLOW-CHECK:END
 

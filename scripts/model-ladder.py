@@ -11,7 +11,7 @@ depends on: which of a vendor's models answers `cheap`, and which one is the one
 two-line repair running on. Every agent estimated it, and an estimate from a model's own training
 goes stale the month a vendor changes its lineup.
 
-**It lives outside the repository**, beside `vendor-support.json`, `downstreams.json`, and
+**It lives outside the repository**, beside `vendor-support.json` and
 `staffing.json`. Model names and prices change monthly and depend on the operator's subscription, so
 `GEN-001` keeps them out of here and a shipped default would teach every client a wrong answer that
 survives until the next release.
