@@ -28,7 +28,7 @@ Delivery: `AGENT_BASE.md`.
 
 One owner file per topic; link, never copy.
 
-- Agent-base and sync → `_sub/agent-base/` + `./ab.sh`
+- Agent-base and sync → `_sub/agent-base/` + `./ab-update.sh`
 - Documentation and adapter topology → `AGENT_BASE.md`
 - Standards → `.agents/standards/_STANDARDS_CATALOG.md`
 - Products and feature scope/specs → `.agents/products/`
@@ -123,7 +123,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AB-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
   clean, branch, ahead or behind), re-read it with read-only Git after your last action in this
   turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/agent-base/standards/git.md`.
-- `AB-SYNC-001` [`P1`]: "Update AB", "sync AB", or `ab.sh` means load
+- `AB-SYNC-001` [`P1`]: "Update AB", "sync AB", or `ab-update.sh` means load
   `.agents/agent-base/skills/agent-base-sync/SKILL.md` before acting. Bare "AB" does not trigger
   it.
 - `AB-QUALITY-001` [`P1`]: "AB check", "check AB", or an equivalent in any language means load

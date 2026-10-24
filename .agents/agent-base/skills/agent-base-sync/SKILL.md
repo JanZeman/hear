@@ -10,7 +10,7 @@ description: |
 ## When to use
 
 - The user asks to update, sync, or refresh agent-base now.
-- Recognized shorthand: "Update AB", "ab.sh", or "sync AB". Bare "AB" is ambiguous with A/B
+- Recognized shorthand: "Update AB", "ab-update.sh", or "sync AB". Bare "AB" is ambiguous with A/B
   testing and does not trigger this skill.
 - The cached session-start guard reported pending migrations or drift and the user wants a
   fresh check during the same session.
@@ -33,11 +33,12 @@ different: it is durable work that follows `AB-ROADMAP-002` and `AB-ROADMAP-004`
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-bash "$REPO_ROOT/ab.sh"
+bash "$REPO_ROOT/ab-update.sh"
 ```
 
-`./ab.sh` delegates to `_sub/agent-base/apply-agent-base.sh`. Run the submodule path directly
-only when the root shortcut does not exist yet. Do not pass `--quiet`; this procedure needs
+`./ab-update.sh` delegates to `_sub/agent-base/apply-agent-base.sh`. Run the submodule path
+directly only when the root entry point does not exist yet. A former `./ab.sh` alias is gone:
+each update removes the generated copy, so never look for it. Do not pass `--quiet`; this procedure needs
 the detailed output.
 
 ### 2. Read all output before reporting

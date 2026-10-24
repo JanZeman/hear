@@ -16,7 +16,7 @@ while `venture-discovery` owns any human-approved repair to Venture intent.
 
 `AB check` and `Update AB` are neighbouring phrases with opposite effects, and only one of them
 mutates the repository. This skill never fetches, never syncs, never moves the `_sub/agent-base`
-pointer, and never runs `ab.sh`. If the request is genuinely about updating, `AB-SYNC-001` owns it
+pointer, and never runs `ab-update.sh`. If the request is genuinely about updating, `AB-SYNC-001` owns it
 and this skill is the wrong one. When the wording could plausibly mean either, ask which was meant
 rather than guessing: `AB-INPUT-001` requires that, because the two answers differ in whether
 anything is written at all.
