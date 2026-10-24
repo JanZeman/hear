@@ -109,10 +109,10 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `.agents/agent-base/standards/secrets.md` first, unconditionally; inconclusive privacy
   defaults to not-private.
 - `AB-GIT-001` [`P0`]: Before Git operations, first load
-  `.agents/agent-base/standards/git.md`. Human controls history; only stash, submodule, the
+  `.agents/agent-base/standards/git.md`. Human controls history; only `git pull`, stash, submodule, the
   explicit `create-worktrees-by-convention` slots, and a verified direct `Update AB`, `publish AB`,
   or named fleet update (including its one-way `integration -> slot` worktree propagation) permit
-  mutations. Git remote URLs use SSH; HTTPS only in an emergency.
+  mutations. Remote URLs use SSH; HTTPS only in emergencies.
 - `AB-GIT-002` [`P1`]: Outside a verified direct `Update AB`, `publish AB`, or named fleet update,
   show a block starting with `cd "<absolute current-worktree root>"`, then `git add .` and
   `git commit -m "<principle-centered English message>"`; never run its Git commands. The verified

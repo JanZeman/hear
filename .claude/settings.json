@@ -97,14 +97,14 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "Skill(permission-promote)",
-      "Skill(permission-promote:*)"
+      "Skill(permission-promote:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [
       "Bash(git checkout:*)",
       "Bash(git cherry-pick:*)",
       "Bash(git commit:*)",
       "Bash(git merge:*)",
-      "Bash(git pull:*)",
       "Bash(git push:*)",
       "Bash(git rebase:*)",
       "Bash(git reset:*)",

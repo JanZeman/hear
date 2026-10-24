@@ -16,13 +16,19 @@ verbatim.
 
 Human controls Git mutations. Agents may run read-only Git and stash operations. They must not
 stage, commit, push, merge, rebase, reset, checkout, switch, tag, or perform another Git mutation
-except for the narrow submodule, worktree, and verified Agent Base update provisions below.
+except for `git pull` and the narrow submodule, worktree, and verified Agent Base update
+provisions below.
 
 Agents must also not discard uncommitted work: `git restore`, `git checkout <path>`, and
 `git clean` need the human's explicit request. These leave history untouched, so the
 history-changing category above does not reach them, yet they are the most destructive commands an
 agent can run: the work they delete was never committed, so no history exists to recover it from.
 Reverting an agent's own unwanted edit is not an exception -- propose it and let the human decide.
+
+**Pulling is always allowed**: an agent may run `git pull`, in any form and any repository, at any
+time, on the human's standing decision. It only brings in history that already exists on the remote.
+When a pull stops on a conflict or would need to overwrite uncommitted work, leave that state as Git
+reports it and tell the human; resolving it is a merge decision and stays the human's.
 
 **Submodule pointer updates are also allowed**, narrowly: git commands run *inside* a
 submodule's own directory to move it to a different commit (`git -C <submodule-path> checkout
