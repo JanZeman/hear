@@ -19,6 +19,22 @@ automatically, hides a destructive or external write, or bypasses a required saf
 This rule applies to root agents and subagents. A subagent should return a blocker to its parent
 when the parent can resolve it; it should not independently ask the human for the same decision.
 
+### Check before asking
+
+A question is the most expensive tool an agent has: it stops the human, who may be away for hours.
+Before asking for a fact or a confirmation, find out whether you can read the answer yourself, and
+ask only for what genuinely cannot be determined.
+
+- System state is read, not asked: files, configuration, crontabs (`crontab -l`, `/etc/cron.d`),
+  services and timers, packages, logs, environment, Git. When the human can reach it and you can
+  too, look first.
+- When the human reports a step as done, verify it the same way rather than asking again. If the
+  check shows it is not done, say exactly what you saw.
+- When you can see only part of it (no access, needs `sudo`, another machine), name what you
+  checked and ask only for the missing part.
+- Ask for intent, preference, authority, and anything outside your reach: those cannot be read
+  from the system.
+
 ### Commands for the human
 
 Everything the human must run themselves (a `sudo` step, a commit block, a command only their

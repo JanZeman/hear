@@ -116,10 +116,10 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AB-GIT-002` [`P1`]: Outside a verified direct `Update AB`, `publish AB`, or named fleet update,
   show a block starting with `cd "<absolute current-worktree root>"`, then `git add .` and
   `git commit -m "<principle-centered English message>"`; never run its Git commands. The verified
-  update procedure may stage, commit, and push only its audited release or sync paths. Only a human
-  reply starting with `kk` (never `ok` or bare `k`) to that exact block is the other exception: run it via
-  `scripts/run-confirmed-commit.sh`, unedited, then do the proposed next step. Commits use the configured Git identity, no
-  attribution trailer. Details: `.agents/agent-base/standards/git.md`.
+  update procedure may stage, commit, and push only its audited release or sync paths. A reply
+  starting with `kk` (not `ok` or `k`) to that exact block is the other exception: run it via
+  `scripts/run-confirmed-commit.sh`, unedited, then do the proposed next step. Commits: configured Git identity, no attribution
+  trailer. Details: `.agents/agent-base/standards/git.md`.
 - `AB-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
   clean, branch, ahead or behind), re-read it with read-only Git after your last action in this
   turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/agent-base/standards/git.md`.
@@ -166,7 +166,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   Details: `.agents/agent-base/standards/fix-log.md`.
 - `AB-REF-001` [`P2`]: Resolve a purely numeric roadmap or migration reference with its full title
   before using shorthand for it. Details: `.agents/agent-base/standards/roadmap-workflow.md`.
-- `AB-HUMAN-001` [`P1`]: Keep every question findable and directly answerable; with two-plus open
+- `AB-HUMAN-001` [`P1`]: Ask only what you cannot check: read the state yourself first (files,
+  config, cron, services, Git), including work reported done. Keep every question
+  findable and directly answerable; with two-plus open
   decisions load `.agents/agent-base/skills/decision-refinement/SKILL.md` first.
   Never auto-apply permissions or weaken scope, external/destructive-action, or safety boundaries.
   Human-run commands: one `# ~~~`-delimited code block, no `!`. Before autonomy, permission, or
@@ -184,7 +186,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   proceed after they explicitly approve `Update AB`. Nothing happens automatically.
 - `AB-INPUT-001` [`P1`]: Treat user input as potentially speech-dictated, mistyped, or in the
   wrong language. Resolve an obvious error silently; ask only if plausible meanings materially
-  change scope, authority, safety, or outcome, and state the interpretation. A bare `k` runs the
+  change scope, authority, safety, or outcome; state the interpretation. A bare `k` runs the
   immediately preceding next step without announcing confirmation; a bare `r` runs
   `python3 scripts/correspondence-turn.py --as <the DEPARTMENT you hold>` and reacts to the message it names,
   or reports plainly that there is none. Ignore case and a trailing full stop: dictation adds them.
@@ -221,10 +223,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `.agents/agent-base/skills/context-budgeting/SKILL.md`; preserve behavior before reducing words.
 - `AB-STYLE-001` [`P1`]: Never emit Unicode U+2014 in any agent-authored text or file, including
   chat, correspondence, code, documents, and Git/PR text. Use ASCII `-` even when quoting;
-  represent the code point by escape when code must detect it. During an ordinary edit, replace it
-  only in changed agent-authored canonical text. Preserve borrowed excerpts and test fixture data;
-  do not begin a one-time or broad cleanup. Correct generated or mirrored copies through their
-  canonical source. Details: `.agents/standards/formatting.md`.
+  represent the code point by escape when code must detect it. Replace it
+  only in changed agent-authored canonical text; keep borrowed excerpts and fixtures, start no
+  broad cleanup, and fix generated copies at their source. Details: `.agents/standards/formatting.md`.
 - `AB-VENTURE-001` [`P0`]: Before substantive work, run `python3 scripts/venture.py --root .
   context`; stop on failure. If undefined, first load
   `.agents/agent-base/skills/venture-discovery/SKILL.md`; human motives and Goals never come from
@@ -241,8 +242,8 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `unknown` before exposing private content. Details:
   `.agents/agent-base/standards/wiki-visibility.md`.
 - `AB-MCP-001` [`P1`]: When an MCP tool call fails with an authentication or authorization error,
-  suspect a stale process-level credential environment and recommend restarting the host
-  application before concluding the credential is invalid or proposing rotation. Details:
+  suspect stale process credentials and recommend restarting the host before
+  concluding the credential is invalid or rotating it. Details:
   `.agents/agent-base/standards/mcp-credential-diagnostics.md`.
 <!-- AGENT-BASE-RULES:END -->
 
