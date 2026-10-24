@@ -95,24 +95,31 @@ At every completed-work handoff, resolve the current worktree root with
 operations, unless a verified direct `Update AB`, `publish AB`, or named fleet update owns the
 handoff. Replace the first line with the verified absolute path, retaining the quotes:
 
-```
-~~~~~~~
+````markdown
+```bash
+# ~~~
 cd "<absolute current-worktree root>"
 git add .
 git commit -m "<principle-centered English message>"
-~~~~~~~
+git push
+# ~~~
 ```
+````
 
 The path prevents later commands from running in whichever terminal directory happens to be
-active. The human reviews what `git add .` will include before running it. Add `git push` after the
-commit command only when remote publication is required. Fence the block on its own with a plain
-`~~~~~~~` line directly above and below the commands, outside any code fence, so the block visually
-stands apart from surrounding prose; the human copies exactly what sits between the two tilde lines.
+active. The human reviews what `git add .` will include before running it. End the block with `git push`
+whenever the current branch has an upstream, because a `kk` reply means "commit and push what you
+just finished"; omit it only when there is no upstream or the human asked for a local-only commit.
+Format it as every
+command for the human is formatted (`human-interruptions.md`, "Commands for the human"): one
+code block delimited inside by `# ~~~` comment lines, which stay visible where a renderer hides
+fence lines, no `!` prefix, and no line explaining that `kk` confirms it.
 
 Immediately after the command block, add exactly one localized next-step section. In Czech, its
 heading is `Návrh dalšího kroku:`. Prefer the next unresolved step in the human-approved plan or
 conversation queue; otherwise choose the highest-priority relevant roadmap work. If neither
-exists, say that no next step remains instead of inventing scope.
+exists, say that no next step remains instead of inventing scope. Keep this section the last
+lines of the response: a `kk` reply also confirms exactly the step it names (see below).
 
 The commit subject is short, one line, and names the most important behavioral or product
 principle of the change. The message is that subject alone; a body appears only when the human
@@ -126,16 +133,27 @@ Commits prefix unless the project requires it. For an agent-base release, use
 `agent-base v0.0.X: <Main behavioral principle>`. For a downstream sync, retain the version and
 the release principle, e.g. `Sync with agent-base v0.0.X: <Main behavioral principle>`.
 
-Do not include `git push` for an ordinary local checkpoint. Include it for an Agent Base release,
-an explicit publication request, or a workflow that requires a pushed result. A verified direct
-Agent Base update is the narrow exception that may execute those commands itself.
+Leave `git push` out of the block only for a local-only checkpoint: the branch has no upstream, or
+the human asked for a local-only commit. A verified direct Agent Base update is the narrow
+exception that may execute those commands itself.
 
 **Running a shown block on the human's reply (`AB-GIT-002`).** Only a reply whose first word is
 `kk` authorizes running the block just shown. Anything after that word is a comment, such as
-`kk, and push`; it neither adds nor removes authority. Case is ignored, and the word ends at the
+`kk, commit only`; it may narrow what `kk` covers, never widen it. Case is ignored, and the word ends at the
 first character that is not a letter or digit. `ok`, a bare `k`, a reply that merely contains `kk`
 later, and every other reply keep their ordinary meaning (a bare `k` keeps `AB-INPUT-001`'s) and
-authorize nothing: `ok` is too easy to type by reflex as "understood". On `kk`, the human wants the shown block run on their behalf: the commit
+authorize nothing: `ok` is too easy to type by reflex as "understood".
+
+A `kk` reply confirms two things at once: the work just finished (run the block: commit and push)
+and the step the same response proposed under its next-step section. So on `kk`, run the block,
+report the resulting commit in one line, and then carry out that proposed step in the same turn,
+with the authority a bare `k` would give it under `AB-INPUT-001`: a step that itself needs the
+human's approval (irreversible, external, outside the approved scope) still stops and asks. When
+the response proposed no next step, or said none remains, `kk` means only commit and push. A
+comment such as `kk, commit only` or `kk, stop after the push` drops the next step. Answering a
+`kk` with nothing but "committed and pushed" while a next step was proposed is an incomplete turn.
+
+On `kk`, the human wants the shown block run on their behalf: the commit
 still carries the human's own configured Git identity, the agent only executes it. Run
 `scripts/run-confirmed-commit.sh --reply "<the human's reply, verbatim>" --root "<the exact cd path
 just shown>" --message "<the exact message just shown>"` from that same root (agent-base's own
@@ -196,6 +214,14 @@ Git check after its last file edit or state-changing command, it blocks the stop
 agent to re-check and correct itself. It fires at most once per stop (`stop_hook_active`), always
 exits 0, and is a heuristic phrase match in English and Czech: it can miss a claim and can ask for
 a check that turns out unnecessary, which costs one `git status`.
+
+The same hook also checks every shown `AB-GIT-002` commit block against the repository its `cd`
+line names, because a fenced block is not a prose claim. Before showing a block, run `git status`
+in that root: when it has nothing to commit, do not show the block, and say in one line that the
+work is already committed (and pushed). When the hook finds such a stale block, with nothing to
+commit and nothing to push, or nothing to commit and only unpushed commits, it blocks the stop once
+and asks the agent to replace the block with that one line, or with a push-only block. It reads real
+state rather than phrases, so it does not misfire on a repository that still has changes.
 
 ## Cross-references
 

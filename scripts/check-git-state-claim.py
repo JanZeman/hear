@@ -8,6 +8,11 @@ ahead/behind, untracked, ...) and no read-only Git check ran in the current turn
 last possibly state-changing action, it blocks the stop once and asks the agent to re-check and
 correct itself.
 
+It also checks a shown AB-GIT-002 commit block against the repository it names, since a block in
+a fence is not a prose claim: when that repository has nothing to commit (and nothing to push), the
+block is stale, usually because the human already committed from their own terminal, and the hook
+asks the agent to drop it instead of announcing a missing commit.
+
 Usage (from the vendor's Stop hook, payload JSON on stdin):
     python3 check-git-state-claim.py claude|codex
 
@@ -21,6 +26,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -37,6 +43,7 @@ CLAIM_PATTERNS = [
     r"\b(?:ahead|behind)\s+(?:of\s+)?(?:origin|the\s+remote|upstream|main|master)\b",
     r"\bup\s+to\s+date\s+with\s+(?:origin|the\s+remote|upstream)\b",
     r"\blocal\s+(?:changes|commits)\b",
+    r"\b(?:still\s+)?needs?\s+(?:to\s+be\s+)?(?:a\s+)?(?:committed|pushed|commit|push)\b",
     # Czech (diacritics optional, since dictated or typed text often drops them)
     r"\bne?commitnut",
     r"\bne?pushnut",
@@ -47,6 +54,7 @@ CLAIM_PATTERNS = [
     r"\b(?:worktree|repo|repozit[aá][rř]|v[eě]tev)\w*\s+(?:je\s+|jsou\s+)?(?:[cč]ist|[sš]pinav)",
     r"\bnen[ií]\s+co\s+commitnout\b",
     r"\b(?:p[rř]ed|za)\s+(?:origin|remote|upstream)\b",
+    r"\bzb[yý]v[aá]\s+(?:u[zž]\s+)?(?:jen\s+|pouze\s+)?(?:commit|push)",
 ]
 CLAIM_RE = re.compile("|".join(CLAIM_PATTERNS), re.IGNORECASE)
 
@@ -74,6 +82,55 @@ REASON = (
     "If the check confirms the reply, end without repeating it; if anything differs, send a short "
     "correction in the conversation's language. Do not mention this hook."
 )
+
+
+BLOCK_REASON = (
+    "AB-GIT-002: your reply shows a commit block for {root}, but a fresh `git status` there finds "
+    "{state}. The human has most likely already run it. Drop the block and the claim that a commit "
+    "or push is missing; say in one line, in the conversation's language, that the work is already "
+    "{done}, and keep your next-step section. Do not mention this hook."
+)
+# A shown block: a `cd` line naming the root, then `git commit` inside the same fence.
+COMMIT_BLOCK_RE = re.compile(
+    r"(```|~~~)[^\n]*\n(?P<body>.*?)(?:\1|\Z)", re.DOTALL
+)
+CD_RE = re.compile(r"^\s*cd\s+(?:\"([^\"]+)\"|'([^']+)'|(\S+))\s*$", re.MULTILINE)
+
+
+def _git(root: str, *args: str) -> str | None:
+    try:
+        proc = subprocess.run(
+            ["git", "-C", root, *args], capture_output=True, text=True, timeout=5, check=False
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return proc.stdout if proc.returncode == 0 else None
+
+
+def stale_commit_block(message: str) -> str | None:
+    """Return a block reason when a shown commit block names a repository with nothing pending."""
+    for fence in COMMIT_BLOCK_RE.finditer(message or ""):
+        body = fence.group("body")
+        if not re.search(r"\bgit\s+commit\b", body):
+            continue
+        cd = CD_RE.search(body)
+        if not cd:
+            continue
+        root = next(group for group in cd.groups() if group)
+        if not Path(root).is_dir() or _git(root, "rev-parse", "--is-inside-work-tree") is None:
+            continue
+        status = _git(root, "status", "--porcelain")
+        if status is None or status.strip():
+            continue
+        ahead = _git(root, "rev-list", "--count", "@{upstream}..HEAD")
+        if ahead is not None and ahead.strip() not in ("", "0"):
+            return BLOCK_REASON.format(
+                root=root,
+                state="nothing to commit, but unpushed commits",
+                done="committed; only `git push` remains, so show just that",
+            )
+        return BLOCK_REASON.format(root=root, state="nothing to commit or push", done="committed and pushed")
+    return None
 
 
 def find_claim(message: str) -> str | None:
@@ -189,6 +246,9 @@ def decide(payload: dict) -> str | None:
     message = payload.get("last_assistant_message")
     if not isinstance(message, str):
         message = last_assistant_text(transcript)
+    stale = stale_commit_block(message)
+    if stale:
+        return stale
     phrase = find_claim(message)
     if not phrase:
         return None

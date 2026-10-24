@@ -60,8 +60,8 @@ if [[ -z "$reply" || -z "$root" || -z "$message" ]]; then
   usage
   exit 2
 fi
-# The reply authorizes when its first word is `kk`; anything after it ("kk, and push") is a
-# comment that neither adds nor removes authority. The word ends at the first character that is
+# The reply authorizes when its first word is `kk`; anything after it ("kk, commit only") is a
+# comment that may narrow what the caller does next but never widens this script. The word ends at the first character that is
 # not a letter or digit, and case is ignored, as AB-INPUT-001 does for dictated input.
 _first_word="$(printf '%s' "$reply" | tr '\n\t' '  ' | tr '[:upper:]' '[:lower:]' | sed -E 's/^[[:space:]]+//; s/[^[:alnum:]].*$//')"
 if [[ "$_first_word" != "kk" ]]; then

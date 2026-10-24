@@ -3,7 +3,7 @@
 # exact commit-block format.
 #
 # Same shape and same reason as check-safe-001-reminder.sh: a positive, "always do X" formatting
-# requirement (tilde-fenced block, one-line commit subject, propose a next step right after)
+# requirement (code block delimited by `# ~~~` lines, one-line commit subject, next step right after)
 # measurably decays over a long session (rule-writing.md's cited Gamage 2026 finding), so it gets
 # reissued fresh every turn instead of relying on turns-old recall. Two hard requirements, same
 # as every other UserPromptSubmit check in this repo:
@@ -20,6 +20,6 @@ set -uo pipefail
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [[ -n "$(git -C "$repo_root" status --porcelain 2>/dev/null)" ]] || exit 0
 
-echo "Reminder (AB-GIT-002): this repo has uncommitted changes. If you hand off a commit suggestion, use exactly the tilde-fenced block (cd, git add ., one-line git commit -m \"...\", optional git push) and propose exactly one next step immediately after it."
+echo "Reminder (AB-GIT-002): this repo has uncommitted changes. If you hand off a commit suggestion, use exactly one code block delimited inside by '# ~~~' comment lines (cd, git add ., one-line git commit -m \"...\", git push), no '!' prefix and no line explaining kk, and propose exactly one next step immediately after it."
 
 exit 0

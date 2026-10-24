@@ -19,6 +19,31 @@ automatically, hides a destructive or external write, or bypasses a required saf
 This rule applies to root agents and subagents. A subagent should return a blocker to its parent
 when the parent can resolve it; it should not independently ask the human for the same decision.
 
+### Commands for the human
+
+Everything the human must run themselves (a `sudo` step, a commit block, a command only their
+machine can run) goes in one fenced code block whose first and last lines are the shell comment
+`# ~~~`:
+
+````markdown
+One step for you (sudo): you write the passwordless trim rule yourself.
+
+```bash
+# ~~~
+sudo ~/scripts/server-disk-trim-setup-sudoers
+# ~~~
+```
+````
+
+- The `# ~~~` lines are the visible delimiter. Markdown renderers hide fence lines, so a bare
+  `~~~` or a code fence alone is invisible in a terminal, while a shell comment shows everywhere
+  and is harmless when the whole block is copied and pasted.
+- Never prefix a command with `!`. That runs it inside the agent's own session; the human runs
+  these in their own terminal.
+- One short line before the block says what it is for and why the human, not the agent, runs it.
+  Nothing after it explains how to confirm: the human knows `kk` (`AB-GIT-002`), so a line such as
+  "if the block is fine, reply kk" is noise.
+
 ## Visibility and repair (`AB-HUMAN-002`)
 
 Successful automated checks, including collected telemetry, automatic reviews, and repeated
