@@ -25,6 +25,21 @@ visibility; resolve `unknown` with the human before publishing. The procedure an
 are in `.agents/agent-base/standards/wiki-visibility.md`. Privacy classification
 does not replace the batch's explicit write approval below.
 
+## What belongs on the wiki
+
+A wiki page exists for a human reader. `.agents/wiki.json` states the wiki's `purpose`: what it is
+for in this Venture and who reads it. If it is missing, ask for it before proposing any write. By
+default the inventory maps only what describes the Venture to its people: `VENTURE.md`, goals,
+products and features, departments, resources, and feedback. Skills, standards, and workflows
+instruct agents and are not mirrored; one a human really reads (a runbook, a procedure the operator
+follows by hand) is added to the file's `mirror` list, by `.agents`-relative path or by a directory
+ending in `/`. Agent-base framework content is never mirrored. Before proposing a page, name its
+reader; a page with no reader is not proposed, even when the inventory lists it.
+
+Pages a human wrote directly on the wiki, under the mapped root or elsewhere, are wiki-owned: the
+sync never maps, overwrites, moves, or deletes them. Only pages recorded in `.agents/WIKI_SYNC.json`
+are sync-owned.
+
 ## Read-only check
 
 Run at most once per 24 hours at the first available session-start or resume boundary. A clean
@@ -52,11 +67,14 @@ Classify each mapped page:
 - wiki-only change: propose incorporating it into the repository first;
 - compatible two-sided change: propose a merged repository result and republication;
 - material, incompatible, uncertain, or baseline-less two-sided change: require human resolution;
-- one-sided absence: deletion candidate requiring human confirmation;
+- one-sided absence of a sync-owned page: deletion candidate requiring human confirmation;
 - strongly evidenced content-preserving rename: propose a move; otherwise treat it as uncertain.
 
-For first adoption, also discover legacy content read-only. Present one concise mapping plan with
-Categories, Product ownership, paths, Markdown conversions, conflicts, rationale, and risks. Never
+First adoption (no `.agents/WIKI_SYNC.json` yet) always starts with a read-only map, before any
+batch is proposed: list every existing page under the mapped root and under any older location the
+human or the Venture's documents name, read them, and say what each holds. Then present one
+concise plan: for each proposed page its reader, source, path, Markdown conversion, and conflict
+with existing content; which existing pages stay wiki-owned; and rationale and risks. Never
 invent a placeholder Product or automatically move flat `.agents/features/` content. Clear items
 may proceed while ambiguous items remain untouched.
 

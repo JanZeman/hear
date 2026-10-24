@@ -55,16 +55,18 @@ DEFINED_SECTIONS = ("Purpose", "Vision", "Strategy")
 # instead of failing AB-VENTURE-001 for every repository that has not backfilled one yet.
 CYCLE_SECTION = "Cycle anchor"
 CYCLE_MONTHS = 3
-MIRRORED_CATEGORIES = {
+# The reader test: a wiki page exists for a human reader. These categories describe the Venture to
+# its people and are mirrored by default. Skills, standards, and workflows instruct agents, so they
+# are mirrored only when `.agents/wiki.json` lists them in `mirror` because a human reads them.
+HUMAN_CATEGORIES = {
     "departments",
     "feedback",
     "goals",
     "products",
     "resources",
-    "skills",
-    "standards",
-    "workflows",
 }
+AGENT_CATEGORIES = {"skills", "standards", "workflows"}
+MIRRORED_CATEGORIES = HUMAN_CATEGORIES | AGENT_CATEGORIES
 CATALOG_NAMES = {
     "_DEPARTMENTS_CATALOG.md",
     "_FEEDBACK_CATALOG.md",
@@ -77,7 +79,12 @@ CATALOG_NAMES = {
     "_WORKFLOW_CATALOG.md",
 }
 HEX_HASH = re.compile(r"^[0-9a-f]{64}$")
-FRAMEWORK_PATHS = {"skills/permission-promote.md"}
+# Seeded by agent-base into every Venture; never this Venture's own content, even when opted in.
+FRAMEWORK_PATHS = {
+    "skills/permission-promote.md",
+    "skills/permission-promote/SKILL.md",
+    "skills/wiki-edit/SKILL.md",
+}
 CHECK_STAMPS = {
     "wiki": ".venture-wiki-last-check",
     "review": ".venture-review-last-check",
@@ -380,7 +387,14 @@ def slug(segment: str) -> str:
     return value
 
 
-def map_repository_path(relative: str) -> str | None:
+def _opted_in(relative: str, mirror: frozenset[str]) -> bool:
+    """`mirror` entries are `.agents`-relative files, or directories ending in `/`."""
+    return relative in mirror or any(
+        entry.endswith("/") and relative.startswith(entry) for entry in mirror
+    )
+
+
+def map_repository_path(relative: str, mirror: frozenset[str] = frozenset()) -> str | None:
     path = PurePosixPath(relative)
     parts = list(path.parts)
     if parts and parts[0] == ".agents":
@@ -396,6 +410,8 @@ def map_repository_path(relative: str) -> str | None:
     if parts == ["VENTURE.md"]:
         return ""
     if parts[0] not in MIRRORED_CATEGORIES:
+        return None
+    if parts[0] in AGENT_CATEGORIES and not _opted_in("/".join(parts), mirror):
         return None
     if any("TEMPLATE" in part.upper() for part in parts):
         return None
@@ -415,9 +431,10 @@ def inventory(root: Path) -> dict[str, Any]:
     if not agents.is_dir():
         raise VentureError(".agents directory is missing")
     candidates: list[tuple[Path, str, str, str]] = []
+    mirror = wiki_mirror(root)
     for path in sorted(agents.rglob("*.md")):
         relative = path.relative_to(agents).as_posix()
-        wiki_path = map_repository_path(relative)
+        wiki_path = map_repository_path(relative, mirror)
         if wiki_path is None:
             continue
         text = path.read_text(encoding="utf-8")
@@ -629,7 +646,14 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
     root = root.resolve()
     if registry is None and (root / WIKI_FILE).is_file():
         data = _read_json_object(root / WIKI_FILE, str(WIKI_FILE))
-        return _validated_mapping(data), data.get("visibility"), "repository"
+        result = _validated_mapping(data)
+        _validated_mirror(data)
+        purpose = data.get("purpose")
+        if purpose is not None:
+            if not isinstance(purpose, str) or not purpose.strip():
+                raise VentureError(f"wiki purpose in {WIKI_FILE} must be a non-empty sentence")
+            result["purpose"] = purpose.strip()
+        return result, data.get("visibility"), "repository"
     if registry is None:
         registry = legacy_wiki_registry()
         if not registry.exists():
@@ -639,6 +663,28 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
     policies = data.get("visibility_policies")
     policy = policies.get(result["host"]) if "host" in result and isinstance(policies, dict) else None
     return result, policy, "legacy"
+
+
+def _validated_mirror(data: dict[str, Any]) -> frozenset[str]:
+    mirror = data.get("mirror", [])
+    if not isinstance(mirror, list) or not all(
+        isinstance(entry, str) and _safe_relative(entry.rstrip("/"))
+        and PurePosixPath(entry).parts[0] in AGENT_CATEGORIES
+        for entry in mirror
+    ):
+        raise VentureError(
+            f"wiki mirror in {WIKI_FILE} must list .agents-relative skills/, standards/, or "
+            "workflows/ paths"
+        )
+    return frozenset(mirror)
+
+
+def wiki_mirror(root: Path) -> frozenset[str]:
+    """The agent documents this Venture opted into mirroring; empty without a repository file."""
+    path = root.resolve() / WIKI_FILE
+    if not path.is_file():
+        return frozenset()
+    return _validated_mirror(_read_json_object(path, str(WIKI_FILE)))
 
 
 def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
@@ -740,7 +786,7 @@ def main() -> int:
         elif args.command == "inventory":
             print(json.dumps(inventory(root), indent=2, sort_keys=True))
         elif args.command == "map-path":
-            mapped = map_repository_path(args.path)
+            mapped = map_repository_path(args.path, wiki_mirror(root))
             print("excluded" if mapped is None else mapped or ".")
         elif args.command == "validate-manifest":
             path = args.path or root / ".agents" / "WIKI_SYNC.json"
@@ -758,6 +804,14 @@ def main() -> int:
                 print(line)
         elif args.command == "wiki-config":
             print(json.dumps(wiki_config(root, args.registry), sort_keys=True))
+            if args.registry is None and wiki_source(root) == "repository" and "purpose" not in (
+                wiki_config(root)
+            ):
+                print(
+                    f"Venture: {WIKI_FILE} has no `purpose` saying what the wiki is for and who "
+                    "reads it",
+                    file=sys.stderr,
+                )
             if args.registry is None and wiki_source(root) == "legacy":
                 print(
                     f"Venture: the wiki mapping is still only in the operator-local registry; run "

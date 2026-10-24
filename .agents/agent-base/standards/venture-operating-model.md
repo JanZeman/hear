@@ -188,9 +188,12 @@ differences go to the human with a recommendation. Never silently discard wiki w
 uncertain conflict, scan the whole wiki before ordinary work, or perform an unauthorized external
 write.
 
-Wiki mapping and batch reconciliation are defined by the `venture-wiki-sync` skill. Framework
-content under `.agents/agent-base/`, session continuity, templates, local throttle state, and the
-sync manifest itself are not mirrored. Connector identity, the host-relative Venture wiki root, and the
+Wiki mapping and batch reconciliation are defined by the `venture-wiki-sync` skill. A wiki page
+exists for a human reader: by default only the Venture's human-facing categories are mirrored, and
+skills, standards, and workflows only when `.agents/wiki.json` opts them in under `mirror`.
+Framework content under `.agents/agent-base/`, seeded framework skills, session continuity,
+templates, local throttle state, and the sync manifest itself are never mirrored. Pages written
+directly on the wiki stay wiki-owned. Connector identity, the host-relative Venture wiki root, and the
 host's visibility live in the repository's own `.agents/wiki.json`.
 
 Roadmap is a canonical Venture category but is never mirrored, for this Venture or any downstream
