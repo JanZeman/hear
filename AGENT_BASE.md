@@ -221,14 +221,13 @@ repository's own `.agents/wiki.json`:
   "connector": "operator-connector-id",
   "root": "en/ventures/venture-slug",
   "host": "wiki.example.com",
-  "visibility": {"default": "public", "private_path_segments": ["internal"]},
-  "mirror": ["skills/hand-run-procedure/"]
+  "visibility": {"default": "public", "private_path_segments": ["internal"]}
 }
 ```
 
-The wiki is the human's window into the Venture (see "What the wiki is for" in
-`venture-operating-model.md`), so by default only the Venture's human-facing categories are
-mirrored; `mirror` opts in a skill, standard, or workflow a human really reads.
+The wiki is for the human (see "What the wiki is for" in `venture-operating-model.md`). The
+repository publishes only the Venture Definition and the Goals there, one way; everything else on
+the wiki is the human's and is never synchronized.
 
 On a shared host, `root` is `en/ventures/<venture-slug>`, where every Venture on that host lives;
 a host dedicated to one Venture may keep its documented root (normally `en/internal`). The

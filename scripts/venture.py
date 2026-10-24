@@ -55,18 +55,10 @@ DEFINED_SECTIONS = ("Purpose", "Vision", "Strategy")
 # instead of failing AB-VENTURE-001 for every repository that has not backfilled one yet.
 CYCLE_SECTION = "Cycle anchor"
 CYCLE_MONTHS = 3
-# The reader test: a wiki page exists for a human reader. These categories describe the Venture to
-# its people and are mirrored by default. Skills, standards, and workflows instruct agents, so they
-# are mirrored only when `.agents/wiki.json` lists them in `mirror` because a human reads them.
-HUMAN_CATEGORIES = {
-    "departments",
-    "feedback",
-    "goals",
-    "products",
-    "resources",
-}
-AGENT_CATEGORIES = {"skills", "standards", "workflows"}
-MIRRORED_CATEGORIES = HUMAN_CATEGORIES | AGENT_CATEGORIES
+# The wiki is for the human. The repository publishes exactly one thing to it, one way: the Venture
+# Definition (from VENTURE.md) at the top of the Venture root page, and the Goals below it.
+# Everything else on the wiki belongs to the human and is never synchronized.
+PUBLISHED_CATEGORIES = {"goals"}
 CATALOG_NAMES = {
     "_DEPARTMENTS_CATALOG.md",
     "_FEEDBACK_CATALOG.md",
@@ -77,13 +69,6 @@ CATALOG_NAMES = {
     "_SKILLS_CATALOG.md",
     "_STANDARDS_CATALOG.md",
     "_WORKFLOW_CATALOG.md",
-}
-HEX_HASH = re.compile(r"^[0-9a-f]{64}$")
-# Seeded by agent-base into every Venture; never this Venture's own content, even when opted in.
-FRAMEWORK_PATHS = {
-    "skills/permission-promote.md",
-    "skills/permission-promote/SKILL.md",
-    "skills/wiki-edit/SKILL.md",
 }
 CHECK_STAMPS = {
     "wiki": ".venture-wiki-last-check",
@@ -387,40 +372,22 @@ def slug(segment: str) -> str:
     return value
 
 
-def _opted_in(relative: str, mirror: frozenset[str]) -> bool:
-    """`mirror` entries are `.agents`-relative files, or directories ending in `/`."""
-    return relative in mirror or any(
-        entry.endswith("/") and relative.startswith(entry) for entry in mirror
-    )
-
-
-def map_repository_path(relative: str, mirror: frozenset[str] = frozenset()) -> str | None:
+def map_repository_path(relative: str) -> str | None:
     path = PurePosixPath(relative)
     parts = list(path.parts)
     if parts and parts[0] == ".agents":
         parts.pop(0)
     if not parts or any(part in {"", ".", ".."} for part in parts):
         raise VentureError("repository path must be a safe relative path")
-    if parts[0] in {"agent-base", "sessions", "features"}:
-        return None
-    if "/".join(parts) in FRAMEWORK_PATHS:
-        return None
-    if parts[0].startswith(".") or parts[0] == "WIKI_SYNC.json":
-        return None
     if parts == ["VENTURE.md"]:
         return ""
-    if parts[0] not in MIRRORED_CATEGORIES:
-        return None
-    if parts[0] in AGENT_CATEGORIES and not _opted_in("/".join(parts), mirror):
+    if parts[0] not in PUBLISHED_CATEGORIES:
         return None
     if any("TEMPLATE" in part.upper() for part in parts):
         return None
     if parts[-1] in CATALOG_NAMES:
         return slug(parts[0])
-    if parts[-1].lower() in {"skill.md", "product.md"}:
-        parts.pop()
-    else:
-        parts[-1] = re.sub(r"\.md$", "", parts[-1], flags=re.I)
+    parts[-1] = re.sub(r"\.md$", "", parts[-1], flags=re.I)
     return "/".join(slug(part) for part in parts)
 
 
@@ -431,10 +398,9 @@ def inventory(root: Path) -> dict[str, Any]:
     if not agents.is_dir():
         raise VentureError(".agents directory is missing")
     candidates: list[tuple[Path, str, str, str]] = []
-    mirror = wiki_mirror(root)
     for path in sorted(agents.rglob("*.md")):
         relative = path.relative_to(agents).as_posix()
-        wiki_path = map_repository_path(relative, mirror)
+        wiki_path = map_repository_path(relative)
         if wiki_path is None:
             continue
         text = path.read_text(encoding="utf-8")
@@ -470,14 +436,8 @@ def inventory(root: Path) -> dict[str, Any]:
                 "hash": content_hash(text),
             }
         )
-    legacy_features = agents / "features"
     return {
         "schema": 1,
-        "legacy_flat_features": legacy_features.is_dir()
-        and any(
-            path.is_file() and not path.name.startswith("_")
-            for path in legacy_features.glob("*.md")
-        ),
         "documents": documents,
     }
 
@@ -489,40 +449,6 @@ def _safe_relative(value: Any, *, allow_empty: bool = False) -> bool:
         return True
     path = PurePosixPath(value)
     return bool(value) and not path.is_absolute() and ".." not in path.parts
-
-
-def validate_manifest(path: Path) -> dict[str, Any]:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
-        raise VentureError(f"invalid sync manifest: {error}") from error
-    if set(data) != {"schema", "last_successful_sync", "pages"} or data["schema"] != 1:
-        raise VentureError("sync manifest has unsupported top-level schema")
-    if not isinstance(data["last_successful_sync"], str) or not data["last_successful_sync"]:
-        raise VentureError("sync manifest lacks last_successful_sync")
-    if not isinstance(data["pages"], list):
-        raise VentureError("sync manifest pages must be a list")
-    seen_repositories: set[str] = set()
-    seen_wiki_paths: set[str] = set()
-    for page in data["pages"]:
-        required = {"repository", "wiki", "repository_hash", "wiki_hash"}
-        if not isinstance(page, dict) or set(page) != required:
-            raise VentureError("sync manifest page has unsupported schema")
-        if not _safe_relative(page["repository"]) or not _safe_relative(
-            page["wiki"], allow_empty=True
-        ):
-            raise VentureError("sync manifest contains an unsafe relative path")
-        if page["repository"] in seen_repositories:
-            raise VentureError("sync manifest contains a duplicate repository path")
-        if page["wiki"] in seen_wiki_paths:
-            raise VentureError("sync manifest contains a duplicate wiki path")
-        seen_repositories.add(page["repository"])
-        seen_wiki_paths.add(page["wiki"])
-        if not HEX_HASH.fullmatch(page["repository_hash"]) or not HEX_HASH.fullmatch(
-            page["wiki_hash"]
-        ):
-            raise VentureError("sync manifest contains an invalid normalized hash")
-    return data
 
 
 def checked_path(root: Path, kind: str = "wiki") -> Path:
@@ -647,7 +573,6 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
     if registry is None and (root / WIKI_FILE).is_file():
         data = _read_json_object(root / WIKI_FILE, str(WIKI_FILE))
         result = _validated_mapping(data)
-        _validated_mirror(data)
         return result, data.get("visibility"), "repository"
     if registry is None:
         registry = legacy_wiki_registry()
@@ -658,28 +583,6 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
     policies = data.get("visibility_policies")
     policy = policies.get(result["host"]) if "host" in result and isinstance(policies, dict) else None
     return result, policy, "legacy"
-
-
-def _validated_mirror(data: dict[str, Any]) -> frozenset[str]:
-    mirror = data.get("mirror", [])
-    if not isinstance(mirror, list) or not all(
-        isinstance(entry, str) and _safe_relative(entry.rstrip("/"))
-        and PurePosixPath(entry).parts[0] in AGENT_CATEGORIES
-        for entry in mirror
-    ):
-        raise VentureError(
-            f"wiki mirror in {WIKI_FILE} must list .agents-relative skills/, standards/, or "
-            "workflows/ paths"
-        )
-    return frozenset(mirror)
-
-
-def wiki_mirror(root: Path) -> frozenset[str]:
-    """The agent documents this Venture opted into mirroring; empty without a repository file."""
-    path = root.resolve() / WIKI_FILE
-    if not path.is_file():
-        return frozenset()
-    return _validated_mirror(_read_json_object(path, str(WIKI_FILE)))
 
 
 def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
@@ -746,8 +649,6 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("inventory")
     mapping = subparsers.add_parser("map-path")
     mapping.add_argument("path")
-    manifest = subparsers.add_parser("validate-manifest")
-    manifest.add_argument("path", type=Path, nargs="?")
     due = subparsers.add_parser("check-due")
     due.add_argument("--kind", choices=tuple(CHECK_STAMPS), default="wiki")
     due.add_argument("--ttl", type=int)
@@ -781,12 +682,8 @@ def main() -> int:
         elif args.command == "inventory":
             print(json.dumps(inventory(root), indent=2, sort_keys=True))
         elif args.command == "map-path":
-            mapped = map_repository_path(args.path, wiki_mirror(root))
+            mapped = map_repository_path(args.path)
             print("excluded" if mapped is None else mapped or ".")
-        elif args.command == "validate-manifest":
-            path = args.path or root / ".agents" / "WIKI_SYNC.json"
-            validate_manifest(path)
-            print("valid")
         elif args.command == "check-due":
             ttl = args.ttl if args.ttl is not None else CHECK_TTLS[args.kind]
             print("due" if check_due(root, ttl, args.kind) else "not-due")

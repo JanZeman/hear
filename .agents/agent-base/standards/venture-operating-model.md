@@ -181,62 +181,44 @@ positioning; UX owns usability and experience; Sales operates acquisition and co
 
 ## What the wiki is for
 
-The wiki is for the human. It is a human-friendly window into the Venture: a person opens it to
-understand quickly what the Venture is, where it is going, its Goals and Products, and the
-procedures a person reads. Agents do not need it; they work from the repository. Pages read as
-pages for a person, not as a dump of repository files.
+**The wiki is for the human.** Everyone who writes on it, human or agent, writes for a person. It is
+a human-friendly window into the Venture: a person opens it to understand quickly what the Venture
+is, where it is going, and what a person needs to know to run it. That agents can read it too is a
+useful side effect, never its purpose. Nothing that exists for agents (skills, standards, catalogs,
+the roadmap, agent-base framework content, or any other agent technicality) ever appears on it.
 
-The repository is the superset. Everything on the wiki is also known in the repository, never the
-reverse: whatever agents need in order to work (skills, standards, catalogs, the roadmap,
-agent-base framework content, and any other agent technicality) never appears on the wiki.
+### The Venture Definition
+
+The main page of every Venture starts with a section titled **Venture Definition**: the Venture's
+Identity, Purpose, Vision, and Strategy, with links to its Goals. It is always there. The
+repository owns exactly this and nothing else on the wiki: `.agents/VENTURE.md` and the Goals are
+published one way, repository to wiki, as the Venture Definition and the Goal pages below the root
+page. A change to them is made in the repository and published again; when the wiki copy was
+changed by hand, the agent shows that difference to the human before publishing over it.
+
+Everything else on the wiki belongs to the human. A person writes it, and an agent writes it only
+when asked, for a person to read. It is never synchronized or mirrored into the repository; an
+agent that needs it reads the wiki directly.
 
 ### Where a Venture lives on the wiki
 
 Whatever is declared a Venture lives under the wiki's Venture area: on a shared wiki host its root
 is `en/ventures/<venture-slug>`, the same place every other Venture on that host uses. A host
-dedicated to one Venture may keep the root documented for it.
+dedicated to one Venture may keep the root documented for it. Connector identity, the root, and the
+host's visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory
+(`AB-Q006`), and the guard reports a missing one without naming any actual host or path.
 
 ### Converting an existing wiki
 
 When a Venture adopts a wiki that already describes it somewhere else, its existing pages move to
 the Venture root; they are not left where they were. The move must not damage that information:
 
-- The existing pages move with their structure unchanged, their subtree reproduced below the
-  Venture root.
+- The existing pages move with their structure and content unchanged, their subtree reproduced
+  below the Venture root.
 - If the existing content already has a root page (an overview), its content is kept as the
-  Venture root page, with the Venture's definition (Identity, Purpose, Vision, Strategy) added at
-  its top. Nothing below it is rewritten.
-- The existing content becomes known to the repository as part of the conversion, so the
-  repository remains the superset.
+  Venture root page, with the Venture Definition added at its top. Nothing below it is rewritten.
 
 The only later restructuring is the one the Venture definition itself calls for, such as the
 Venture's basic Departments. It is never part of the move: move first, then propose any
 restructuring as a separate, approved step that names the Venture rule requiring each change.
-
-## Repository authority
-
-When a repository artifact and its mapped wiki page represent the same fact, repository state is
-operationally authoritative. A wiki edit is still a valid incoming proposal: compatible content is
-first incorporated into the repository, then republished. Material, incompatible, or uncertain
-differences go to the human with a recommendation. Never silently discard wiki work, overwrite an
-uncertain conflict, scan the whole wiki before ordinary work, or perform an unauthorized external
-write.
-
-Wiki mapping and batch reconciliation are defined by the `venture-wiki-sync` skill. A wiki page
-exists for a human reader: by default only the Venture's human-facing categories are mirrored, and
-skills, standards, and workflows only when `.agents/wiki.json` opts them in under `mirror`.
-Framework content under `.agents/agent-base/`, seeded framework skills, session continuity,
-templates, local throttle state, and the sync manifest itself are never mirrored. Pages written
-directly on the wiki stay wiki-owned. Connector identity, the host-relative Venture wiki root, and the
-host's visibility live in the repository's own `.agents/wiki.json`.
-
-Roadmap is a canonical Venture category but is never mirrored, for this Venture or any downstream
-one. It is a working document for agents, not something a Product's beneficiaries or a Venture's
-human read on the wiki; mirroring it would be ceremony with no reader. An update to a roadmap item
-is made directly in the repository and needs no wiki republication.
-
-A wiki mapping is mandatory (`AB-Q006`): every Venture must have one in `.agents/wiki.json` to be venture compatible. The guard reports a missing one every
-session as a `strong`, never-blocking finding, naming the exact gap without naming any actual wiki
-host or path. Reconciliation itself remains on-demand: an unconfigured mapping still triggers no
-recurring *sync* work until the human asks for a wiki operation, only the recurring notice that one
-is missing.
+Never overwrite, move, or delete an existing page without the human's approval of that item.

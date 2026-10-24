@@ -720,7 +720,7 @@ if [[ -f "${_venture_helper:-scripts/venture.py}" ]]; then
   fi
   if [[ "${_venture_wiki_due:-false}" == true ]]; then
     echo -e "${DIM}  Venture wiki check is due. Load venture-wiki-sync; a clean check stays silent,${NC}"
-    echo -e "${DIM}  drift produces one non-blocking reconciliation offer.${NC}"
+    echo -e "${DIM}  drift produces one non-blocking offer to publish.${NC}"
   fi
   if [[ "${_venture_review_due:-false}" == true ]]; then
     echo -e "${DIM}  Venture hierarchy review is due. Load venture-review; a coherent review${NC}"

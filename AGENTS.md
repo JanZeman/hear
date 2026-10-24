@@ -233,10 +233,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AB-DEPT-001` [`P1`]: Route each substantive phase by outcome to one Lead and material consulted
   Departments; load definitions, state why, ask if uncertain, and keep decisions human-approved.
   Details: the Venture standard.
-- `AB-WIKI-001` [`P1`]: When a mapped wiki page conflicts, repository state always wins. Report
-  divergence and propose reconciliation; no uncertain overwrite or unapproved write. When due,
-  load `venture-wiki-sync`.
-  Before writing any wiki page, load `.agents/skills/wiki-edit/SKILL.md` first.
+- `AB-WIKI-001` [`P1`]: The wiki is for the human: write every page for a person, never agent
+  material. Only the Venture Definition and Goals are published there, one way; no unapproved
+  write. When due, load `venture-wiki-sync`; before any wiki write, load `wiki-edit`.
 - `AB-WIKI-002` [`P1`]: Before any wiki write, classify its exact host and path using the
   policy in `.agents/wiki.json`; use a known result without re-asking, and resolve
   `unknown` before exposing private content. Details:
