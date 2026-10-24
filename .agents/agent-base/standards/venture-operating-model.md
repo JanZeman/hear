@@ -190,14 +190,28 @@ The repository is the superset. Everything on the wiki is also known in the repo
 reverse: whatever agents need in order to work (skills, standards, catalogs, the roadmap,
 agent-base framework content, and any other agent technicality) never appears on the wiki.
 
+### Where a Venture lives on the wiki
+
+Whatever is declared a Venture lives under the wiki's Venture area: on a shared wiki host its root
+is `en/ventures/<venture-slug>`, the same place every other Venture on that host uses. A host
+dedicated to one Venture may keep the root documented for it.
+
 ### Converting an existing wiki
 
-When a Venture adopts a wiki that already holds content, the conversion must not damage that
-information. Keep the existing pages and their structure as they are. Restructure (for example,
-splitting content by Department) only where the Venture's own definition requires it, and state
-for each such change which rule of the Venture requires it; without such a rule, the structure
-stays. The existing content becomes known to the repository as part of the conversion, so the
-repository remains the superset.
+When a Venture adopts a wiki that already describes it somewhere else, its existing pages move to
+the Venture root; they are not left where they were. The move must not damage that information:
+
+- The existing pages move with their structure unchanged, their subtree reproduced below the
+  Venture root.
+- If the existing content already has a root page (an overview), its content is kept as the
+  Venture root page, with the Venture's definition (Identity, Purpose, Vision, Strategy) added at
+  its top. Nothing below it is rewritten.
+- The existing content becomes known to the repository as part of the conversion, so the
+  repository remains the superset.
+
+The only later restructuring is the one the Venture definition itself calls for, such as the
+Venture's basic Departments. It is never part of the move: move first, then propose any
+restructuring as a separate, approved step that names the Venture rule requiring each change.
 
 ## Repository authority
 

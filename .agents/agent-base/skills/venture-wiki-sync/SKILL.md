@@ -74,9 +74,10 @@ batch is proposed: list every existing page under the mapped root and under any 
 human or the Venture's documents name, read them, and say what each holds. Then present one
 concise plan: for each proposed page its reader, source, path, Markdown conversion, and conflict
 with existing content; how each existing page becomes known to the repository; and rationale and
-risks. Keep the existing pages and their structure; propose a restructuring only where the
-Venture's definition requires it, naming that rule for each change ("Converting an existing wiki"
-in `venture-operating-model.md`). Never
+risks. Follow "Where a Venture lives on the wiki" and "Converting an existing wiki" in
+`venture-operating-model.md`: the plan moves existing pages under the Venture root with their
+structure unchanged, keeps an existing overview as the root page with the Venture's definition
+added at its top, and leaves any Department restructuring to a later, separate step. Never
 invent a placeholder Product or automatically move flat `.agents/features/` content. Clear items
 may proceed while ambiguous items remain untouched.
 

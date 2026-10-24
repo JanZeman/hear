@@ -228,10 +228,12 @@ repository's own `.agents/wiki.json`:
 
 The wiki is the human's window into the Venture (see "What the wiki is for" in
 `venture-operating-model.md`), so by default only the Venture's human-facing categories are
-mirrored; `mirror` opts in a skill, standard, or workflow a human really reads. On a dedicated host, `root` is normally `en/internal`; on a shared host it is normally
-`en/ventures/<venture-slug>`. The connector selects the wiki connection, while `host` and
-`visibility` classify privacy by exact host and complete path segment. Run
-`python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
+mirrored; `mirror` opts in a skill, standard, or workflow a human really reads.
+
+On a shared host, `root` is `en/ventures/<venture-slug>`, where every Venture on that host lives;
+a host dedicated to one Venture may keep its documented root (normally `en/internal`). The
+connector selects the wiki connection, while `host` and `visibility` classify privacy by exact
+host and complete path segment. Run `python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
 `.agents/agent-base/standards/wiki-visibility.md` for unknown or arbitrary targets. Never put
 credentials or absolute URLs in the file.
 
