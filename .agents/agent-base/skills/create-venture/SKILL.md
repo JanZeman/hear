@@ -32,7 +32,7 @@ details open until the Venture needs them.
 
 ## 4. Prepare the wiki safely
 
-Configure the Venture's one wiki root in the operator-local wiki registry. Check its visibility
+Record the Venture's one wiki root in `.agents/wiki.json`. Check its visibility
 with `scripts/venture.py --root . wiki-visibility` before any proposed publication. Generate an
 inventory, but do not create empty pages for seeded placeholders. For a requested publication,
 load `venture-wiki-sync` and the project-owned `wiki-edit` skill, present the exact batch, and

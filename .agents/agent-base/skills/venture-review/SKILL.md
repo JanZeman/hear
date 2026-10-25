@@ -14,7 +14,7 @@ do not invent motives, rewrite human intent, or turn a clean review into routine
   responsible human. This skill only detects possible incoherence and proposes what to revisit.
 - `ab-quality-check` judges the Agent Base/downstream relationship and its registered quality
   conditions. This skill judges the downstream Venture's own hierarchy.
-- `venture-wiki-sync` publishes the Venture Definition and Goals to the wiki. This skill reads
+- `venture-wiki-sync` publishes the Venture page to the wiki. This skill reads
   repository-authoritative content and performs no wiki operation.
 
 ## Review

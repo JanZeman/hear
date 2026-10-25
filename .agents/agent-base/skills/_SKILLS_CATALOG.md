@@ -17,7 +17,7 @@ skills remain in `.agents/skills/`; never add project content here.
 | [venture-staffing](./venture-staffing/SKILL.md) | Staff a coherent work unit with the cheapest sufficiently capable Actor and hold the write, recording, and recovery boundaries |
 | [venture-discovery](./venture-discovery/SKILL.md) | Elicit Venture intent from the responsible human before structuring Purpose, Vision, Strategy, or Goals |
 | [venture-review](./venture-review/SKILL.md) | Periodically detect internal Venture hierarchy incoherence and route human-approved repair to discovery |
-| [venture-wiki-sync](./venture-wiki-sync/SKILL.md) | Inspect and reconcile canonical Venture documents with deterministic wiki mirrors |
+| [venture-wiki-sync](./venture-wiki-sync/SKILL.md) | Publish the Venture page (Venture Definition and Goals) to the wiki one way, or move existing wiki content |
 
 ## Rules
 

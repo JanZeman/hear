@@ -219,18 +219,19 @@ repository's own `.agents/wiki.json`:
 ```json
 {
   "connector": "operator-connector-id",
-  "root": "en/ventures/venture-slug",
+  "root": "ventures/venture-name",
   "host": "wiki.example.com",
   "visibility": {"default": "public", "private_path_segments": ["internal"]}
 }
 ```
 
 The wiki is for the human (see "What the wiki is for" in `venture-operating-model.md`). The
-repository publishes only the Venture Definition and the Goals there, one way; everything else on
-the wiki is the human's and is never synchronized.
+repository publishes only the Venture page (`<root>/venture`: the Venture Definition and the Goals)
+there, one way; everything else on the wiki is the human's and is never synchronized.
 
-On a shared host, `root` is `en/ventures/<venture-slug>`, where every Venture on that host lives;
-a host dedicated to one Venture may keep its documented root (normally `en/internal`). The
+On a shared host, `root` is `ventures/<venture-name>`, with the name in full, where every Venture
+on that host lives; a host dedicated to one Venture may keep its documented root. A root never
+starts with a locale prefix such as `en/`. The
 connector selects the wiki connection, while `host` and `visibility` classify privacy by exact
 host and complete path segment. Run `python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
 `.agents/agent-base/standards/wiki-visibility.md` for unknown or arbitrary targets. Never put

@@ -187,26 +187,41 @@ is, where it is going, and what a person needs to know to run it. That agents ca
 useful side effect, never its purpose. Nothing that exists for agents (skills, standards, catalogs,
 the roadmap, agent-base framework content, or any other agent technicality) ever appears on it.
 
-### The Venture Definition
+### The Venture page
 
-The main page of every Venture starts with a section titled **Venture Definition**: the Venture's
-Identity, Purpose, Vision, and Strategy, with links to its Goals. It is always there. The
-repository owns exactly this and nothing else on the wiki: `.agents/VENTURE.md` and the Goals are
-published one way, repository to wiki, as the Venture Definition and the Goal pages below the root
-page. A change to them is made in the repository and published again; when the wiki copy was
-changed by hand, the agent shows that difference to the human before publishing over it.
+Every Venture has one page that says what it is: the **Venture page** at `<root>/venture`, titled
+"<Venture name> Venture". It holds the Venture Definition (Identity, Purpose, Vision, Strategy)
+and the Goals, all on that one page and written for a person: each Goal with its objective, status,
+key results, and why they were chosen. Working history (dated notes, rejected formulations) stays
+in the repository. The repository owns exactly this page and nothing else on the wiki: it is
+rendered from `.agents/VENTURE.md` and `.agents/goals/` and published one way, repository to wiki.
+A change is made in the repository and published again; when the page was changed by hand, the
+agent shows that difference to the human before publishing over it.
 
-Everything else on the wiki belongs to the human. A person writes it, and an agent writes it only
-when asked, for a person to read. It is never synchronized or mirrored into the repository; an
-agent that needs it reads the wiki directly.
+Everything else on the wiki belongs to the human, the Venture root page included. A person writes
+it, and an agent writes it only when asked, for a person to read. The root page links to the
+Venture page; when no root page exists yet, the agent proposes one holding only a title and that
+link, and from then on it is the human's. Nothing on the wiki is synchronized or mirrored into the
+repository; an agent that needs it reads the wiki directly.
 
 ### Where a Venture lives on the wiki
 
 Whatever is declared a Venture lives under the wiki's Venture area: on a shared wiki host its root
-is `en/ventures/<venture-slug>`, the same place every other Venture on that host uses. A host
-dedicated to one Venture may keep the root documented for it. Connector identity, the root, and the
-host's visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory
-(`AB-Q006`), and the guard reports a missing one without naming any actual host or path.
+is `ventures/<venture-name>`, the same place every other Venture on that host uses. The name is
+written out in full, never abbreviated, so a person recognizes it in a path. A host dedicated to
+one Venture may keep the root documented for it. A path never starts with a locale such as `en/`:
+the wiki serves its default language without one. Connector identity, the root, and the host's
+visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory (`AB-Q006`),
+and the guard reports a missing one without naming any actual host or path.
+
+### Moving pages
+
+Every move on the wiki, whether converting existing content, retiring an old page, or renaming a
+root, happens in two steps, so nothing is lost:
+
+1. Copy: create the page at its new path with its content unchanged, show the human the result,
+   and ask whether the original may be deleted.
+2. Delete: only after that approval, delete the original and verify the copy is still there.
 
 ### Converting an existing wiki
 
@@ -214,9 +229,9 @@ When a Venture adopts a wiki that already describes it somewhere else, its exist
 the Venture root; they are not left where they were. The move must not damage that information:
 
 - The existing pages move with their structure and content unchanged, their subtree reproduced
-  below the Venture root.
-- If the existing content already has a root page (an overview), its content is kept as the
-  Venture root page, with the Venture Definition added at its top. Nothing below it is rewritten.
+  below the Venture root, each by the two steps of "Moving pages".
+- If the existing content already has a root page (an overview), it becomes the Venture root page
+  unchanged except for a link to the Venture page. Nothing below it is rewritten.
 
 The only later restructuring is the one the Venture definition itself calls for, such as the
 Venture's basic Departments. It is never part of the move: move first, then propose any

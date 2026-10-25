@@ -15,7 +15,7 @@ locale prefix; a partial word never matches. For example:
 ```json
 {
   "connector": "operator-connector-id",
-  "root": "en/ventures/venture-slug",
+  "root": "ventures/venture-name",
   "host": "wiki.example.com",
   "visibility": {"default": "public", "private_path_segments": ["internal"]}
 }

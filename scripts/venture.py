@@ -55,10 +55,11 @@ DEFINED_SECTIONS = ("Purpose", "Vision", "Strategy")
 # instead of failing AB-VENTURE-001 for every repository that has not backfilled one yet.
 CYCLE_SECTION = "Cycle anchor"
 CYCLE_MONTHS = 3
-# The wiki is for the human. The repository publishes exactly one thing to it, one way: the Venture
-# Definition (from VENTURE.md) at the top of the Venture root page, and the Goals below it.
-# Everything else on the wiki belongs to the human and is never synchronized.
+# The wiki is for the human. The repository publishes exactly one page to it, one way: the Venture
+# page at `<root>/venture`, rendered from VENTURE.md and the Goals. The root page and everything
+# else on the wiki belong to the human and are never synchronized.
 PUBLISHED_CATEGORIES = {"goals"}
+VENTURE_PAGE = "venture"
 CATALOG_NAMES = {
     "_DEPARTMENTS_CATALOG.md",
     "_FEEDBACK_CATALOG.md",
@@ -364,14 +365,6 @@ def refresh_summary(root: Path) -> bool:
     return True
 
 
-def slug(segment: str) -> str:
-    value = re.sub(r"\.md$", "", segment, flags=re.I)
-    value = re.sub(r"[^A-Za-z0-9]+", "-", value).strip("-").lower()
-    if not value:
-        raise VentureError(f"cannot derive wiki path from {segment!r}")
-    return value
-
-
 def map_repository_path(relative: str) -> str | None:
     path = PurePosixPath(relative)
     parts = list(path.parts)
@@ -380,21 +373,17 @@ def map_repository_path(relative: str) -> str | None:
     if not parts or any(part in {"", ".", ".."} for part in parts):
         raise VentureError("repository path must be a safe relative path")
     if parts == ["VENTURE.md"]:
-        return ""
+        return VENTURE_PAGE
     if parts[0] not in PUBLISHED_CATEGORIES:
         return None
     if any("TEMPLATE" in part.upper() for part in parts):
         return None
-    if parts[-1] in CATALOG_NAMES:
-        return slug(parts[0])
-    parts[-1] = re.sub(r"\.md$", "", parts[-1], flags=re.I)
-    return "/".join(slug(part) for part in parts)
+    return VENTURE_PAGE
 
 
 def inventory(root: Path) -> dict[str, Any]:
     agents = root / ".agents"
     documents: list[dict[str, str]] = []
-    wiki_owners: dict[str, str] = {}
     if not agents.is_dir():
         raise VentureError(".agents directory is missing")
     candidates: list[tuple[Path, str, str, str]] = []
@@ -421,12 +410,6 @@ def inventory(root: Path) -> dict[str, Any]:
         path_parts = PurePosixPath(relative).parts
         if path_parts[-1] in CATALOG_NAMES and path_parts[0] not in active_categories:
             continue
-        if wiki_path in wiki_owners:
-            raise VentureError(
-                f"wiki path collision: {wiki_owners[wiki_path]} and {relative} map to "
-                f"{wiki_path or '.'}"
-            )
-        wiki_owners[wiki_path] = relative
         title_match = re.search(r"^#\s+(.+?)\s*$", text, flags=re.M)
         documents.append(
             {
@@ -683,7 +666,7 @@ def main() -> int:
             print(json.dumps(inventory(root), indent=2, sort_keys=True))
         elif args.command == "map-path":
             mapped = map_repository_path(args.path)
-            print("excluded" if mapped is None else mapped or ".")
+            print("excluded" if mapped is None else mapped)
         elif args.command == "check-due":
             ttl = args.ttl if args.ttl is not None else CHECK_TTLS[args.kind]
             print("due" if check_due(root, ttl, args.kind) else "not-due")
