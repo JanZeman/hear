@@ -117,7 +117,7 @@ Without this, the same repository slowly accumulates multiple "truths."
 
 ### 5a. ai-venture rule ownership is namespaced
 
-Every default injected inside `AGENTS.md`'s managed `AGENT-BASE-RULES` block uses an `AV-*`
+Every default injected inside `AGENTS.md`'s managed `AI-VENTURE-RULES` block uses an `AV-*`
 ID. Unprefixed IDs belong to the downstream project, even when the suffix matches an
 ai-venture default. This keeps independently designed project rules from colliding with the
 base contract and lets overrides name their target unambiguously.
@@ -142,7 +142,7 @@ code work. The ai-venture enforces this via two cooperating layers:
   the same turn, report their evidence and any hesitation, and invite correction. Outside a
   verified direct ai-venture update, the human accepts by reviewing and committing; ordinary
   checkpoints do not imply a push. `apply-ai-venture.sh` updates the managed
-  `AGENT-BASE-RULES` block in `AGENTS.md` (also carrying `AV-GIT-001`, `AV-GIT-002`,
+  `AI-VENTURE-RULES` block in `AGENTS.md` (also carrying `AV-GIT-001`, `AV-GIT-002`,
   `AV-SYNC-001`, `AV-HUMAN-001`, `AV-DESIGN-001`, `AV-DOC-005`, and `AV-SAFE-001` -- every generic,
   non-project-specific rule), migrating older unmarked or differently-named blocks when needed,
   so every downstream repo receives the current canonical rule text even when the rest of that
@@ -319,7 +319,7 @@ Recommended agent-specific folders:
     `.agents/ai-venture/standards/human-interruptions.md`
 - `scripts/agent-autonomy.py`
   - Four-vendor sandbox/automatic-review diagnostics and explicit machine-wide lifecycle
-  - Session-start diagnostics are scoped by `AGENT_BASE_VENDOR`; explicit
+  - Session-start diagnostics are scoped by `AI_VENTURE_VENDOR`; explicit
     `acknowledge-manual-step --vendor <runtime> --step <id>` records completion of
     unverifiable one-time steps in private autonomy state
   - The guard inspects actual machine, project, and VS Code state
@@ -338,7 +338,7 @@ Recommended agent-specific folders:
     from `development-workflow.md`; using it does not expand agent Git authority beyond the one
     narrow, one-way `--to-slots-only` case a verified fleet update runs (`AV-GIT-001`, git.md)
 - `.claude/`, `WARP.md`, `.github/copilot-instructions.md`, or similar
-  - Thin tool adapters - also carry injected ai-venture hooks between `AGENT-BASE-HOOKS` markers
+  - Thin tool adapters - also carry injected ai-venture hooks between `AI-VENTURE-HOOKS` markers
 
 ## Catalog and Template Pattern
 

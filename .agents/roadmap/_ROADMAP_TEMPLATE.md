@@ -32,7 +32,7 @@
      (e.g. NNN-refactoring-data-layer.md) and expand Notes to capture the
      problem, options considered, chosen option, rationale, and key findings. -->
 
-<!-- AGENT-BASE-MIGRATION: <marker> -->
+<!-- AI-VENTURE-MIGRATION: <marker> -->
 <!-- Auto-created items only (apply-ai-venture.sh's ensure_migration_roadmap_item): marks an
      item as a machine-registered pending upgrade migration rather than ordinary hand-written
      work. Do not add this marker by hand to a normal item -- it is what

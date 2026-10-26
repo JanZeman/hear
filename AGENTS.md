@@ -44,7 +44,7 @@ One owner file per topic; link, never copy.
 
 Goals **outrank the roadmap**; an undefined-Goals warning means nothing can be judged yet.
 
-<!-- AGENT-BASE-VENTURE-SUMMARY:START -->
+<!-- AI-VENTURE-VENTURE-SUMMARY:START -->
 ## Venture
 
 Identity: An experimental, prototype-stage game project validated by real demos to real people, continuing only as long as it demonstrably generates interest.
@@ -52,7 +52,7 @@ Strategy: Prove the shared engine/shell architecture with a small number of prot
 Goals: 001 Hear demonstrably interests people outside the project
 
 Purpose and Vision: `.agents/VENTURE.md`. Key results: `.agents/goals/`.
-<!-- AGENT-BASE-VENTURE-SUMMARY:END -->
+<!-- AI-VENTURE-VENTURE-SUMMARY:END -->
 
 ## Priority Model
 
@@ -92,7 +92,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   functional verification, state which changes this deploy targets and what outcome is expected
   to differ from the previous deploy.
 
-<!-- AGENT-BASE-RULES:START -->
+<!-- AI-VENTURE-RULES:START -->
 ### ai-venture Rules
 
 - `AV-DOC-005` [`P0`]: Git content (messages, code, comments, and path names) is always English;
@@ -106,9 +106,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   choice, or a technical blocker after reasonable repair.
 - `AV-SAFE-001` [`P1`]: Never print, log, or send a secret value, and never override an
   explicit instruction to keep one out of git. Before handling a credential, load
-  `.agents/ai-venture/standards/secrets.md` first, unconditionally; inconclusive privacy
+  `.agents/ai-venture/standards/secrets.md` unconditionally; inconclusive privacy
   defaults to not-private.
-- `AV-GIT-001` [`P0`]: Before Git operations, first load
+- `AV-GIT-001` [`P0`]: Before Git operations, load
   `.agents/ai-venture/standards/git.md`. Human controls history; only `git pull`, stash, submodule, the
   explicit `create-worktrees-by-convention` slots, and a verified direct `Update AV`, `publish AV`,
   or named fleet update (including its one-way `integration -> slot` worktree propagation) permit
@@ -121,7 +121,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `scripts/run-confirmed-commit.sh`, unedited, then do the proposed next step. Commits: configured Git identity, no attribution
   trailer. Details: `.agents/ai-venture/standards/git.md`.
 - `AV-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
-  clean, branch, ahead or behind), re-read it with read-only Git after your last action in this
+  clean, branch, ahead or behind), re-read it with read-only Git after your last action this
   turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/ai-venture/standards/git.md`.
 - `AV-SYNC-001` [`P1`]: "Update AV", "sync AV", or `av-update.sh` means load
   `.agents/ai-venture/skills/ai-venture-sync/SKILL.md` before acting. Bare "AV" does not trigger
@@ -129,7 +129,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AV-QUALITY-001` [`P1`]: "AV check", "check AV", or an equivalent in any language means load
   `.agents/ai-venture/skills/av-quality-check/SKILL.md` and report; it never syncs or updates.
 - `AV-VENDOR-001` [`P1`]: Before adding or materially revising vendor-specific behavior, load
-  `.agents/ai-venture/standards/vendor-support.md` first; verify every Primary vendor before
+  `.agents/ai-venture/standards/vendor-support.md`; verify every Primary vendor before
   claiming the behavior complete.
 - `AV-MODEL-001` [`P1`]: Put a credential, a vulnerability, an authentication or authorization
   policy, personal data, or a new external access path to the human before touching it, whatever
@@ -244,7 +244,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   suspect stale process credentials and recommend restarting the host before
   concluding the credential is invalid or rotating it. Details:
   `.agents/ai-venture/standards/mcp-credential-diagnostics.md`.
-<!-- AGENT-BASE-RULES:END -->
+<!-- AI-VENTURE-RULES:END -->
 
 ## Overrides
 

@@ -23,8 +23,8 @@ import tomllib
 
 STATE_VERSION = 1
 AUTONOMY_PROFILE_VERSION = "1.0.106"
-CODEX_START = "# AGENT-BASE-AUTONOMY:START"
-CODEX_END = "# AGENT-BASE-AUTONOMY:END"
+CODEX_START = "# AI-VENTURE-AUTONOMY:START"
+CODEX_END = "# AI-VENTURE-AUTONOMY:END"
 CODEX_SETTINGS = {
     "approval_policy": "on-request",
     "approvals_reviewer": "auto_review",

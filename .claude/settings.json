@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "AGENT_BASE_VENDOR=claude bash \"${CLAUDE_PROJECT_DIR}/ai-venture-guard.sh\""
+            "command": "AI_VENTURE_VENDOR=claude bash \"${CLAUDE_PROJECT_DIR}/ai-venture-guard.sh\""
           }
         ]
       }

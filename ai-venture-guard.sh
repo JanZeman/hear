@@ -30,8 +30,8 @@ step()    { echo -e "\n${BOLD}${BLUE}--- $1 ---${NC}"; }
 
 # --- Banner (shown once per session) ---
 print_banner() {
-  [[ -n "${AGENT_BASE_BANNER_SHOWN:-}" ]] && return
-  export AGENT_BASE_BANNER_SHOWN=1
+  [[ -n "${AI_VENTURE_BANNER_SHOWN:-}" ]] && return
+  export AI_VENTURE_BANNER_SHOWN=1
   local agent_base_version="unknown"
   if [[ -f "$ROOT_DIR/AI_VENTURE_VERSION" ]]; then
     agent_base_version="$(head -1 "$ROOT_DIR/AI_VENTURE_VERSION" | tr -d '[:space:]')"
@@ -44,7 +44,7 @@ print_banner() {
       printf '%s\n' "${line//<version>/$agent_base_version}"
     done < "$banner_file"
   else
-    printf 'AGENT-BASE v %s\n' "$agent_base_version"
+    printf 'AI-VENTURE v %s\n' "$agent_base_version"
   fi
   printf "${NC}\n"
 }
@@ -63,31 +63,31 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
   exit 0
 fi
 
-# AGENT-BASE-CONTEXT-METER:START
+# AI-VENTURE-CONTEXT-METER:START
 # Measure the actual session-start payload before printing it, so the report can appear first.
 # Every vendor whose own adapter is natively read by its tool (claude/CLAUDE.md, warp/WARP.md,
 # copilot/.github/copilot-instructions.md) also gets AGENTS.md forced into context below via
-# AGENT-BASE-AGENTS-MD-PRINT, so all three need measuring here. Codex reads AGENTS.md natively
+# AI-VENTURE-AGENTS-MD-PRINT, so all three need measuring here. Codex reads AGENTS.md natively
 # instead and skips that forced print, but still gets measured (context-budget.py's own vendor
 # branch treats it as the "AGENTS.md is native" case). An unset/unrecognized vendor is left
 # unmeasured on purpose: there is no known native adapter file to attribute it to, and that path
 # usually means the guard was invoked manually, outside any vendor's real session context.
-if [[ "${AGENT_BASE_CONTEXT_CAPTURED:-}" != "1" \
-  && ( "${AGENT_BASE_VENDOR:-}" == "claude" || "${AGENT_BASE_VENDOR:-}" == "codex" \
-       || "${AGENT_BASE_VENDOR:-}" == "warp" || "${AGENT_BASE_VENDOR:-}" == "copilot" ) \
+if [[ "${AI_VENTURE_CONTEXT_CAPTURED:-}" != "1" \
+  && ( "${AI_VENTURE_VENDOR:-}" == "claude" || "${AI_VENTURE_VENDOR:-}" == "codex" \
+       || "${AI_VENTURE_VENDOR:-}" == "warp" || "${AI_VENTURE_VENDOR:-}" == "copilot" ) \
   && -f "$ROOT_DIR/scripts/context-budget.py" ]]; then
   _context_output="$(mktemp "${TMPDIR:-/tmp}/agent-base-context.XXXXXX")"
   set +e
-  AGENT_BASE_CONTEXT_CAPTURED=1 bash "$0" "$@" >"$_context_output" 2>&1
+  AI_VENTURE_CONTEXT_CAPTURED=1 bash "$0" "$@" >"$_context_output" 2>&1
   _context_status=$?
   set -e
   python3 "$ROOT_DIR/scripts/context-budget.py" --root "$ROOT_DIR" \
-    --vendor "$AGENT_BASE_VENDOR" --guard-output "$_context_output" || true
+    --vendor "$AI_VENTURE_VENDOR" --guard-output "$_context_output" || true
   cat "$_context_output"
   rm -f "$_context_output"
   exit "$_context_status"
 fi
-# AGENT-BASE-CONTEXT-METER:END
+# AI-VENTURE-CONTEXT-METER:END
 
 print_banner
 
@@ -121,38 +121,38 @@ assert_not_contains() {
   fi
 }
 
-# AGENT-BASE-UPDATE-CONSENT:START
+# AI-VENTURE-UPDATE-CONSENT:START
 # --- ai-venture update reminder (never fetches, syncs, or changes a checkout) ---
 # Cache: remind at most once per day. Delete .agents/.ai-venture-last-run to show it again.
-AGENT_BASE_CACHE="$ROOT_DIR/.agents/.ai-venture-last-run"
-AGENT_BASE_TTL=86400  # seconds (24 h)
+AI_VENTURE_CACHE="$ROOT_DIR/.agents/.ai-venture-last-run"
+AI_VENTURE_TTL=86400  # seconds (24 h)
 
 _stale=true
-if [[ -f "$AGENT_BASE_CACHE" ]]; then
-  _last=$(cat "$AGENT_BASE_CACHE" 2>/dev/null || echo 0)
+if [[ -f "$AI_VENTURE_CACHE" ]]; then
+  _last=$(cat "$AI_VENTURE_CACHE" 2>/dev/null || echo 0)
   _now=$(date +%s)
-  (( _now - _last < AGENT_BASE_TTL )) && _stale=false
+  (( _now - _last < AI_VENTURE_TTL )) && _stale=false
 fi
 
 if [[ "$_stale" == true ]] && [[ -d "_sub/ai-venture" && -f "_sub/ai-venture/apply-ai-venture.sh" ]]; then
   warn "ai-venture update check is due. Automatic updates are disabled."
   echo -e "${DIM}  Ask the current user before acting. Run only after explicit approval: Update AV.${NC}"
 elif [[ "$_stale" == false ]]; then
-  echo -e "${DIM}ai-venture update reminder: cached (next after $(date -r $(( _last + AGENT_BASE_TTL )) '+%Y-%m-%d %H:%M' 2>/dev/null || echo '~24h'))${NC}"
+  echo -e "${DIM}ai-venture update reminder: cached (next after $(date -r $(( _last + AI_VENTURE_TTL )) '+%Y-%m-%d %H:%M' 2>/dev/null || echo '~24h'))${NC}"
 fi
-# AGENT-BASE-UPDATE-CONSENT:END
+# AI-VENTURE-UPDATE-CONSENT:END
 
-# AGENT-BASE-AUTONOMY-CHECK:START
+# AI-VENTURE-AUTONOMY-CHECK:START
 # --- Machine/IDE autonomy advisory (read-only, never blocks the guard) ---
 # Machine fixes go through consent-gated vendor.sh with timestamped backups. Manual-only IDE/UI
 # findings are handed off as exact user steps; undocumented editor state is never rewritten.
 if [[ -f "scripts/agent-autonomy.py" ]]; then
-  _autonomy_vendor="${AGENT_BASE_VENDOR:-all}"
+  _autonomy_vendor="${AI_VENTURE_VENDOR:-all}"
   python3 scripts/agent-autonomy.py check --vendor "$_autonomy_vendor" --repo "$ROOT_DIR" || \
     warn "Agent autonomy diagnostics could not run; use: python3 scripts/agent-autonomy.py status --vendor $_autonomy_vendor --repo ."
 fi
-# AGENT-BASE-AUTONOMY-CHECK:END
-# AGENT-BASE-TOPIC-QUEUE-CHECK:START
+# AI-VENTURE-AUTONOMY-CHECK:END
+# AI-VENTURE-TOPIC-QUEUE-CHECK:START
 # --- Session topic queue advisory (read-only, never blocks the guard) ---
 # Agents decide whether topics are truly related; this only keeps the durable queue structure
 # visible when a handoff exists. Missing headings are a problem worth surfacing, not a reason to
@@ -174,8 +174,8 @@ if [[ -d ".agents/sessions" ]]; then
     echo -e "${DIM}  broad independent work to a roadmap item. See AV-SESSION-001.${NC}"
   fi
 fi
-# AGENT-BASE-TOPIC-QUEUE-CHECK:END
-# AGENT-BASE-VENTURE-PREPARE:START
+# AI-VENTURE-TOPIC-QUEUE-CHECK:END
+# AI-VENTURE-VENTURE-PREPARE:START
 # --- Venture Summary refresh and periodic review signals (read-only except managed/local state) ---
 _venture_helper="scripts/venture.py"
 _venture_wiki_due=false
@@ -194,8 +194,8 @@ if [[ -f "$_venture_helper" ]]; then
   fi
   _venture_cycle_status="$(python3 "$_venture_helper" --root "$ROOT_DIR" cycle-status 2>/dev/null || true)"
 fi
-# AGENT-BASE-VENTURE-PREPARE:END
-# AGENT-BASE-QUALITY:START
+# AI-VENTURE-VENTURE-PREPARE:END
+# AI-VENTURE-QUALITY:START
 # --- AV quality conditions (standards/av-quality.md). Mechanical only; judged ones need the
 # av-quality-check skill and a present human. Every finding here is deferrable by design. ---
 # Defined inside the managed block on purpose. The guard is customize-once, so a helper added to
@@ -291,9 +291,9 @@ if [[ -n "$_q_findings" ]]; then
   echo -e "${DIM}  For the judged conditions too, say \"AV check\" (AV-QUALITY-001).${NC}"
   echo -e "${DIM}  During an ai-venture update, only report these: they need a present human.${NC}"
 fi
-# AGENT-BASE-QUALITY:END
+# AI-VENTURE-QUALITY:END
 
-# AGENT-BASE-REQUESTS:START
+# AI-VENTURE-REQUESTS:START
 # --- Requests to ai-venture: state enum, plus the two reminders that keep the thread alive ---
 # A request usually interrupts something here, so two moments can go cold silently: the answer
 # never coming back, and the answer arriving while the interrupted work stays abandoned. Both get
@@ -342,9 +342,9 @@ if [[ -d .agents/requests ]]; then
     echo -e "${DIM}  set Status: Resumed. See .agents/requests/_REQUESTS_CATALOG.md.${NC}"
   fi
 fi
-# AGENT-BASE-REQUESTS:END
+# AI-VENTURE-REQUESTS:END
 
-# AGENT-BASE-WORKFLOW-CHECK:START
+# AI-VENTURE-WORKFLOW-CHECK:START
 # --- Trunk-based + worktree workflow compliance (read-only, never blocks the guard) ---
 # .agents/standards/development-workflow.md defines a trunk-based model (only `main`, no
 # dev/develop), a two-letter `repo_id`, and the `<REPO_ID><N>` / `_<repo_id><N>` slot convention.
@@ -424,7 +424,7 @@ if [[ -n "$_wf_problems" ]]; then
   printf "${RED}%b${NC}" "$_wf_problems"
   echo -e "${DIM}  Standard: $_wf_file. Branch deletion is manual, human-only (AV-GIT-001).${NC}"
 fi
-# AGENT-BASE-WORKFLOW-CHECK:END
+# AI-VENTURE-WORKFLOW-CHECK:END
 
 # --- Required files ---
 assert_file_exists "AGENTS.md"
@@ -439,15 +439,15 @@ assert_file_exists ".markdownlint.jsonc"
 # project-owned and intentionally outside this check, even when their suffix matches an AB
 # default. This catches agent-base regressing into the real downstream collision that led to
 # v0.0.97 without claiming to infer project semantics.
-if grep -Fqx '<!-- AGENT-BASE-RULES:START -->' "AGENTS.md"; then
+if grep -Fqx '<!-- AI-VENTURE-RULES:START -->' "AGENTS.md"; then
   while IFS= read -r _managed_rule_id; do
     [[ -z "$_managed_rule_id" ]] && continue
     if [[ "$_managed_rule_id" != AV-* && "$_managed_rule_id" != AB-* ]]; then
       fail "Managed agent-base rule '$_managed_rule_id' must use an AB-* ID."
     fi
   done < <(awk '
-    $0 == "<!-- AGENT-BASE-RULES:START -->" { inside=1; next }
-    $0 == "<!-- AGENT-BASE-RULES:END -->"   { inside=0; next }
+    $0 == "<!-- AI-VENTURE-RULES:START -->" { inside=1; next }
+    $0 == "<!-- AI-VENTURE-RULES:END -->"   { inside=0; next }
     inside && $0 ~ /^- `[^`]+` \[`P[0-9]+`\]:/ {
       line=$0
       sub(/^- `/, "", line)
@@ -535,16 +535,16 @@ fi
 # --- Adapter hook injection ---
 for adapter in WARP.md CLAUDE.md .github/copilot-instructions.md; do
   if [[ -f "$adapter" ]]; then
-    if ! grep -q 'AGENT-BASE-HOOKS:START' "$adapter"; then
-      fail "$adapter is missing AGENT-BASE-HOOKS block (run: bash _sub/ai-venture/apply-ai-venture.sh)"
+    if ! grep -q 'AI-VENTURE-HOOKS:START' "$adapter"; then
+      fail "$adapter is missing AI-VENTURE-HOOKS block (run: bash _sub/ai-venture/apply-ai-venture.sh)"
     fi
     # Both short activation points are generated from .agents/hooks.md. Re-run
     # apply-ai-venture.sh when an older adapter lacks either one.
-    if grep -q 'AGENT-BASE-HOOKS:START' "$adapter" \
+    if grep -q 'AI-VENTURE-HOOKS:START' "$adapter" \
       && ! grep -q '^## Task Start .*MANDATORY$' "$adapter"; then
       fail "$adapter is missing the Task Start hook (run: bash _sub/ai-venture/apply-ai-venture.sh)"
     fi
-    if grep -q 'AGENT-BASE-HOOKS:START' "$adapter" \
+    if grep -q 'AI-VENTURE-HOOKS:START' "$adapter" \
       && ! grep -q '^## Every Change .*MANDATORY$' "$adapter"; then
       fail "$adapter is missing the Every Change hook (run: bash _sub/ai-venture/apply-ai-venture.sh)"
     fi
@@ -552,7 +552,7 @@ for adapter in WARP.md CLAUDE.md .github/copilot-instructions.md; do
 done
 
 # --- Adapters must stay thin, not become second rulebooks (DOC-003) ---
-# Heuristic: count non-blank lines outside the AGENT-BASE-HOOKS managed block. A correctly
+# Heuristic: count non-blank lines outside the AI-VENTURE-HOOKS managed block. A correctly
 # thin adapter (title, one description line, the "Reading/Editing this file?" footer) sits
 # around 7. Real rule content copy-pasted in from AGENTS.md pushes this well past the
 # threshold below -- exactly the failure mode this check exists to catch (observed directly:
@@ -561,7 +561,7 @@ done
 ADAPTER_THIN_MAX=20
 for adapter in WARP.md CLAUDE.md .github/copilot-instructions.md; do
   if [[ -f "$adapter" ]]; then
-    _adapter_extra=$(sed '/AGENT-BASE-HOOKS:START/,/AGENT-BASE-HOOKS:END/d' "$adapter" \
+    _adapter_extra=$(sed '/AI-VENTURE-HOOKS:START/,/AI-VENTURE-HOOKS:END/d' "$adapter" \
       | grep -cv '^[[:space:]]*$')
     if [[ "$_adapter_extra" -gt "$ADAPTER_THIN_MAX" ]]; then
       warn "$adapter has $_adapter_extra non-blank line(s) outside the managed hook block (expected ~7)."
@@ -625,12 +625,12 @@ fi
 # Stamp the agent-base cache only on success so a failing guard retries next session.
 # Write is best-effort - sandboxed agents (e.g. Codex) may not have write permission.
 if [[ "$_stale" == true ]]; then
-  { mkdir -p "$(dirname "$AGENT_BASE_CACHE")" && date +%s > "$AGENT_BASE_CACHE"; } 2>/dev/null || true
+  { mkdir -p "$(dirname "$AI_VENTURE_CACHE")" && date +%s > "$AI_VENTURE_CACHE"; } 2>/dev/null || true
 fi
 
 success "Integrity guard passed."
 
-# AGENT-BASE-AGENTS-MD-PRINT:START
+# AI-VENTURE-AGENTS-MD-PRINT:START
 # --- Force AGENTS.md's full content into context, every session ---
 # Claude Code does not read AGENTS.md natively (confirmed: anthropics/claude-code#34235, open
 # as of Aug 2026 -- it only auto-loads CLAUDE.md). Everything else this guard prints is either
@@ -647,10 +647,10 @@ success "Integrity guard passed."
 # (the AGENTS.md specification, and this repository's own AI_VENTURE.md, both confirm it), and a
 # live Codex session was observed receiving the file twice when this ran unconditionally for
 # every vendor: once complete via that native read, once truncated via this block. Detail:
-# roadmap item 090. .codex/hooks.json sets AGENT_BASE_VENDOR=codex on the exact command that
+# roadmap item 090. .codex/hooks.json sets AI_VENTURE_VENDOR=codex on the exact command that
 # invokes this guard, specifically so this check can tell; no other supported vendor sets it, so
 # an unset or different value preserves today's behavior.
-if [[ "${AGENT_BASE_VENDOR:-}" == "codex" ]]; then
+if [[ "${AI_VENTURE_VENDOR:-}" == "codex" ]]; then
   echo ""
   echo -e "${DIM}AGENTS.md: delivered via Codex's own native read; the forced copy is skipped for this vendor.${NC}"
 else
@@ -661,7 +661,7 @@ else
   echo ""
   echo -e "${BOLD}${BLUE}=== end AGENTS.md ===${NC}"
 fi
-# AGENT-BASE-AGENTS-MD-PRINT:END
+# AI-VENTURE-AGENTS-MD-PRINT:END
 
 # --- Roadmap focus (informational, not a gate) ---
 # Mechanical count of open work vs. done, printed every session so the same figure AB-GOALS-001
@@ -705,7 +705,7 @@ if [[ -f "$ROOT_DIR/scripts/check-model-cost.sh" ]]; then
   bash "$ROOT_DIR/scripts/check-model-cost.sh" || true
 fi
 
-# AGENT-BASE-VENTURE-CONTEXT:START
+# AI-VENTURE-VENTURE-CONTEXT:START
 # Printed LAST so Purpose, Vision, Strategy, and Goals remain the agent's immediate task context.
 if [[ -f "${_venture_helper:-scripts/venture.py}" ]]; then
   if _venture_context="$(python3 "${_venture_helper:-scripts/venture.py}" --root "$ROOT_DIR" context 2>&1)"; then
@@ -733,4 +733,4 @@ else
   echo ""
   warn "scripts/venture.py is missing; Venture Context could not be loaded."
 fi
-# AGENT-BASE-VENTURE-CONTEXT:END
+# AI-VENTURE-VENTURE-CONTEXT:END

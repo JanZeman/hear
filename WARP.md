@@ -2,13 +2,13 @@
 
 Warp adapter for this repository.
 
-<!-- AGENT-BASE-HOOKS:START -->
+<!-- AI-VENTURE-HOOKS:START -->
 ## Session Start - MANDATORY
 
 Run immediately without asking for confirmation:
 
 ```bash
-AGENT_BASE_VENDOR=warp bash "$(git rev-parse --show-toplevel)/ai-venture-guard.sh"
+AI_VENTURE_VENDOR=warp bash "$(git rev-parse --show-toplevel)/ai-venture-guard.sh"
 ```
 
 Follow its output. If the guard fails, stop and ask the human before continuing.
@@ -28,6 +28,6 @@ After that banner, render the AI-venture Board and first-response SESSION introd
 Before substantive work, make sure you understand the Venture Context, Goals, current Roadmap,
 and applicable human-authority and safety boundaries; load the standards and skills routed by
 `AGENTS.md`.
-<!-- AGENT-BASE-HOOKS:END -->
+<!-- AI-VENTURE-HOOKS:END -->
 
 Keep only vendor-specific Warp content outside this managed block.

@@ -55,7 +55,7 @@ def main() -> int:
     guard_words = word_count(args.guard_output.read_text(encoding="utf-8"))
     # claude/warp/copilot each have their own adapter file natively read by their tool, separate
     # from the guard's stdout; codex has no such adapter and reads AGENTS.md itself natively
-    # instead (the guard's own AGENT-BASE-AGENTS-MD-PRINT block skips forcing it for codex only).
+    # instead (the guard's own AI-VENTURE-AGENTS-MD-PRINT block skips forcing it for codex only).
     vendor_primary = {
         "claude": ("CLAUDE.md adapter", root / "CLAUDE.md"),
         "warp": ("WARP.md adapter", root / "WARP.md"),

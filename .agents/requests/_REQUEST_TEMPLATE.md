@@ -34,7 +34,7 @@
      same test and will disagree out loud if it has to; a request that admits its own limits is
      more useful than one that oversells. -->
 
-<!-- AGENT-BASE-DECISION:START -->
+<!-- AI-VENTURE-DECISION:START -->
 ## Decision
 
 _Not yet triaged._
@@ -43,4 +43,4 @@ _Not yet triaged._
      created, and the released version when the change ships. Everything outside this block and
      the Status line stays byte-for-byte unchanged, which is what lets an automated audit tell a
      legitimate decision writeback from an accidental edit to the request itself. -->
-<!-- AGENT-BASE-DECISION:END -->
+<!-- AI-VENTURE-DECISION:END -->

@@ -39,7 +39,7 @@ All of the following are optional, each with a stated default:
 
 - `--root <path>`: the project root the loop operates in (default: current directory).
 - `--executor {claude,codex}`: defaults to the vendor the loop is invoked from
-  (`$AGENT_BASE_VENDOR`, the same value the guard already tags sessions with).
+  (`$AI_VENTURE_VENDOR`, the same value the guard already tags sessions with).
 - `--reviewer {claude,codex}`: defaults to "the other one" of the two vendors above -- a
   preference for genuinely independent review, not a same-vendor prohibition. Naming the same
   vendor for both roles explicitly is fully legitimate (e.g. the other vendor's quota is

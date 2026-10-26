@@ -24,7 +24,7 @@ for f in "$roadmap_dir"/*.md; do
   # Skip catalog/template/etc. -- their leading underscore excludes them from numbered
   # roadmap items, and _ROADMAP_TEMPLATE.md documents the metadata syntax itself.
   [[ "$(basename "$f")" == _* ]] && continue
-  if { grep -q "AGENT-BASE-MIGRATION:" "$f" 2>/dev/null ||
+  if { grep -q "AI-VENTURE-MIGRATION:" "$f" 2>/dev/null ||
        grep -Fq "<!-- Auto-created by apply-ai-venture.sh. Introduced in:" "$f" 2>/dev/null; } &&
      grep -qE '^\*\*Status\*\*: (Open|In Progress)' "$f" 2>/dev/null; then
     count=$((count + 1))

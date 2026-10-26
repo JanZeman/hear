@@ -248,10 +248,10 @@ def append_round(log_path: Path, round_num: int, label: str, text: str) -> None:
 
 
 def resolve_vendors(args: argparse.Namespace) -> tuple[str, str]:
-    executor = args.executor or os.environ.get("AGENT_BASE_VENDOR")
+    executor = args.executor or os.environ.get("AI_VENTURE_VENDOR")
     if executor not in VENDORS:
         sys.exit(
-            "error: --executor not given and AGENT_BASE_VENDOR is unset or not one of "
+            "error: --executor not given and AI_VENTURE_VENDOR is unset or not one of "
             f"{VENDORS}; pass --executor explicitly"
         )
     reviewer = args.reviewer

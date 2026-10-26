@@ -34,7 +34,7 @@ copied byte-for-byte into a private timestamped directory under the ai-venture o
 the printed `vendor.sh --<vendor> --restore <backup-dir>` command validates vendor and target,
 backs up the current file, and then restores the selected snapshot atomically.
 Every downstream session guard runs only `check` for the runtime that launched the session, using
-`AGENT_BASE_VENDOR`; the Codex and Claude native startup hooks set that value, and sync updates
+`AI_VENTURE_VENDOR`; the Codex and Claude native startup hooks set that value, and sync updates
 the known legacy Claude hook command. It does not surface another runtime's pending manual work.
 A one-time
 unverifiable step remains pending until the human confirms it explicitly, for example:

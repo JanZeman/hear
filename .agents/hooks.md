@@ -4,7 +4,7 @@ ai-venture hook definitions. Vendor adapters are generated from these during syn
 
 Do not add project-specific hooks here - this file is kept in sync with the ai-venture.
 Projects can add their own hooks directly in their adapter files, outside the
-`AGENT-BASE-HOOKS` markers.
+`AI-VENTURE-HOOKS` markers.
 
 ## on-session-start
 

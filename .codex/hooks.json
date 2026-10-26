@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/ai-venture-guard.sh\" ]] && AGENT_BASE_VENDOR=codex bash \"$ROOT/ai-venture-guard.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/ai-venture-guard.sh\" ]] && AI_VENTURE_VENDOR=codex bash \"$ROOT/ai-venture-guard.sh\" || true'"
           }
         ]
       }

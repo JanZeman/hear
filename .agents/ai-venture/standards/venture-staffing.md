@@ -56,7 +56,7 @@ structure, not a decorative substitute for the answer: it makes the SESSION's te
 the current outcome owner visible before the prose.
 
 ```text
-+-- AGENT-BASE ----------------------------------+
++-- AI-VENTURE ----------------------------------+
 | ROLE: COORDINATOR                               |
 | LEAD DEPARTMENT: MANAGEMENT                     |
 | MODEL: GPT-5 at high | ELAPSED: 0m 25s          |
