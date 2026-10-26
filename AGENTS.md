@@ -22,13 +22,13 @@ Delivery: `AGENT_BASE.md`.
 ## Conventions
 
 - **Submodules** live only under `_sub/<name>/`, never elsewhere.
-- **AB** is agent-base; **DS** is a downstream client using `_sub/agent-base/`.
+- **AB** is agent-base; **DS** is a downstream client using `_sub/ai-venture/`.
 
 ## Source of Truth Map
 
 One owner file per topic; link, never copy.
 
-- Agent-base and sync → `_sub/agent-base/` + `./ab-update.sh`
+- Agent-base and sync → `_sub/ai-venture/` + `./ab-update.sh`
 - Documentation and adapter topology → `AGENT_BASE.md`
 - Standards → `.agents/standards/_STANDARDS_CATALOG.md`
 - Products and feature scope/specs → `.agents/products/`
@@ -200,7 +200,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AB-RULE-SYNTAX-001` [`P1`]: Before writing or editing any rule, load
   `.agents/agent-base/standards/rule-writing.md` first.
 - `AB-REQUEST-001` [`P1`]: An agent-base gap or defect is a request, not a workaround: record it
-  under `.agents/requests/`, never in `_sub/agent-base`. Details:
+  under `.agents/requests/`, never in `_sub/ai-venture`. Details:
   `.agents/requests/_REQUESTS_CATALOG.md`.
 - `AB-SESSION-001` [`P1`]: Before saving substantive work on request, compaction, or handoff, load
   `.agents/agent-base/standards/session-continuity.md`; create a linked snapshot and safely

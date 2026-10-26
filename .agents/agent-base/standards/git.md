@@ -192,7 +192,7 @@ Base update. Throwaway fixture repositories that tests and rehearsals create are
 Git config is never versioned, so a fresh clone starts without an identity; the session-start
 guard reports that as `AB-Q007` without printing either value, and
 `scripts/run-confirmed-commit.sh` refuses to run until both are set. A submodule such as
-`_sub/agent-base` keeps its own separate Git config. Reading it needs no identity, and agents
+`_sub/ai-venture` keeps its own separate Git config. Reading it needs no identity, and agents
 never commit there; a human who commits inside it sets its identity there separately.
 
 **Syncing agent-base** remains routine maintenance, not a project roadmap step -- don't file

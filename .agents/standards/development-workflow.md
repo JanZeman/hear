@@ -116,13 +116,13 @@ submodule branch whose checkout differs from the recorded commit.
   shared.
 - Idle slot branches are checked for cleanliness but excluded from merging and pushing.
 - A new worktree starts with **empty submodule directories**: `git worktree add` does not
-  initialize submodules, so `_sub/agent-base` and any others stay empty until checked out.
+  initialize submodules, so `_sub/ai-venture` and any others stay empty until checked out.
   `worktrees.sh` initializes them automatically; outside it, run
   `git submodule update --init --recursive` in the new slot.
 
 ## Submodules across worktrees
 
-Every project on agent-base has at least one submodule (`_sub/agent-base`); some have more. Git
+Every project on agent-base has at least one submodule (`_sub/ai-venture`); some have more. Git
 treats a submodule as a pointer to a commit, kept in the index separately from the submodule's own
 checkout. The two go out of step easily, and worktrees make it more likely.
 
@@ -134,7 +134,7 @@ still commit A. Symptoms:
 - `git submodule status` shows the path prefixed with `+`.
 - `ignore = dirty` in `.gitmodules` does **not** hide this -- it suppresses changes *inside* the
   submodule's working tree, not a pointer mismatch.
-- Anything reading the submodule reads the old content: a stale `_sub/agent-base` means
+- Anything reading the submodule reads the old content: a stale `_sub/ai-venture` means
   `agent-base-guard.sh` runs an outdated agent-base without saying so.
 
 **The trap.** Committing that modified submodule pointer in the slot records a *rollback*. The

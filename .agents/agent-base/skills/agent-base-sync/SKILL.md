@@ -36,7 +36,7 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 bash "$REPO_ROOT/ab-update.sh"
 ```
 
-`./ab-update.sh` delegates to `_sub/agent-base/apply-agent-base.sh`. Run the submodule path
+`./ab-update.sh` delegates to `_sub/ai-venture/apply-agent-base.sh`. Run the submodule path
 directly only when the root entry point does not exist yet. A former `./ab.sh` alias is gone:
 each update removes the generated copy, so never look for it. Do not pass `--quiet`; this procedure needs
 the detailed output.
@@ -63,7 +63,7 @@ for an agent-base agent instead.
   verified paths, committing `Sync with agent-base vX.Y.Z: Apply verified shared rules`, and
   pushing that commit. Return to the prior task after reporting the commit and push result.
 - If a customize-once file has drifted, do the merge now rather than asking first. Compare it
-  against `_sub/agent-base/template/<path>`, apply the generic improvement, keep the project's own
+  against `_sub/ai-venture/template/<path>`, apply the generic improvement, keep the project's own
   content, and write the review marker the script prints. Leave every one of those edits unstaged,
   the marker included, and leave the mechanical sync output staged.
 - One question decides where anything goes: **does a person need to look at it?** Mechanical output

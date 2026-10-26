@@ -15,7 +15,7 @@ set -uo pipefail
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 check=""
 for candidate in \
-  "$repo_root/_sub/agent-base/template/scripts/check-staffing-recovery.sh" \
+  "$repo_root/_sub/ai-venture/template/scripts/check-staffing-recovery.sh" \
   "$repo_root/template/scripts/check-staffing-recovery.sh"; do
   [[ -f "$candidate" ]] && { check="$candidate"; break; }
 done

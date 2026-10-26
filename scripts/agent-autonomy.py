@@ -414,7 +414,7 @@ def policy_path() -> Path | None:
     script = Path(__file__).resolve()
     candidates = (
         script.parents[1] / ".claude/settings.agent-base.universal.json",
-        script.parents[1] / "_sub/agent-base/template/.claude/settings.agent-base.universal.json",
+        script.parents[1] / "_sub/ai-venture/template/.claude/settings.agent-base.universal.json",
     )
     return next((candidate for candidate in candidates if candidate.exists()), None)
 

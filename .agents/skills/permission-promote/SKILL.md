@@ -45,7 +45,7 @@ accepted rule through Codex's normal rule workflow.
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-bash "$REPO_ROOT/_sub/agent-base/template/scripts/permission-auto-strip.sh"
+bash "$REPO_ROOT/_sub/ai-venture/template/scripts/permission-auto-strip.sh"
 ```
 
 Read `.claude/settings.local.json`. If neither its `permissions.allow` list nor telemetry has a
@@ -83,7 +83,7 @@ helper or edit the project file directly:
 
 ```bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-MERGE_PY="$REPO_ROOT/_sub/agent-base/template/scripts/merge-permissions.py"
+MERGE_PY="$REPO_ROOT/_sub/ai-venture/template/scripts/merge-permissions.py"
 TMP="$(mktemp /tmp/permission-promote-XXXXXX.json)"
 echo '{"permissions":{"allow":["ENTRY"]}}' > "$TMP"
 python3 "$MERGE_PY" --source "$TMP" --target ~/.claude/settings.json \
@@ -97,6 +97,6 @@ new credentials, a commit, or a push.
 ### 7. Clean and report
 
 Remove handled entries from `.claude/settings.local.json`; leave unrelated entries untouched. Run
-`bash "$REPO_ROOT/_sub/agent-base/template/scripts/lint-settings.sh"` after project changes.
+`bash "$REPO_ROOT/_sub/ai-venture/template/scripts/lint-settings.sh"` after project changes.
 Report accepted, deferred, and refused items, affected scope, expected reduction, and whether
 validation passed. Do not ask a new question merely to confirm the report.

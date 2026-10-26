@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; ROUTE=\"$ROOT/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"$ROOT/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" codex-hook || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; ROUTE=\"$ROOT/_sub/ai-venture/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"$ROOT/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" codex-hook || true'"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; ROUTE=\"$ROOT/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"$ROOT/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" codex-hook || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"; ROUTE=\"$ROOT/_sub/ai-venture/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"$ROOT/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" codex-hook || true'"
           }
         ]
       }
@@ -38,19 +38,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-pending-migrations-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-pending-migrations-codex.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/ai-venture/template/scripts/check-pending-migrations-codex.sh\" ]] && bash \"$ROOT/_sub/ai-venture/template/scripts/check-pending-migrations-codex.sh\" || true'"
           },
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-safe-001-reminder-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-safe-001-reminder-codex.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/ai-venture/template/scripts/check-safe-001-reminder-codex.sh\" ]] && bash \"$ROOT/_sub/ai-venture/template/scripts/check-safe-001-reminder-codex.sh\" || true'"
           },
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-git-commit-format-reminder-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-git-commit-format-reminder-codex.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/ai-venture/template/scripts/check-git-commit-format-reminder-codex.sh\" ]] && bash \"$ROOT/_sub/ai-venture/template/scripts/check-git-commit-format-reminder-codex.sh\" || true'"
           },
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-staffing-recovery-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-staffing-recovery-codex.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/ai-venture/template/scripts/check-staffing-recovery-codex.sh\" ]] && bash \"$ROOT/_sub/ai-venture/template/scripts/check-staffing-recovery-codex.sh\" || true'"
           }
         ]
       }
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/agent-base/template/scripts/check-credential-repo-boundary-codex.sh\" ]] && bash \"$ROOT/_sub/agent-base/template/scripts/check-credential-repo-boundary-codex.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/_sub/ai-venture/template/scripts/check-credential-repo-boundary-codex.sh\" ]] && bash \"$ROOT/_sub/ai-venture/template/scripts/check-credential-repo-boundary-codex.sh\" || true'"
           }
         ]
       }
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; CHECK=\"$ROOT/_sub/agent-base/template/scripts/check-git-state-claim.py\"; [[ -n \"$ROOT\" && -f \"$CHECK\" ]] && python3 \"$CHECK\" codex || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; CHECK=\"$ROOT/_sub/ai-venture/template/scripts/check-git-state-claim.py\"; [[ -n \"$ROOT\" && -f \"$CHECK\" ]] && python3 \"$CHECK\" codex || true'"
           }
         ]
       }

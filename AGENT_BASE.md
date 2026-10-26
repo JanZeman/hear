@@ -603,8 +603,8 @@ vendor.
 
 ### Keeping in sync with the agent-base
 
-The recommended approach is to add `agent-base` as a git submodule at `_sub/agent-base/`.
-Running `bash _sub/agent-base/apply-agent-base.sh` copies keep-in-sync files (vendor adapters,
+The recommended approach is to add `agent-base` as a git submodule at `_sub/ai-venture/`.
+Running `bash _sub/ai-venture/apply-agent-base.sh` copies keep-in-sync files (vendor adapters,
 lint config, markdown linting script, this file) while leaving project-customized files untouched.
 This makes agent-base updates a two-step operation: bump the submodule reference, run the apply script.
 

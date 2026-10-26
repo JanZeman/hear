@@ -134,7 +134,7 @@ if [[ -f "$AGENT_BASE_CACHE" ]]; then
   (( _now - _last < AGENT_BASE_TTL )) && _stale=false
 fi
 
-if [[ "$_stale" == true ]] && [[ -d "_sub/agent-base" && -f "_sub/agent-base/apply-agent-base.sh" ]]; then
+if [[ "$_stale" == true ]] && [[ -d "_sub/ai-venture" && -f "_sub/ai-venture/apply-agent-base.sh" ]]; then
   warn "Agent-base update check is due. Automatic updates are disabled."
   echo -e "${DIM}  Ask the current user before acting. Run only after explicit approval: Update AB.${NC}"
 elif [[ "$_stale" == false ]]; then
@@ -536,17 +536,17 @@ fi
 for adapter in WARP.md CLAUDE.md .github/copilot-instructions.md; do
   if [[ -f "$adapter" ]]; then
     if ! grep -q 'AGENT-BASE-HOOKS:START' "$adapter"; then
-      fail "$adapter is missing AGENT-BASE-HOOKS block (run: bash _sub/agent-base/apply-agent-base.sh)"
+      fail "$adapter is missing AGENT-BASE-HOOKS block (run: bash _sub/ai-venture/apply-agent-base.sh)"
     fi
     # Both short activation points are generated from .agents/hooks.md. Re-run
     # apply-agent-base.sh when an older adapter lacks either one.
     if grep -q 'AGENT-BASE-HOOKS:START' "$adapter" \
       && ! grep -q '^## Task Start .*MANDATORY$' "$adapter"; then
-      fail "$adapter is missing the Task Start hook (run: bash _sub/agent-base/apply-agent-base.sh)"
+      fail "$adapter is missing the Task Start hook (run: bash _sub/ai-venture/apply-agent-base.sh)"
     fi
     if grep -q 'AGENT-BASE-HOOKS:START' "$adapter" \
       && ! grep -q '^## Every Change .*MANDATORY$' "$adapter"; then
-      fail "$adapter is missing the Every Change hook (run: bash _sub/agent-base/apply-agent-base.sh)"
+      fail "$adapter is missing the Every Change hook (run: bash _sub/ai-venture/apply-agent-base.sh)"
     fi
   fi
 done

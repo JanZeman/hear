@@ -13,7 +13,7 @@
 set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
-check="$repo_root/_sub/agent-base/template/scripts/check-git-commit-format-reminder.sh"
+check="$repo_root/_sub/ai-venture/template/scripts/check-git-commit-format-reminder.sh"
 [[ -f "$check" ]] || exit 0
 
 msg="$(bash "$check" 2>/dev/null)" || exit 0

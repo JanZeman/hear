@@ -34,7 +34,7 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 # anything, and it is silent.
 lease_script=""
 for candidate in \
-  "$repo_root/_sub/agent-base/template/scripts/staffing_lease.py" \
+  "$repo_root/_sub/ai-venture/template/scripts/staffing_lease.py" \
   "$repo_root/template/scripts/staffing_lease.py" \
   "$repo_root/scripts/staffing_lease.py"; do
   [[ -f "$candidate" ]] && { lease_script="$candidate"; break; }

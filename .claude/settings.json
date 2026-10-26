@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ROUTE=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" claude-hook || true"
+            "command": "ROUTE=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" claude-hook || true"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ROUTE=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" claude-hook || true"
+            "command": "ROUTE=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] || ROUTE=\"${CLAUDE_PROJECT_DIR}/template/scripts/route-receipts.py\"; [[ -f \"$ROUTE\" ]] && python3 \"$ROUTE\" claude-hook || true"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "STRIP=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/permission-auto-strip.sh\"; [[ -f \"$STRIP\" ]] && bash \"$STRIP\" || true"
+            "command": "STRIP=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/permission-auto-strip.sh\"; [[ -f \"$STRIP\" ]] && bash \"$STRIP\" || true"
           }
         ]
       },
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-git-state-claim.py\"; [[ -f \"$CHECK\" ]] && python3 \"$CHECK\" claude || true"
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/check-git-state-claim.py\"; [[ -f \"$CHECK\" ]] && python3 \"$CHECK\" claude || true"
           }
         ]
       }
@@ -55,19 +55,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-pending-migrations.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/check-pending-migrations.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
           },
           {
             "type": "command",
-            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-safe-001-reminder.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/check-safe-001-reminder.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
           },
           {
             "type": "command",
-            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-git-commit-format-reminder.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/check-git-commit-format-reminder.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
           },
           {
             "type": "command",
-            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-staffing-recovery.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/check-staffing-recovery.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
           }
         ]
       }
@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/agent-base/template/scripts/check-credential-repo-boundary-claude.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
+            "command": "CHECK=\"${CLAUDE_PROJECT_DIR}/_sub/ai-venture/template/scripts/check-credential-repo-boundary-claude.sh\"; [[ -f \"$CHECK\" ]] && bash \"$CHECK\" || true"
           }
         ]
       }
@@ -86,9 +86,9 @@
   },
   "permissions": {
     "allow": [
-      "Bash(git -C _sub/agent-base fetch:*)",
-      "Bash(git -C _sub/agent-base checkout:*)",
-      "Bash(git -C _sub/agent-base branch -f:*)",
+      "Bash(git -C _sub/ai-venture fetch:*)",
+      "Bash(git -C _sub/ai-venture checkout:*)",
+      "Bash(git -C _sub/ai-venture branch -f:*)",
       "Bash(bash agent-base-guard.sh)",
       "Bash(bash scripts/markdown-lint.sh:*)",
       "Bash(python3 scripts/human-interruptions.py status)",

@@ -2,7 +2,7 @@
 
 Canonical register of this project's change requests to agent-base, the upstream that supplies
 `AGENTS.md`, the guard, the standards, and the skills this repository receives through
-`_sub/agent-base`.
+`_sub/ai-venture`.
 
 This is not the project's roadmap and not Venture feedback. A roadmap item is work this project
 will do. Venture feedback is what people say about this project's own products. A request is
@@ -28,7 +28,7 @@ always visible here.
   responsible for genericizing anything it adopts, and its own files never name this repository.
 - One observation per file. Two symptoms with one root cause are one request; the same symptom
   seen twice strengthens the existing request rather than creating a second.
-- Never write a request into `_sub/agent-base`. That is a pinned detached checkout and changes
+- Never write a request into `_sub/ai-venture`. That is a pinned detached checkout and changes
   there do not survive.
 
 ## States
