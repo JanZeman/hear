@@ -180,6 +180,7 @@ fi
 _venture_helper="scripts/venture.py"
 _venture_wiki_due=false
 _venture_review_due=false
+_venture_review_auto=false
 _venture_cycle_status=""
 if [[ -f "$_venture_helper" ]]; then
   _venture_refresh="$(python3 "$_venture_helper" --root "$ROOT_DIR" refresh-summary 2>&1)" ||
@@ -187,6 +188,10 @@ if [[ -f "$_venture_helper" ]]; then
   if python3 "$_venture_helper" --root "$ROOT_DIR" wiki-config >/dev/null 2>&1 \
     && [[ "$(python3 "$_venture_helper" --root "$ROOT_DIR" check-due 2>/dev/null || true)" == "due" ]]; then
     _venture_wiki_due=true
+  fi
+  if python3 "$_venture_helper" --root "$ROOT_DIR" context >/dev/null 2>&1 \
+    && [[ "$(python3 "$_venture_helper" --root "$ROOT_DIR" record-missed-review 2>/dev/null || true)" == "recorded" ]]; then
+    _venture_review_auto=true
   fi
   if python3 "$_venture_helper" --root "$ROOT_DIR" context >/dev/null 2>&1 \
     && [[ "$(python3 "$_venture_helper" --root "$ROOT_DIR" check-due --kind review 2>/dev/null || true)" == "due" ]]; then
@@ -722,8 +727,12 @@ if [[ -f "${_venture_helper:-scripts/venture.py}" ]]; then
     echo -e "${DIM}  Venture wiki check is due. Load venture-wiki-sync; a clean check stays silent,${NC}"
     echo -e "${DIM}  drift produces one non-blocking offer to publish.${NC}"
   fi
+  if [[ "${_venture_review_auto:-false}" == true ]]; then
+    echo -e "${DIM}  The last OKR Review date passed unreviewed; .agents/OKR_REVIEWS.md records it${NC}"
+    echo -e "${DIM}  as automatic. Commit that line with the next commit.${NC}"
+  fi
   if [[ "${_venture_review_due:-false}" == true ]]; then
-    echo -e "${DIM}  Venture hierarchy review is due. Load venture-review; a coherent review${NC}"
+    echo -e "${DIM}  OKR Review is requested. Load venture-review; a coherent review${NC}"
     echo -e "${DIM}  stays silent and any finding is non-blocking.${NC}"
   fi
   if [[ -n "${_venture_cycle_status:-}" ]]; then

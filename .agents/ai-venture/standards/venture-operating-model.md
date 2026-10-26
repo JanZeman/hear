@@ -68,7 +68,7 @@ A new Venture starts with an empty repository named by these rules, then discove
 3. Goals as OKRs: Objectives with Key Results.
 4. Roadmap in the format ai-venture expects.
 5. Venture page published on the wiki, verified on the wiki itself.
-6. Quarterly review on calendar quarters, its completion recorded in the repository.
+6. Half-year OKR Review on January 1 and July 1, recorded in `.agents/OKR_REVIEWS.md`.
 7. Management staffed.
 
 Tooling for points 1, 6, and 7 and for the candidate notice is still being built; until then they
@@ -119,14 +119,15 @@ draft and obtain human approval before persisting it. Do not invent Goal metrics
 but impractical-to-measure guidance into an OKR. Existing human-approved context is not
 automatically reopened unless the human requests it or a material contradiction makes it uncertain.
 
-## Review
+## OKR Review
 
-Every Venture reviews on the same calendar quarters: Q1 starts January 1, Q2 April 1, Q3 July 1,
-and Q4 October 1. There is no per-Venture date to choose. The guard prints the current quarter
-every session (`scripts/venture.py cycle-status`) with the next review date.
+Every Venture holds its OKR Review twice a year, on January 1 and July 1; always call it by that
+full name. There is no per-Venture date to choose. The guard prints the half-year and the next OKR
+Review date every session (`scripts/venture.py cycle-status`).
 
-A review becomes due when a new quarter starts and has not yet been checked; there is no
-lead-time warning before it and no grace window after it.
+The guard requests the OKR Review 14 days before each date, from December 18 and June 17. A
+finished OKR Review is recorded in `.agents/OKR_REVIEWS.md`. When a date passes with nothing
+recorded, the guard records that OKR Review as passed automatically and asks for nothing more.
 `venture-review` performs the check and never blocks on it: it looks at whether Strategy still
 serves Vision, Goals remain traceable to Purpose or Vision, roadmap work cites live objectives, and
 accumulated exceptions reveal a contradiction. A coherent review is silent. Findings are

@@ -1,11 +1,11 @@
 ---
 name: venture-review
-description: Review an existing Venture hierarchy for internal coherence when the guard says the periodic review is due or the human asks; report only actionable findings and hand human-approved repairs to venture-discovery.
+description: Review an existing Venture hierarchy for internal coherence when the guard requests the half-year OKR Review or the human asks; report only actionable findings and hand human-approved repairs to venture-discovery.
 ---
 
 # Venture Review
 
-Review whether an already approved Venture still hangs together. This is diagnosis, not discovery:
+This is the half-year OKR Review; always call it by that full name. Review whether an already approved Venture still hangs together. This is diagnosis, not discovery:
 do not invent motives, rewrite human intent, or turn a clean review into routine reporting.
 
 ## Boundary
@@ -36,9 +36,9 @@ do not invent motives, rewrite human intent, or turn a clean review into routine
    or contradiction, not the mere existence of an exception.
 5. Report only actionable findings with the conflicting entities and exact evidence. Findings are
    non-blocking. If the hierarchy is coherent, continue silently.
-6. After the real review, run
-   `python3 scripts/venture.py --root . mark-checked --kind review`. The timestamp is local cadence
-   state, not a claim that future drift cannot occur.
+6. After the real OKR Review, run
+   `python3 scripts/venture.py --root . mark-checked --kind review`. It records the OKR Review
+   in `.agents/OKR_REVIEWS.md`; commit that line with the next commit.
 
 When a finding requires changing approved Venture content, present it to the human and load
 `venture-discovery` for the repair. Never apply that repair from this review alone.

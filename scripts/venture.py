@@ -177,22 +177,67 @@ def load_identity(root: Path) -> str | None:
     return _section_value(path.read_text(encoding="utf-8"), IDENTITY_SECTION)
 
 
-def quarter_position(today: date) -> dict[str, Any]:
-    """Where `today` falls in its calendar quarter: every Venture reviews on the same quarters.
+REVIEW_LOG = Path(".agents") / "OKR_REVIEWS.md"
+REVIEW_LEAD_DAYS = 14
+# Half-year OKR Reviews replaced quarterly ones in v1.0.349; earlier dates are never auto-recorded.
+FIRST_HALF_YEAR_REVIEW = date(2027, 1, 1)
+_REVIEW_ENTRY = re.compile(r"^- (\d{4}-\d{2}-\d{2}) OKR Review: ", re.MULTILINE)
 
-    Quarters start on January 1, April 1, July 1, and October 1. Returns the quarter label, its
-    first day, the next quarter's first day, the day within the quarter (1-based), and its length.
+
+def review_position(today: date) -> dict[str, Any]:
+    """Where `today` falls in the half-year OKR Review cycle shared by every Venture.
+
+    OKR Reviews fall on January 1 and July 1. The request opens 14 days before each, on December 18
+    and June 17. Returns the half-year label, the review date that last passed, the next one, and
+    the day its request opens.
     """
-    first_month = (today.month - 1) // 3 * 3 + 1
-    start = date(today.year, first_month, 1)
-    following = date(today.year + 1, 1, 1) if first_month == 10 else date(today.year, first_month + 3, 1)
+    mid = date(today.year, 7, 1)
+    previous, following = (date(today.year, 1, 1), mid) if today < mid else (mid, date(today.year + 1, 1, 1))
     return {
-        "quarter": f"Q{(first_month - 1) // 3 + 1} {today.year}",
-        "start": start,
+        "half": f"H{1 if today < mid else 2} {today.year}",
+        "previous": previous,
         "next": following,
-        "day": (today - start).days + 1,
-        "length": (following - start).days,
+        "opens": following - timedelta(days=REVIEW_LEAD_DAYS),
     }
+
+
+def recorded_reviews(root: Path) -> set[date]:
+    try:
+        text = (root / REVIEW_LOG).read_text(encoding="utf-8")
+    except OSError:
+        return set()
+    return {date.fromisoformat(match.group(1)) for match in _REVIEW_ENTRY.finditer(text)}
+
+
+def append_review(root: Path, review: date, note: str) -> None:
+    path = root / REVIEW_LOG
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        text = (
+            "# OKR Reviews\n\n"
+            "One line per half-year OKR Review (January 1 and July 1). Written by `scripts/venture.py`.\n\n"
+        )
+    atomic_write(path, text.rstrip("\n") + f"\n- {review.isoformat()} OKR Review: {note}\n")
+
+
+def record_missed_review(root: Path, today: date) -> bool:
+    """Record an OKR Review date that passed with nothing recorded as done automatically."""
+    review = review_position(today)["previous"]
+    if review < FIRST_HALF_YEAR_REVIEW or review in recorded_reviews(root):
+        return False
+    append_review(root, review, "passed automatically; no review was recorded in its 14-day window.")
+    return True
+
+
+def record_review(root: Path, today: date) -> date | None:
+    """Record a finished OKR Review against the date whose window is open."""
+    position = review_position(today)
+    if today < position["opens"]:
+        return None
+    if position["next"] not in recorded_reviews(root):
+        append_review(root, position["next"], f"done {today.isoformat()}.")
+    return position["next"]
 
 
 def _goals_line(goals: list[tuple[str, str]]) -> str:
@@ -393,12 +438,9 @@ def checked_path(root: Path, kind: str = "wiki") -> Path:
 
 def check_due(root: Path, ttl: int, kind: str = "wiki") -> bool:
     if kind == "review":
-        boundary = time.mktime(quarter_position(date.today())["start"].timetuple())
-        try:
-            checked = int(checked_path(root, kind).read_text(encoding="utf-8").strip())
-        except (OSError, ValueError):
-            return True
-        return checked < boundary
+        today = date.today()
+        position = review_position(today)
+        return today >= position["opens"] and position["next"] not in recorded_reviews(root)
     try:
         checked = int(checked_path(root, kind).read_text(encoding="utf-8").strip())
     except (OSError, ValueError):
@@ -407,9 +449,12 @@ def check_due(root: Path, ttl: int, kind: str = "wiki") -> bool:
 
 
 def cycle_status_line(root: Path) -> str:
-    """One guard-ready line naming where every Venture sits in the calendar-quarter OKR cycle."""
-    position = quarter_position(date.today())
-    return f"{position['quarter']}, next OKR review {position['next'].isoformat()}."
+    """One guard-ready line naming where every Venture sits in the half-year OKR Review cycle."""
+    position = review_position(date.today())
+    return (
+        f"{position['half']}: OKR Review {position['next'].isoformat()}, "
+        f"opens {position['opens'].isoformat()}."
+    )
 
 
 WIKI_FILE = Path(".agents") / "wiki.json"
@@ -585,6 +630,7 @@ def build_parser() -> argparse.ArgumentParser:
     checked = subparsers.add_parser("mark-checked")
     checked.add_argument("--kind", choices=tuple(CHECK_STAMPS), default="wiki")
     subparsers.add_parser("cycle-status")
+    subparsers.add_parser("record-missed-review")
     config = subparsers.add_parser("wiki-config")
     config.add_argument("--registry", type=Path)
     visibility = subparsers.add_parser("wiki-visibility")
@@ -617,9 +663,14 @@ def main() -> int:
         elif args.command == "check-due":
             ttl = args.ttl if args.ttl is not None else CHECK_TTLS[args.kind]
             print("due" if check_due(root, ttl, args.kind) else "not-due")
+        elif args.command == "mark-checked" and args.kind == "review":
+            review = record_review(root, date.today())
+            print(f"recorded {review.isoformat()}" if review else "checked; no OKR Review window is open")
         elif args.command == "mark-checked":
             atomic_write(checked_path(root, args.kind), f"{int(time.time())}\n")
             print("checked")
+        elif args.command == "record-missed-review":
+            print("recorded" if record_missed_review(root, date.today()) else "unchanged")
         elif args.command == "cycle-status":
             line = cycle_status_line(root)
             if line is not None:
