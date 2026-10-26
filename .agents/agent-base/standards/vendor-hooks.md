@@ -1,6 +1,6 @@
 # Vendor Hooks
 
-Canonical reference for the hook mechanism agent-base relies on: the abstract points in an agent
+Canonical reference for the hook mechanism ai-venture relies on: the abstract points in an agent
 session where a small script can run automatically, and exactly how each supported vendor
 implements each point today. Distinct from `.agents/hooks.md`, which holds the actual injected
 content (the commands and prose each vendor's adapter receives); this file explains the mechanism
@@ -55,7 +55,7 @@ where a script can run without the agent having to remember to run it itself.
 
 A fourth category, after the agent's turn ends (`Stop`), is described under "When each abstract
 layer is actually used" below. After a tool runs, session end, and compaction exist on at least
-one vendor but have no shipped agent-base mechanism yet; this file gets extended when one does.
+one vendor but have no shipped ai-venture mechanism yet; this file gets extended when one does.
 
 ## Concrete implementation per vendor
 
@@ -118,7 +118,7 @@ detection script must be written:
   Blocking uses `permissionDecision: "deny"` plus `permissionDecisionReason`, or the same
   exit-code-2-with-stderr fallback as Claude Code.
 
-`agent-base`'s existing pattern for a script that must reach both vendors: write one shared,
+`ai-venture`'s existing pattern for a script that must reach both vendors: write one shared,
 vendor-neutral script containing the actual detection logic, printing plain text on success and
 nothing on a clean run; then write one thin per-vendor wrapper that calls the shared script and
 reformats its output into that vendor's expected JSON envelope. `scripts/check-pending-migrations.sh`
@@ -129,7 +129,7 @@ reformats its output into that vendor's expected JSON envelope. `scripts/check-p
 ### Other vendors
 
 Warp and GitHub Copilot have no confirmed equivalent to any of the three points above as of this
-writing. Treat their coverage as an open question per vendor, the same way `AB-RESEARCH-001`
+writing. Treat their coverage as an open question per vendor, the same way `AV-RESEARCH-001`
 already requires, rather than assuming parity with Claude Code and Codex.
 
 ## When each abstract layer is actually used
@@ -166,7 +166,7 @@ already requires, rather than assuming parity with Claude Code and Codex.
   superseded by a check of the shipped Claude Code CLI on 2026-10-16. Reach for this point only
   for something that must react to the agent's own outgoing message, and always let a turn with
   `stop_hook_active` set end, so a hook bug can cost at most one extra continuation. Built as
-  `check-git-state-claim.py` (`AB-GIT-003`): one shared script for both vendors, blocking once when
+  `check-git-state-claim.py` (`AV-GIT-003`): one shared script for both vendors, blocking once when
   the message states Git state without a fresh read-only Git check in the same turn.
 
 ## Cross-references

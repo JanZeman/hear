@@ -12,7 +12,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REAL="$ROOT/_sub/ai-venture/apply-agent-base.sh"
 
 if [[ ! -f "$REAL" ]]; then
-  echo "✘ $REAL not found -- is the agent-base submodule initialized? Try:" >&2
+  echo "✘ $REAL not found -- is the ai-venture submodule initialized? Try:" >&2
   echo "    git submodule update --init _sub/ai-venture" >&2
   exit 1
 fi

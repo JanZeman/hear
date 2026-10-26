@@ -8,12 +8,12 @@ documentation for the phrase finds nothing: each vendor names only its own half 
 combines a `workspace-write` sandbox with Auto-review, Claude calls it Auto mode, Copilot calls it
 assisted permissions over local sandboxing, and Warp exposes Agent Decides. The name deliberately
 omits "sandboxed": a sandbox is how three of the four bound the autonomy, but Warp has none that
-agent-base can configure, so the invariant that actually holds everywhere is narrower -- a boundary
+ai-venture can configure, so the invariant that actually holds everywhere is narrower -- a boundary
 exists, and it is never disabled globally.
 
 ## Architecture
 
-Agent-base separates three configuration scopes:
+ai-venture separates three configuration scopes:
 
 1. Root `vendor.sh` audits and requests explicit consent before
    `scripts/agent-autonomy.py` installs machine-wide defaults in
@@ -21,8 +21,8 @@ Agent-base separates three configuration scopes:
    documented local settings API, so the script presents and records a versioned manual review.
 2. `.claude/settings.agent-base.*.json` supplies narrow repository and universal Claude policy.
    Sync merges human-only Git-history denials into user settings, removes the obsolete `git add`
-   denial so machine policy does not contradict `AB-GIT-002`'s complete command handoff, and
-   removes old agent-base command allowlists while preserving unrelated rules.
+   denial so machine policy does not contradict `AV-GIT-002`'s complete command handoff, and
+   removes old ai-venture command allowlists while preserving unrelated rules.
 3. IDE state stays in the IDE. The checker diagnoses known VS Code conflicts and missing sandbox
    settings, but never rewrites editor state. Warp UI state is likewise manual.
 
@@ -30,7 +30,7 @@ The machine-wide installer is idempotent, preserves unrelated values, records on
 changes in private state, and supports `install`, `update`, `status`, `check`, `restore`, and
 `uninstall`. `vendor.sh` is the operator entry point: it audits first, shows the proposed values,
 and accepts only an explicit `yes` before a write. Each existing settings file that changes is
-copied byte-for-byte into a private timestamped directory under the Agent Base operator config;
+copied byte-for-byte into a private timestamped directory under the ai-venture operator config;
 the printed `vendor.sh --<vendor> --restore <backup-dir>` command validates vendor and target,
 backs up the current file, and then restores the selected snapshot atomically.
 Every downstream session guard runs only `check` for the runtime that launched the session, using
@@ -53,7 +53,7 @@ question. The guard continues even when the repository is not yet configured.
 
 ## Install or update
 
-From agent-base itself:
+From ai-venture itself:
 
 ```bash
 bash vendor.sh --all
@@ -66,7 +66,7 @@ bash vendor.sh --all
 ```
 
 Select one vendor with `--codex`, `--claude`, `--copilot`, or `--warp`; `--all` checks every
-vendor and skips unavailable ones. Re-run the same command after Agent Base ships new defaults.
+vendor and skips unavailable ones. Re-run the same command after ai-venture ships new defaults.
 This remains an explicit operator action because the target files live outside the repository.
 
 ## Codex
@@ -84,9 +84,9 @@ sandbox. Eligible attempts to cross its boundary go to a separate Auto-review mo
 immediately interrupting the human. The reviewer does not weaken or bypass the sandbox.
 
 Codex protects `.git`, `.agents`, and `.codex` recursively even when they are under a writable
-root. Agent-base deliberately keeps that protection: maintenance of `.agents` requests an
+root. ai-venture deliberately keeps that protection: maintenance of `.agents` requests an
 escalation, which Auto-review normally decides. Git history remains additionally protected by the
-agent-base human-only Git contract.
+ai-venture human-only Git contract.
 
 Do not replace this with `approval_policy = "never"`. Under `workspace-write`, a never policy
 cannot approve required `.agents` maintenance; it converts prompts into failed work. Do not use
@@ -134,7 +134,7 @@ needs them; prefer a narrow sandbox boundary over a `Bash(...)` command allowlis
 
 `permissions.defaultMode = "auto"` must be a user-level default. Claude does not activate Auto
 from `.claude/settings.json` or `.claude/settings.local.json`; a project `defaultMode` can instead
-override or suppress the user default. Agent-base sync removes only its exact legacy
+override or suppress the user default. ai-venture sync removes only its exact legacy
 `acceptEdits` seed and preserves a project value chosen by its owner.
 
 Diagnostics:
@@ -183,7 +183,7 @@ available. In each Copilot CLI session choose `/permissions assisted`; verify wi
 status` and `/sandbox policy`. Copilot does not currently document a persistent default for that
 session mode.
 
-Copilot settings support JSONC. Agent-base safely creates or updates strict JSON, but refuses to
+Copilot settings support JSONC. ai-venture safely creates or updates strict JSON, but refuses to
 rewrite an existing commented/trailing-comma file because doing so would erase its comments. In
 that case, apply the four documented values manually and rerun `status`.
 
@@ -210,7 +210,7 @@ Official references:
 ## Warp
 
 Warp exposes autonomy controls in its UI but no documented stable local configuration API that
-agent-base can safely modify or audit. The installer therefore presents a versioned checklist and
+ai-venture can safely modify or audit. The installer therefore presents a versioned checklist and
 records only that it was presented. Set **Read files**, **Execute commands**, and **Apply code
 diffs** to **Agent Decides**, allow the current repository directory, and retain narrow denies for
 destructive or credential-bearing commands. Avoid **Always Allow** as a global default.

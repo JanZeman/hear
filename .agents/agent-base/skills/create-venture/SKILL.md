@@ -5,7 +5,7 @@ description: Guide a human from an empty repository through a verified first Ven
 
 # Create Venture
 
-Use this procedure from the new downstream repository with a standalone agent-base clone
+Use this procedure from the new downstream repository with a standalone ai-venture clone
 available. It coordinates existing sources; the [Setup guide](../../../../../README.md#setup-guide)
 owns the detailed commands and topology.
 
@@ -18,7 +18,7 @@ of Goals. Do not persist them until the human approves the complete interpretati
 
 ## 2. Seed the repository
 
-Confirm the two-letter `repo_id`, primary worktree, and intended agent-base source. Follow the
+Confirm the two-letter `repo_id`, primary worktree, and intended ai-venture source. Follow the
 Setup guide's submodule procedure. Under the current Git policy, `git submodule add` remains the
 human's command because it changes the host Git index; the agent may run the subsequent
 `apply-agent-base.sh --no-fetch` synchronization and inspect its effects.
@@ -50,5 +50,5 @@ operator-local downstream registry when the Venture should receive fleet updates
 - Preserve human authority over Venture intent, Git history, external writes, and credentials.
 - Keep operator-local paths, hosts, identities, and visibility policies out of tracked content.
 - Use one simple, manually observable initial Goal when that is all the evidence supports.
-- Do not send a downstream an unreviewed agent-base release or clean its project-owned files as
+- Do not send a downstream an unreviewed ai-venture release or clean its project-owned files as
   part of setup.

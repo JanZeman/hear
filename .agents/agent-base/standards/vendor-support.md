@@ -1,6 +1,6 @@
 # Runtime Support
 
-Agent-base separates AI-provider-neutral behavior from the current level of support for each
+ai-venture separates AI-provider-neutral behavior from the current level of support for each
 RUNTIME. The support profile is operator-local because it changes with available subscriptions,
 tools, and actual use. It is never committed to a project or copied into a downstream repository.
 

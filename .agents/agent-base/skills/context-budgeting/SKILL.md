@@ -11,7 +11,7 @@ when the agent still notices the same condition, loads the right detail in time,
 same boundary.
 
 Read `.agents/agent-base/standards/documentation.md` for the canonical Context-budgeted versus
-Reference model and repository limits before editing. In the standalone agent-base source, use
+Reference model and repository limits before editing. In the standalone ai-venture source, use
 `template/.agents/agent-base/standards/documentation.md`, the upstream source of that file.
 
 ## Establish the budget surface
@@ -90,7 +90,7 @@ Account for every rule ID, priority, prohibition, stop condition, approval bound
 clause, exception, and required verification. Compress one coherent group at a time. If a statement
 cannot be mapped confidently, leave it inline and report it rather than guessing.
 
-Never modify project-owned text merely to meet an agent-base budget. For Customize-once files,
+Never modify project-owned text merely to meet an ai-venture budget. For Customize-once files,
 change only an explicitly managed range or propose a reviewed migration that matches an exact known
 legacy shape. A shorter file does not justify weakening ownership boundaries.
 
@@ -111,7 +111,7 @@ At minimum:
 5. Verify project-owned text outside managed ranges is byte-for-byte preserved.
 6. Run relevant lint, syntax, propagation, and downstream rehearsal checks.
 
-For agent-base, `template/AGENTS.md` holds at most 2,500 words plus the generated Venture reserve,
+For ai-venture, `template/AGENTS.md` holds at most 2,500 words plus the generated Venture reserve,
 which `venture.py` derives from the block's own parts. The complete agent-base-owned session
 payload stays within 2,500 words of the 5,000-word combined budget, leaving 2,500 for the project.
 Restating the derived reserve is how earlier enforced and documented ceilings diverged. A lower

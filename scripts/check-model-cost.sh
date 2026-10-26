@@ -12,7 +12,7 @@ set -euo pipefail
 #
 # No vendor here exports the model as an environment variable, so this cannot measure what it is
 # running on. It prints the facts and names the obligation; the agent knows which model it is and
-# `AB-COST-001` requires it to say so. That is weaker than a measurement and is the honest shape
+# `AV-COST-001` requires it to say so. That is weaker than a measurement and is the honest shape
 # available: inventing a detection that reads an unset variable and reports "cheap" would be worse
 # than admitting the gap.
 #
@@ -34,7 +34,7 @@ if ! _expensive="$(python3 "$_ladder" --expensive 2>&1)"; then
 fi
 
 echo "============================================================"
-echo " Session cost (AB-COST-001)"
+echo " Session cost (AV-COST-001)"
 echo "============================================================"
 echo "Expensive models on this operator's ladder, with what the cheapest"
 echo "model from the same vendor would cost instead:"

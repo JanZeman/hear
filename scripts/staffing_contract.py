@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The invocation contract for agent-base Venture Staffing (roadmap item 148).
+"""The invocation contract for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module enforces, stated before any code reads it:
 
@@ -21,7 +21,7 @@ Two ideas carry it, and both were learned the hard way in review.
    becomes permission to start a fresh run instead.
 
 The boundary is cooperative and stated as such. These values live in the environment of a process
-the user already controls, so they order agent-base's own executions; they are not a security
+the user already controls, so they order ai-venture's own executions; they are not a security
 barrier against arbitrary hostile code running as that user. Where a stronger guarantee is claimed,
 it comes from an actual sandbox or tool restriction, named at the point where it is claimed.
 """

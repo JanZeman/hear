@@ -94,7 +94,7 @@ Modelmode: GPT-6 Astra at high effort
 
 **Messages are immutable.** A sent message is never edited, including to fix something it got wrong;
 the correction is the next message. An unsent message may still be corrected, because sending wrong
-instructions is worse than the record being tidy. This is the same discipline `AB-SESSION-001`
+instructions is worse than the record being tidy. This is the same discipline `AV-SESSION-001`
 applies to session snapshots and for the same reason: a record that can be revised cannot be cited.
 
 ## Send it, then say so
@@ -128,12 +128,12 @@ repeated-signal guard for free, so a second wake-up with nothing new says "nothi
 of answering twice. An unknown role is reported as an unknown role and not as a quiet turn, because
 a mistyped role otherwise reads as permission to stop.
 
-`AB-INPUT-001` binds a bare `r` to running it and reacting. The human types one character and does
+`AV-INPUT-001` binds a bare `r` to running it and reacting. The human types one character and does
 not have to know whose turn it is.
 
 ## What this is not
 
-It is **not** the durable record. `.agents/sessions/` carries durable intent under `AB-SESSION-001`,
+It is **not** the durable record. `.agents/sessions/` carries durable intent under `AV-SESSION-001`,
 and that is what a later SESSION or another RUNTIME reads first. A correspondence is the working
 record of how a decision was reached: kept in Git because the decisions cite it, read on demand
 rather than loaded at session start, and never part of always-on context. It accumulates and is
@@ -151,4 +151,4 @@ Explicitly out of scope until there is evidence for it: WORKERS waking each othe
 any automatic invocation of a paid AI PROVIDER SESSION. The human holding the relay is the human holding
 the cost.
 
-`AB-SAFE-001` applies. Messages quote code, paths and test output into tracked history.
+`AV-SAFE-001` applies. Messages quote code, paths and test output into tracked history.

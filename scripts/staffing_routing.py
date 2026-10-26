@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deciding who does a work unit, for agent-base Venture Staffing (roadmap item 148).
+"""Deciding who does a work unit, for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module enforces, stated before any code reads it:
 

@@ -13,7 +13,7 @@ what either agent produces alone (roadmap item 122).
 **Start this only on an explicit human request** naming the task (and optionally Executor,
 Reviewer, or a round budget). A vendor already being installed, a prior loop, or general "this
 could use review" language is never enough on its own -- invoking a second vendor's CLI runs a
-paid, external agent session (`AB-DESIGN-001`).
+paid, external agent session (`AV-DESIGN-001`).
 
 ## What it is not
 
@@ -21,8 +21,8 @@ paid, external agent session (`AB-DESIGN-001`).
   CLI process -- never the current interactive session doing the round itself. This is what keeps
   every round bounded, reviewable, and identical in shape regardless of which vendor plays which
   role.
-- Not a Git authority grant. The loop never gains any permission beyond what `AB-GIT-001`/
-  `AB-GIT-002` already give an ordinary session in this repository. Convergence produces a result
+- Not a Git authority grant. The loop never gains any permission beyond what `AV-GIT-001`/
+  `AV-GIT-002` already give an ordinary session in this repository. Convergence produces a result
   for the human to review and commit; nothing here stages, commits, or pushes on its own.
 - Not durable state. The whole exchange lives in one scratch file outside the repository's tracked
   tree for the run's duration only, and is deleted once the result has been reported.

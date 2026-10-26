@@ -25,7 +25,7 @@ The Venture is a firm-shaped descriptive model. Technical compatibility fields m
 | Term | Meaning |
 | --- | --- |
 | **VENTURE** | The independently managed endeavor. |
-| **DEPARTMENT** | Enduring responsibility perspective that leads an outcome (`AB-DEPT-001`). |
+| **DEPARTMENT** | Enduring responsibility perspective that leads an outcome (`AV-DEPT-001`). |
 | **POSITION** | Optional recurring specialization in one DEPARTMENT, such as Flutter Engineer. Multiple WORKERS may hold one POSITION. |
 | **WORKER** | A human or AI worker assigned to a DEPARTMENT. An AI WORKER performs work through a tool, the current SESSION, a host-native helper, or a CLI SESSION. |
 | **ROLE** | A WORKER's temporary function in one WORKLOAD, such as executor, reviewer, or coordinator. It is not a catalogue or organizational tree. |
@@ -51,7 +51,7 @@ route, `cheap` is the shipped `ab-low-helper`, `parent` is the session already r
 
 ## Session introduction
 
-Every user-visible response carries the Agent-base Board. It is deliberately a small ASCII
+Every user-visible response carries the ai-venture Board. It is deliberately a small ASCII
 structure, not a decorative substitute for the answer: it makes the SESSION's temporary ROLE and
 the current outcome owner visible before the prose.
 
@@ -181,7 +181,7 @@ work afterwards and reassign it if its requirements still exceed the owner.
 - **Orchestration is constructed, not inherited.** One WORKER per run may dispatch, checked against
   the run's own record. A child context is built with the authority switched off, and a dispatched
   invocation may not bootstrap a new run. The boundary is cooperative: a value in the environment of
-  a process the user controls orders agent-base's own executions and is not a barrier against
+  a process the user controls orders ai-venture's own executions and is not a barrier against
   hostile code running as that user.
 
 ## Shared task state
@@ -196,7 +196,7 @@ An entry that cannot name the moment that made it worth writing did not need wri
 file anyone may append to at any time becomes a transcript within an afternoon.
 
 Live state is untracked operational memory with a defined end. At a handoff it is distilled into an
-ordinary `.agents/sessions/` snapshot under `AB-SESSION-001`, which is already portable across
+ordinary `.agents/sessions/` snapshot under `AV-SESSION-001`, which is already portable across
 machines and vendors and already reviewed in Git. There is no second durable store.
 
 The distillation drops everything that could act: lease tokens, ownership tokens, and provider
@@ -208,7 +208,7 @@ handoff whose reader cannot see what nobody observed reads as completion.
 
 Two channels, because neither is sufficient alone.
 
-`AB-MODEL-001` carries the order of decision inline rather than a pointer, so it reaches every
+`AV-MODEL-001` carries the order of decision inline rather than a pointer, so it reaches every
 vendor including the two with no hook capability.
 
 A `UserPromptSubmit` hook carries the second channel for Claude and Codex, and it is deliberately
@@ -249,7 +249,7 @@ Which model answers a capability is operator-local, at
 `${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/staffing.json`, beside `vendor-support.json`. An
 unmapped tier is a refusal, never a substitution: borrowing a neighbouring tier spends a model the
 operator never chose. A missing file is not an error and degrades to the session already running
-plus the vendor's native helper, which is exactly what agent-base did before this existed.
+plus the vendor's native helper, which is exactly what ai-venture did before this existed.
 
 `resume_verified` is false for every vendor until an operator demonstrates that its resume path
 restates an invocation contract.

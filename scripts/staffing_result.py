@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The result envelope for agent-base Venture Staffing (roadmap item 148).
+"""The result envelope for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module enforces, stated before any code reads it:
 

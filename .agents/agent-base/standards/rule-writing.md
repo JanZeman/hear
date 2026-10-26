@@ -3,7 +3,7 @@
 Canonical model for writing or rewriting any `AGENTS.md` rule statement, in this repository or a
 downstream client. Prior art: `context-budgeting/SKILL.md`'s trigger definition and `DOC-003`
 already state parts of this; this file consolidates them into one process rather than restating
-them separately (`AB-RESEARCH-001`).
+them separately (`AV-RESEARCH-001`).
 
 **Audience**: human contributors and coding agents.
 
@@ -69,7 +69,7 @@ Gate:        <ID> [<Pn>]: Before/At <checkpoint>, <positive required action or s
 
 These are clause shapes. A rule ID carrying several clauses renders one after another in the same
 entry, each in its own form, with a single trailing `Verify`/`Details` for the whole rule.
-`AB-WIKI-001` is the worked example: a Persistent invariant about conflict resolution, a
+`AV-WIKI-001` is the worked example: a Persistent invariant about conflict resolution, a
 Conditional sync trigger, and a Gate before writing a page, correctly formed and correctly living
 under one ID because they share one subject and one owner.
 
@@ -86,13 +86,13 @@ under one ID because they share one subject and one owner.
 
 ## Worked example: DIRECT's decision test
 
-`AB-ROADMAP-004` before: `Status is Idea, Open, In Progress, Done, Blocked, Deferred, or Archived;
+`AV-ROADMAP-004` before: `Status is Idea, Open, In Progress, Done, Blocked, Deferred, or Archived;
 never another.` Applying the test: the required state (the closed set of valid statuses) is
 expressible positively without loss, because naming the allowed set already excludes everything
 else. `Allowed statuses are Idea, Open, In Progress, Done, Blocked, Deferred, and Archived.` loses
 nothing and drops "never another" as pure restatement.
 
-`AB-GIT-001` was long cited here as the opposite result, on the reasoning that a positive
+`AV-GIT-001` was long cited here as the opposite result, on the reasoning that a positive
 equivalent would lean on an unbounded, implicit "everything else" and so be less mechanically
 checkable than naming the forbidden verbs. Observation refuted that. The enumeration
 (`commit`, `push`, `merge`, `rebase`, `reset`, `checkout`, `switch`, `tag`) silently omitted
@@ -100,11 +100,11 @@ checkable than naming the forbidden verbs. Observation refuted that. The enumera
 one. A denylist is complete only up to its author's imagination, and its gaps are invisible
 because the list still looks finished. The permitted set is short, genuinely closed, and *more*
 mechanically checkable, not less: a candidate command is tested against a finite allowlist,
-whereas a denylist can only be tested for membership it may never have been given. `AB-GIT-001`
+whereas a denylist can only be tested for membership it may never have been given. `AV-GIT-001`
 now states that permitted set and keeps the verbs as illustrations after "including", where their
 incompleteness is harmless.
 
-The prohibition genuinely stays where the permitted set cannot be closed. `AB-SAFE-001`'s
+The prohibition genuinely stays where the permitted set cannot be closed. `AV-SAFE-001`'s
 `Never print, log, or send a secret value` has no finite allowlist behind it -- the positive
 equivalent would be "print only non-secrets", which restates the excluded case and decides
 nothing. That is what failing test (b) actually looks like: not that enumerating feels safer, but
@@ -148,7 +148,7 @@ not a settled conclusion in either direction.
 ## Provenance and verification status
 
 Drafted through iterative external review (2026-09-06), refined against this repository's own
-`AB-UPDATE-002` rewrite as the first real test case. The three-way CLASSIFY split (conditional /
+`AV-UPDATE-002` rewrite as the first real test case. The three-way CLASSIFY split (conditional /
 persistent / gate) has not yet been run across this repository's full existing rule set to confirm
 every rule sorts cleanly; that check, and a live compliance/false-activation measurement per TEST,
 are open work under roadmap item 092.

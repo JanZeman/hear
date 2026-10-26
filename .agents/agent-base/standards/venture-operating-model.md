@@ -1,6 +1,6 @@
 # Venture Operating Model
 
-Canonical definition of the agent-base Venture model, its Categories, Department routing, and
+Canonical definition of the ai-venture Venture model, its Categories, Department routing, and
 human-authority boundaries.
 
 ## Venture
@@ -29,12 +29,12 @@ A Venture lists its staffed roles in its own files.
 The **Venture repo** is the Venture's one primary repository. Only it carries the Venture: its
 definition, Goals, Roadmap, and wiki mapping, and agents always start there. `.agents/` is its
 descriptive and operating layer, not a second `venture/` container. In its relationship to
-agent-base the same repository is an **AB client**. Agent-base itself is a Venture repo but not a
+ai-venture the same repository is an **AV client**. ai-venture itself is a Venture repo but not a
 client. Older text says "downstream" or "DS" for a client; those words are being phased out.
 
 Content belongs in the Venture repo by default. A **secondary repository** needs a reason it cannot
 live there, such as being public, having its own release cycle, or its own access. A secondary
-repository is neither a Venture repo nor an AB client: it lives inside the Venture repo as a Git
+repository is neither a Venture repo nor an AV client: it lives inside the Venture repo as a Git
 submodule over SSH, `.gitmodules` is the formal list of them, and agents change it from the Venture
 repo on request. Everything about a Venture stays private unless there is a reason to publish it.
 Dependencies between Ventures may be recorded for information only, never as a duty to keep them
@@ -47,32 +47,32 @@ folder, the wiki path `ventures/<name>`, and server processes (`<name>-<componen
 several). Worktree slots are sibling folders `<name>-1`, `<name>-2` on branches `_<name>-1`,
 `_<name>-2`; the folder `<name>` is on the trunk. The recommended, unenforced clone location is
 `~/Dev/Ventures/<name>`. Renaming an existing Venture happens in one session, in verifiable steps.
-Until agent-base supports full-name ids for worktrees, existing short ids stay.
+Until ai-venture supports full-name ids for worktrees, existing short ids stay.
 
 ### Lifecycle
 
-A repository attached to agent-base is a **Venture Candidate** until the Venture checklist below is
+A repository attached to ai-venture is a **Venture Candidate** until the Venture checklist below is
 complete; agents work there normally, but every session start says it is a candidate and names the
 unmet points. A Venture may later be **stalled** (only noted), **asleep** (paused), or **closed**:
 its repository archived, its wiki pages moved under `ventures/archive/<name>`, and its entry removed
-from agent-base's client list. Stalled and asleep Ventures keep receiving agent-base updates and
-reviews. The status is one line in `.agents/VENTURE.md`; agent-base's client list mirrors it.
+from ai-venture's client list. Stalled and asleep Ventures keep receiving ai-venture updates and
+reviews. The status is one line in `.agents/VENTURE.md`; ai-venture's client list mirrors it.
 
 A new Venture starts with an empty repository named by these rules, then discovery with the owner
-(`create-venture`), then attaching agent-base.
+(`create-venture`), then attaching ai-venture.
 
 ### Venture checklist
 
 1. Venture repo named by these rules; secondary repositories, if any, as listed submodules.
 2. Definition: Identity, Purpose, Vision, and Strategy filled.
 3. Goals as OKRs: Objectives with Key Results.
-4. Roadmap in the format agent-base expects.
+4. Roadmap in the format ai-venture expects.
 5. Venture page published on the wiki, verified on the wiki itself.
 6. Quarterly review on calendar quarters, its completion recorded in the repository.
 7. Management staffed.
 
 Tooling for points 1, 6, and 7 and for the candidate notice is still being built; until then they
-are checked by hand. Calendar quarters replace the staggered cycle anchor once that tooling ships.
+are checked by hand.
 
 ## Objectives
 
@@ -102,7 +102,7 @@ for recency, never a second copy of it.
 
 Every agent loads Venture Context before substantive work. Missing, unreadable, or unfilled
 Purpose, Vision, Strategy, or Goals is a behavioral stop: ask the current user to define it. The
-guard may warn rather than fail during migration so a new agent-base release does not break every
+guard may warn rather than fail during migration so a new ai-venture release does not break every
 existing repository.
 
 ## Discovery
@@ -121,25 +121,18 @@ automatically reopened unless the human requests it or a material contradiction 
 
 ## Review
 
-Each Venture declares one recurring **Cycle anchor** date in `.agents/VENTURE.md` (own section,
-next to Strategy): the day its OKR cycle first started. Cycles repeat every 3 calendar months from
-that month and day, clamped to the shorter month where the day does not exist. A per-Venture
-anchor, rather than one shared calendar date, is what keeps a fleet's reviews from landing on the
-same day; each Venture is staggered by whatever date its own human picked. The guard prints the
-current cycle position every session (`scripts/venture.py cycle-status`) -- which cycle, which day
-within it, and the next boundary date -- so the question "where are we" needs no separate lookup.
+Every Venture reviews on the same calendar quarters: Q1 starts January 1, Q2 April 1, Q3 July 1,
+and Q4 October 1. There is no per-Venture date to choose. The guard prints the current quarter
+every session (`scripts/venture.py cycle-status`) with the next review date.
 
-A review becomes due exactly when today crosses a cycle boundary that has not yet been checked;
-there is no lead-time warning before it and no grace window after it, only the boundary itself.
+A review becomes due when a new quarter starts and has not yet been checked; there is no
+lead-time warning before it and no grace window after it.
 `venture-review` performs the check and never blocks on it: it looks at whether Strategy still
 serves Vision, Goals remain traceable to Purpose or Vision, roadmap work cites live objectives, and
 accumulated exceptions reveal a contradiction. A coherent review is silent. Findings are
 non-blocking and return to `venture-discovery` before approved Venture intent is changed.
 
-A Venture without a Cycle anchor yet (every one seeded before this existed) falls back to the
-legacy 30-day rolling check instead of failing `AB-VENTURE-001` -- backfilling the anchor is a
-per-Venture human decision about when its cycle should start, not something inferred the day this
-field shipped.
+A `## Cycle anchor` section left in an older `.agents/VENTURE.md` is no longer read; delete it.
 
 ## Categories
 
@@ -167,14 +160,14 @@ Venture
 - **Feedback** records external or internal observations with an explicit source. Support owns
   intake and deduplication; specialist Departments establish truth; Management owns material
   priority decisions.
-- **Requests** are this Venture's change requests against agent-base itself, recorded under
+- **Requests** are this Venture's change requests against ai-venture itself, recorded under
   `.agents/requests/`. Distinct from Feedback, which is external or internal observation about
-  this Venture's own Products. Governed by `AB-REQUEST-001`.
+  this Venture's own Products. Governed by `AV-REQUEST-001`.
 - **Resources** records only durable, significant assets and dependencies whose awareness improves
   decisions or continuity. It excludes secrets, people, Products, exhaustive dependency lists,
   financial ledgers, and disposable supplies.
 - **Goals**, **Roadmap**, **Standards**, **Skills**, and **Workflows** retain their existing
-  agent-base contracts. Workflow is the canonical term for repeatable Venture activity; a Skill is
+  ai-venture contracts. Workflow is the canonical term for repeatable Venture activity; a Skill is
   an agent procedure used within one.
 
 Inactive Categories create no empty artifacts. Legacy root `.agents/features/` content requires a
@@ -245,7 +238,7 @@ positioning; UX owns usability and experience; Sales operates acquisition and co
 a human-friendly window into the Venture: a person opens it to understand quickly what the Venture
 is, where it is going, and what a person needs to know to run it. That agents can read it too is a
 useful side effect, never its purpose. Nothing that exists for agents (skills, standards, catalogs,
-the roadmap, agent-base framework content, or any other agent technicality) ever appears on it.
+the roadmap, ai-venture framework content, or any other agent technicality) ever appears on it.
 
 ### The Venture page
 
@@ -268,13 +261,21 @@ Venture page; when no root page exists yet, the agent proposes one holding only 
 link, and from then on it is the human's. Nothing on the wiki is synchronized or mirrored into the
 repository; an agent that needs it reads the wiki directly.
 
+The link is this info box at the top of the root page, with the Venture's name and its page path
+(Wiki.js markdown):
+
+```markdown
+> This project is supported by the "AI-venture Framework". Read more on the [<Name> Venture](/<root>/<name>-venture) page.
+{.is-info}
+```
+
 ### Where a Venture lives on the wiki
 
 Whatever is declared a Venture lives under the wiki's Venture area: on a shared wiki host its root
 is `ventures/<venture-name>`, the same place every other Venture on that host uses. The name is
 written out in full, never abbreviated, so a person recognizes it in a path. A host dedicated to
 one Venture may keep the root documented for it. Connector identity, the root, and the host's
-visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory (`AB-Q006`),
+visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory (`AV-Q006`),
 and the guard reports a missing one without naming any actual host or path.
 
 Paths and links carry no locale such as `en/`. A wiki serves its default language without one, so

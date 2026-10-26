@@ -5,7 +5,7 @@ repository's tracked files.
 
 **Audience**: human contributors and coding agents.
 
-## Private-repo exception (AB-SAFE-001)
+## Private-repo exception (AV-SAFE-001)
 
 If this repository is confirmed **private**, agents may store credentials and secrets
 directly in tracked files (e.g. `.env`, config files, fixtures).

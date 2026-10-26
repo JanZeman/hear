@@ -1,14 +1,14 @@
-# Agent-base Skills Catalog
+# ai-venture Skills Catalog
 
-Canonical index of generic procedures owned and kept in sync by agent-base. Project-owned
+Canonical index of generic procedures owned and kept in sync by ai-venture. Project-owned
 skills remain in `.agents/skills/`; never add project content here.
 
 ## Skills
 
 | Skill | Description |
 | --- | --- |
-| [ab-quality-check](./ab-quality-check/SKILL.md) | Review this repository against the Agent Base quality conditions and report findings; never updates |
-| [agent-base-sync](./agent-base-sync/SKILL.md) | Force an immediate mid-session agent-base sync and report drift or migrations clearly |
+| [ab-quality-check](./ab-quality-check/SKILL.md) | Review this repository against the ai-venture quality conditions and report findings; never updates |
+| [agent-base-sync](./agent-base-sync/SKILL.md) | Force an immediate mid-session ai-venture sync and report drift or migrations clearly |
 | [context-budgeting](./context-budgeting/SKILL.md) | Safely budget automatically supplied agent context using measured rendering, mandatory-load triggers, and behavior-first verification |
 | [create-venture](./create-venture/SKILL.md) | Guide a human and agent from an empty repository through the first verified Venture foundation |
 | [create-worktrees-by-convention](./create-worktrees-by-convention/SKILL.md) | Explicitly create a project's declared set of worktree slots after a strict Git preflight |

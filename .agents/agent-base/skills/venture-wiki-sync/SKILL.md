@@ -46,8 +46,9 @@ the connector or mapping is unavailable, do not block work and do not pretend a 
 2. Read the current Venture page. If it was changed by hand, show the human the difference first;
    take what they want to keep into the repository before publishing over it. If the page does not
    exist yet, check that no other page already occupies its path.
-3. Check the root page links to the Venture page. If there is no root page, propose one holding
-   only a title and that link; if it exists without the link, propose adding just the link. The
+3. Check the root page links to the Venture page with the framework info box from the standard. If
+   there is no root page, propose one holding only a title and that box; if it exists without it,
+   propose adding just the box at the top. The
    root page is the human's: never change anything else on it.
 4. Show the exact pages and changes, get the human's approval, write, and verify the result.
 

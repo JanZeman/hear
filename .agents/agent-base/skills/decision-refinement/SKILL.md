@@ -16,7 +16,7 @@ Two or more open decisions in one response, where different answers lead to mate
 work. Ask a single decision directly, without ceremony.
 
 A decision with a safe default is not a decision. State the assumption and continue. The queue
-holds only what genuinely needs the human, which is how this stays compatible with `AB-HUMAN-001`
+holds only what genuinely needs the human, which is how this stays compatible with `AV-HUMAN-001`
 rather than becoming a licence to ask more.
 
 ## Separate the analysis

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Operator-local capability mapping for agent-base Venture Staffing (roadmap item 148).
+"""Operator-local capability mapping for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module enforces, stated before any code reads it:
 
@@ -14,7 +14,7 @@ shipped here would be wrong within a release or two and would quietly teach ever
 answer in the meantime.
 
 **A missing configuration is not an error.** With no file, staffing resolves to the session already
-running plus whatever native helper the vendor provides, which is exactly what agent-base did before
+running plus whatever native helper the vendor provides, which is exactly what ai-venture did before
 this feature existed. That is the backward-compatibility guarantee: a client receives these scripts
 and nothing about its sessions changes until an operator decides otherwise.
 """
@@ -92,7 +92,7 @@ def parse(raw: dict[str, Any], source: Path | str = "<memory>") -> Config:
     version = raw.get("version")
     if version != CONFIG_VERSION:
         raise ConfigError(
-            f"{source} declares version {version!r}; this agent-base understands {CONFIG_VERSION}"
+            f"{source} declares version {version!r}; this ai-venture understands {CONFIG_VERSION}"
         )
 
     vendors: dict[str, dict[str, Placement]] = {}

@@ -69,7 +69,7 @@ class Launch(NamedTuple):
 
 
 # A foreground CLI that owns its tools can be waited for; what its permitted tools do afterwards is
-# not observable from outside. Neither vendor currently gives agent-base a mechanically observed
+# not observable from outside. Neither vendor currently gives ai-venture a mechanically observed
 # completion, so both declare the weaker level honestly.
 COOPERATIVE = "cooperative"
 
@@ -147,12 +147,12 @@ def build_launch(contract, *, resume_handle: str | None = None,
         )
     if resume_handle and contract.vendor == CODEX:
         # Read from this operator's installed `codex exec resume --help`, which lists neither `-C`
-        # nor `-s`, so the command agent-base would build cannot state the root it is confined to or
+        # nor `-s`, so the command ai-venture would build cannot state the root it is confined to or
         # the sandbox it runs in. That is what was checked; whether some other invocation or version
         # could express it was not. A fresh restricted session costs a session and needs no claim
         # about a vendor's whole surface, so the refusal stands and the reason is narrowed.
         raise AdapterError(
-            "the codex resume command agent-base builds cannot restate an invocation contract: its "
+            "the codex resume command ai-venture builds cannot restate an invocation contract: its "
             "subcommand takes neither a working root nor a sandbox mode, so a fresh restricted "
             "session is created instead"
         )
@@ -338,7 +338,7 @@ def provider_handle(vendor: str, stdout: str) -> str | None:
 
     Read from the vendor's output rather than assumed from what was sent. The runtime used to record
     its own `invocation_id` as the provider handle for every vendor, which is a fabricated recovery
-    handle: it is exactly the value agent-base already knew, wearing the name of something it had
+    handle: it is exactly the value ai-venture already knew, wearing the name of something it had
     learned. For Claude that value happens to be supplied on the command line, so recording it looked
     right; for Codex nothing supplies it at all, and a Codex run recorded a local identifier as
     though a provider had returned it.

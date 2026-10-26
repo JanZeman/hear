@@ -6,7 +6,7 @@ The predicate this module enforces, stated before any code reads it:
     Which model is expensive is a recorded fact with a date on it, not something each agent works
     out from whatever it happens to know.
 
-Agent-base has had a capability ladder since item 148 and has never had the answer the ladder
+ai-venture has had a capability ladder since item 148 and has never had the answer the ladder
 depends on: which of a vendor's models answers `cheap`, and which one is the one you do not want a
 two-line repair running on. Every agent estimated it, and an estimate from a model's own training
 goes stale the month a vendor changes its lineup.

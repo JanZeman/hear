@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""check-git-state-claim.py - Stop hook enforcing AB-GIT-003 (fresh Git state before a claim).
+"""check-git-state-claim.py - Stop hook enforcing AV-GIT-003 (fresh Git state before a claim).
 
 An agent that remembers "my changes are still uncommitted" from earlier in the session reports it
 as fact, although the human (or a worktree sync) may have committed or moved them since. This hook
@@ -8,7 +8,7 @@ ahead/behind, untracked, ...) and no read-only Git check ran in the current turn
 last possibly state-changing action, it blocks the stop once and asks the agent to re-check and
 correct itself.
 
-It also checks a shown AB-GIT-002 commit block against the repository it names, since a block in
+It also checks a shown AV-GIT-002 commit block against the repository it names, since a block in
 a fence is not a prose claim: when that repository has nothing to commit (and nothing to push), the
 block is stale, usually because the human already committed from their own terminal, and the hook
 asks the agent to drop it instead of announcing a missing commit.
@@ -16,7 +16,7 @@ asks the agent to drop it instead of announcing a missing commit.
 Usage (from the vendor's Stop hook, payload JSON on stdin):
     python3 check-git-state-claim.py claude|codex
 
-Safety, same as every other agent-base hook:
+Safety, same as every other ai-venture hook:
   - Fires at most once per stop: a continuation already caused by a Stop hook
     (`stop_hook_active`) is always let through, so a bug here cannot loop a session.
   - Always exits 0. Anything unexpected (unreadable payload, missing message) means silence.
@@ -75,7 +75,7 @@ EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
 FENCE_RE = re.compile(r"(```|~~~).*?(?:\1|\Z)", re.DOTALL)
 
 REASON = (
-    "AB-GIT-003: your reply states Git state ({phrase!r}), but no read-only Git check "
+    "AV-GIT-003: your reply states Git state ({phrase!r}), but no read-only Git check "
     "(git status, git log, git diff, git worktree list) ran in this turn after your last action "
     "that could change it. Remembered state may be stale: the human or a sync may have committed, "
     "pushed, or moved work since. Re-check now every repository and worktree your reply mentions. "
@@ -85,7 +85,7 @@ REASON = (
 
 
 BLOCK_REASON = (
-    "AB-GIT-002: your reply shows a commit block for {root}, but a fresh `git status` there finds "
+    "AV-GIT-002: your reply shows a commit block for {root}, but a fresh `git status` there finds "
     "{state}. The human has most likely already run it. Drop the block and the claim that a commit "
     "or push is missing; say in one line, in the conversation's language, that the work is already "
     "{done}, and keep your next-step section. Do not mention this hook."

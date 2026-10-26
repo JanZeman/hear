@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-pending-migrations.sh - cheap, safe check for pending agent-base migrations.
+# check-pending-migrations.sh - cheap, safe check for pending ai-venture migrations.
 #
 # Designed to run as a UserPromptSubmit hook (Claude Code, Codex), which fires on every
 # single message. Two hard requirements that shape everything here:
@@ -32,7 +32,7 @@ for f in "$roadmap_dir"/*.md; do
 done
 
 if [[ "$count" -gt 0 ]]; then
-  echo "Note: $count agent-base migration(s) pending (Status: Open/In Progress, .agents/roadmap/*.md, durable agent-base migration metadata). Mention this to the user before addressing their message, if not already discussed this session, and offer to handle it -- don't act on it silently."
+  echo "Note: $count ai-venture migration(s) pending (Status: Open/In Progress, .agents/roadmap/*.md, durable ai-venture migration metadata). Mention this to the user before addressing their message, if not already discussed this session, and offer to handle it -- don't act on it silently."
 fi
 
 exit 0

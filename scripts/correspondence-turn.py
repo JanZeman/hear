@@ -14,7 +14,7 @@ only works if the agent can work out the rest itself.
 
 Correspondents are addressed by **DEPARTMENT**, not by MODEL or SESSION nickname. `opus` names a MODEL
 that may be replaced, and `astra` names a SESSION that exists for an afternoon; neither survives the
-thing it was addressing. A DEPARTMENT does, and agent-base already has a vocabulary of them in the
+thing it was addressing. A DEPARTMENT does, and ai-venture already has a vocabulary of them in the
 Venture DEPARTMENTS, so a message runs between Engineering and Architecture the way a memo runs
 between departments of a firm. The sending WORKER is recorded inside the message, where
 accountability belongs, rather than in the address, where it would rot.

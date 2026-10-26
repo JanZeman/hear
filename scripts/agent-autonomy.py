@@ -168,7 +168,7 @@ def vendor_settings_path(vendor: str) -> Path:
         return claude_settings_path()
     if vendor == "copilot":
         return copilot_settings_path()
-    raise ValueError(f"{vendor} has no settings file that agent-base can manage")
+    raise ValueError(f"{vendor} has no settings file that ai-venture can manage")
 
 
 def backup_settings_file(vendor: str, path: Path, reason: str) -> Path | None:
@@ -205,7 +205,7 @@ def backup_settings_file(vendor: str, path: Path, reason: str) -> Path | None:
 
 def restore_settings_file(vendor: str, reference: Path) -> None:
     if vendor == "warp":
-        raise ValueError("Warp has no local settings file that agent-base can restore")
+        raise ValueError("Warp has no local settings file that ai-venture can restore")
     root = (config_home() / "backups").resolve()
     directory = reference.expanduser().resolve()
     try:
@@ -404,7 +404,7 @@ def uninstall_codex(state: dict) -> None:
         backup_settings_file("codex", path, "uninstall")
         atomic_text(path, text)
     state["vendors"].pop("codex", None)
-    print(f"Removed Agent-base Codex defaults: {path}")
+    print(f"Removed ai-venture Codex defaults: {path}")
 
 
 def policy_path() -> Path | None:
@@ -509,7 +509,7 @@ def install_claude(state: dict) -> None:
         atomic_json(path, data)
     print(f"Configured Claude Auto mode and sandbox: {path}")
     if removed:
-        print(f"Removed {removed} obsolete Agent-base command allowlist entries.")
+        print(f"Removed {removed} obsolete ai-venture command allowlist entries.")
 
 
 def uninstall_claude(state: dict) -> None:
@@ -550,7 +550,7 @@ def uninstall_claude(state: dict) -> None:
         backup_settings_file("claude", path, "uninstall")
         atomic_json(path, data)
     state["vendors"].pop("claude", None)
-    print(f"Removed Agent-base Claude autonomy defaults: {path}")
+    print(f"Removed ai-venture Claude autonomy defaults: {path}")
 
 
 def install_copilot(state: dict) -> None:
@@ -559,7 +559,7 @@ def install_copilot(state: dict) -> None:
         data = load_json(path)
     except ValueError as exc:
         print(
-            f"Copilot manual update required: {exc}. Copilot accepts JSONC, but agent-base "
+            f"Copilot manual update required: {exc}. Copilot accepts JSONC, but ai-venture "
             "will not erase comments while rewriting it; apply the documented values manually.",
             file=sys.stderr,
         )
@@ -609,7 +609,7 @@ def uninstall_copilot(state: dict) -> None:
         backup_settings_file("copilot", path, "uninstall")
         atomic_json(path, data)
     state["vendors"].pop("copilot", None)
-    print(f"Removed Agent-base Copilot CLI defaults: {path}")
+    print(f"Removed ai-venture Copilot CLI defaults: {path}")
 
 
 def install_warp(state: dict) -> None:
@@ -624,7 +624,7 @@ def install_warp(state: dict) -> None:
 
 def uninstall_warp(state: dict) -> None:
     state["vendors"].pop("warp", None)
-    print("Removed the Agent-base Warp recommendation acknowledgement; no Warp setting was changed.")
+    print("Removed the ai-venture Warp recommendation acknowledgement; no Warp setting was changed.")
 
 
 def feature_check(vendor: str) -> None:
@@ -760,7 +760,7 @@ def managed_findings(vendors: list[str]) -> list[str]:
     try:
         state = load_state()
     except ValueError as exc:
-        findings.append(f"agent-base state: {exc}")
+        findings.append(f"ai-venture state: {exc}")
         state = {"version": STATE_VERSION, "vendors": {}}
     for vendor in vendors:
         if not vendor_available(vendor):
@@ -770,7 +770,7 @@ def managed_findings(vendors: list[str]) -> list[str]:
                 findings.append(
                     "Warp: manual step agent-decides pending - review the current Agent "
                     "Decides sandbox recommendations; Warp has no documented local settings "
-                    "API that agent-base can verify"
+                    "API that ai-venture can verify"
                 )
             continue
 

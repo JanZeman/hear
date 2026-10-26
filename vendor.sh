@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vendor.sh - audit and safely converge machine-wide Agent Base vendor settings.
+# vendor.sh - audit and safely converge machine-wide ai-venture vendor settings.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -144,7 +144,7 @@ if [[ -n "$restore_dir" ]]; then
     --vendor "$vendor" --backup "$restore_dir" --consent-recorded
 fi
 
-echo "Agent Base vendor settings audit: $vendor"
+echo "ai-venture vendor settings audit: $vendor"
 set +e
 python3 "$AUTONOMY_SCRIPT" status --vendor "$vendor" --repo "$ROOT_DIR"
 status=$?

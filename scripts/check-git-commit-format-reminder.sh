@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-git-commit-format-reminder.sh - cheap, safe UserPromptSubmit refresh of AB-GIT-002's
+# check-git-commit-format-reminder.sh - cheap, safe UserPromptSubmit refresh of AV-GIT-002's
 # exact commit-block format.
 #
 # Same shape and same reason as check-safe-001-reminder.sh: a positive, "always do X" formatting
@@ -20,6 +20,6 @@ set -uo pipefail
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 [[ -n "$(git -C "$repo_root" status --porcelain 2>/dev/null)" ]] || exit 0
 
-echo "Reminder (AB-GIT-002): this repo has uncommitted changes. If you hand off a commit suggestion, use exactly one code block delimited inside by '# ~~~' comment lines (cd, git add ., one-line git commit -m \"...\", git push), no '!' prefix and no line explaining kk, and propose exactly one next step immediately after it."
+echo "Reminder (AV-GIT-002): this repo has uncommitted changes. If you hand off a commit suggestion, use exactly one code block delimited inside by '# ~~~' comment lines (cd, git add ., one-line git commit -m \"...\", git push), no '!' prefix and no line explaining kk, and propose exactly one next step immediately after it."
 
 exit 0

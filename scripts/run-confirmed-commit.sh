@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Runs one already-shown AB-GIT-002 commit-suggestion block exactly as displayed, under the
+# Runs one already-shown AV-GIT-002 commit-suggestion block exactly as displayed, under the
 # narrow `kk` exception in git.md. The caller must already hold a human reply starting with `kk` to
 # the exact block being run here, pass that reply verbatim as --reply, and pass the identical root, message,
 # and push flag that block showed. Only `kk` authorizes: `ok`, a bare `k`, and every other short
-# reply keep their ordinary meaning (AB-INPUT-001), so this script refuses them and AB-GIT-001
+# reply keep their ordinary meaning (AV-INPUT-001), so this script refuses them and AV-GIT-001
 # still governs. The commit carries the repository's configured Git identity and nothing else.
 
 usage() {
@@ -62,7 +62,7 @@ if [[ -z "$reply" || -z "$root" || -z "$message" ]]; then
 fi
 # The reply authorizes when its first word is `kk`; anything after it ("kk, commit only") is a
 # comment that may narrow what the caller does next but never widens this script. The word ends at the first character that is
-# not a letter or digit, and case is ignored, as AB-INPUT-001 does for dictated input.
+# not a letter or digit, and case is ignored, as AV-INPUT-001 does for dictated input.
 _first_word="$(printf '%s' "$reply" | tr '\n\t' '  ' | tr '[:upper:]' '[:lower:]' | sed -E 's/^[[:space:]]+//; s/[^[:alnum:]].*$//')"
 if [[ "$_first_word" != "kk" ]]; then
   echo "ERROR only a reply whose first word is \`kk\` authorizes running a shown commit block; got: $reply" >&2
@@ -97,7 +97,7 @@ if [[ -z "$(git config user.name || true)" || -z "$(git config user.email || tru
   exit 4
 fi
 if printf '%s\n' "$message" | grep -Eiq '^co-authored-by:|^[^[:alnum:]]*generated with '; then
-  echo "ERROR the message carries an attribution trailer; AB-GIT-002 forbids it. Nothing was run." >&2
+  echo "ERROR the message carries an attribution trailer; AV-GIT-002 forbids it. Nothing was run." >&2
   exit 2
 fi
 

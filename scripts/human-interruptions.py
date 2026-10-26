@@ -713,8 +713,8 @@ def hook_output(problem: bool = False) -> None:
     output = {}
     if problem:
         output["systemMessage"] = (
-            "Agent-base telemetry failed. In agent-base, diagnose and repair it or record a "
-            "roadmap item; in a downstream client, prepare a repair prompt for an agent-base agent."
+            "ai-venture telemetry failed. In ai-venture, diagnose and repair it or record a "
+            "roadmap item; in a downstream client, prepare a repair prompt for an ai-venture agent."
         )
     print(json.dumps(output, separators=(",", ":")))
 

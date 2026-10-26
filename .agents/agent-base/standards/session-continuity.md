@@ -1,6 +1,6 @@
 # Session Continuity
 
-## Contract (`AB-SESSION-001`)
+## Contract (`AV-SESSION-001`)
 
 For substantive work, maintain agent-authored handoff snapshots in `.agents/sessions/`. Save one
 on an explicit request, before known context compaction, and before handing work to another session,
@@ -89,5 +89,5 @@ Announce both ends of a detour. Entering one is already covered above. Leaving o
 is the half that gets skipped: name what you are returning to and where it stood, before
 continuing it. An unannounced return looks identical to a topic change.
 
-A detour that crosses into agent-base becomes a request under `.agents/requests/`; see
-`AB-REQUEST-001` and that directory's catalog for how the answer finds its way back.
+A detour that crosses into ai-venture becomes a request under `.agents/requests/`; see
+`AV-REQUEST-001` and that directory's catalog for how the answer finds its way back.

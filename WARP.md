@@ -20,10 +20,10 @@ Read and follow `AGENTS.md` in full; it is the canonical behavior contract.
 ## Task Start - MANDATORY
 
 Begin the first user-visible response of each session with the banner specified by
-`AB-SESSION-002` in `AGENTS.md`; show it once.
+`AV-SESSION-002` in `AGENTS.md`; show it once.
 
-After that banner, render the Agent-base Board and first-response SESSION introduction required by
-`AB-RESPONSE-001` in `AGENTS.md`.
+After that banner, render the ai-venture Board and first-response SESSION introduction required by
+`AV-RESPONSE-001` in `AGENTS.md`.
 
 Before substantive work, make sure you understand the Venture Context, Goals, current Roadmap,
 and applicable human-authority and safety boundaries; load the standards and skills routed by

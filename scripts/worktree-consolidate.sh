@@ -54,7 +54,7 @@ already-local objects instead.
 
 --to-slots-only exists because full consolidation folds a slot's own committed work into the
 integration branch, which needs a human's judgment about whether that work is ready. Propagating
-a fresh integration-branch commit (an Agent Base sync, for example) out to already-clean slots
+a fresh integration-branch commit (an ai-venture sync, for example) out to already-clean slots
 carries no such judgment call, so it is the one direction a verified update procedure may run
 unattended.
 

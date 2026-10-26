@@ -4,7 +4,7 @@ Canonical contract for the questions agents put to humans: what shape they take,
 measured. Agent Autonomy removed most permission dialogs, so the remaining cost is
 decision quality, not dialog count. Measurement stays; it is no longer the point.
 
-## Agent behavior (`AB-HUMAN-001`)
+## Agent behavior (`AV-HUMAN-001`)
 
 A question the human cannot find is not an answered question. Shape every question so it can be
 answered directly. With two or more open decisions, load
@@ -57,19 +57,19 @@ sudo ~/scripts/server-disk-trim-setup-sudoers
 - Never prefix a command with `!`. That runs it inside the agent's own session; the human runs
   these in their own terminal.
 - One short line before the block says what it is for and why the human, not the agent, runs it.
-  Nothing after it explains how to confirm: the human knows `kk` (`AB-GIT-002`), so a line such as
+  Nothing after it explains how to confirm: the human knows `kk` (`AV-GIT-002`), so a line such as
   "if the block is fine, reply kk" is noise.
 
-## Visibility and repair (`AB-HUMAN-002`)
+## Visibility and repair (`AV-HUMAN-002`)
 
 Successful automated checks, including collected telemetry, automatic reviews, and repeated
 permission patterns, produce no conversation output. Inspect their aggregates only through an
 explicit `report` or `recommend` request.
 
-On a collector or check failure, surface one concise agent-facing diagnostic. In agent-base,
+On a collector or check failure, surface one concise agent-facing diagnostic. In ai-venture,
 diagnose and repair the failure when it is safe and in scope; otherwise create or update the
 relevant roadmap item. In a downstream client, do not guess at an upstream repair: prepare a
-copy-paste prompt for an agent-base agent with the visible failure and relevant checks.
+copy-paste prompt for an ai-venture agent with the visible failure and relevant checks.
 
 When a startup guard succeeds, its notices are informational unless a finding's owning rule makes
 one a stop or approval gate. Finish the requested work, then include a concise note at the end of
@@ -134,7 +134,7 @@ The collector is machine-wide and repository-independent. Defaults:
 
 - configuration: `${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/human-interruptions/config.json`
 - events: `${XDG_STATE_HOME:-$HOME/.local/state}/agent-base/human-interruptions/events.jsonl`;
-  installation records the resolved state directory and falls back to the private agent-base data
+  installation records the resolved state directory and falls back to the private ai-venture data
   directory when the standard state root is not writable
 - bounded runtime watermarks: `<resolved-state-directory>/runtime.json`
 - installed collector: `${XDG_DATA_HOME:-$HOME/.local/share}/agent-base/human-interruptions.py`
@@ -167,7 +167,7 @@ only after every vendor hook is gone; `--purge-data` takes effect only then. No 
 adds or approves a permission.
 
 Sync may merge three narrow project-local Claude permissions for `status`, `report`, and
-`recommend`. The policy also removes exact obsolete agent-base entries, including the former
+`recommend`. The policy also removes exact obsolete ai-venture entries, including the former
 blanket collector rule, while preserving every unrelated project permission.
 
 ## Reports and recommendations

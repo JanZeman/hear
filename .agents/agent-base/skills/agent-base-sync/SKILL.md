@@ -1,16 +1,16 @@
 ---
 name: agent-base-sync
 description: |
-  Force an immediate agent-base sync during an active session, bypassing the guard's 24-hour
+  Force an immediate ai-venture sync during an active session, bypassing the guard's 24-hour
   cache, then report synced files, drift, migrations, and any human decision required.
 ---
 
-# Sync agent-base now
+# Sync ai-venture now
 
 ## When to use
 
-- The user asks to update, sync, or refresh agent-base now.
-- Recognized shorthand: "Update AB", "ab-update.sh", or "sync AB". Bare "AB" is ambiguous with A/B
+- The user asks to update, sync, or refresh ai-venture now.
+- Recognized shorthand: "Update AV", "ab-update.sh", or "sync AV". Bare "AB" is ambiguous with A/B
   testing and does not trigger this skill.
 - The cached session-start guard reported pending migrations or drift and the user wants a
   fresh check during the same session.
@@ -23,9 +23,9 @@ sync is requested or needed.
 `agent-base-guard.sh` checks automatically at session start, but caches that check for 24
 hours. This procedure calls the sync script directly, bypassing that cache.
 
-Invoking the sync is routine agent-base maintenance, not a downstream product roadmap item.
+Invoking the sync is routine ai-venture maintenance, not a downstream product roadmap item.
 Do not create one merely because files synchronized. A migration emitted by the sync is
-different: it is durable work that follows `AB-ROADMAP-002` and `AB-ROADMAP-004`.
+different: it is durable work that follows `AV-ROADMAP-002` and `AV-ROADMAP-004`.
 
 ## Steps
 
@@ -52,15 +52,15 @@ Check, in order:
 
 If the target version, changed path, migration effect, or required action is ambiguous, do not
 guess or make a partial repair. Stop the affected update, name the missing evidence, and ask the
-human for it. If the evidence points to an agent-base defect, prepare a copy-paste repair prompt
-for an agent-base agent instead.
+human for it. If the evidence points to an ai-venture defect, prepare a copy-paste repair prompt
+for an ai-venture agent instead.
 
 ### 3. Report the result
 
 - If no decision is needed, state briefly what synchronized and the new version, close any
   completed migration items, verify every changed path, and confirm the branch still equals a
-  fresh live read of its upstream. The direct `Update AB` request authorizes staging only those
-  verified paths, committing `Sync with agent-base vX.Y.Z: Apply verified shared rules`, and
+  fresh live read of its upstream. The direct `Update AV` request authorizes staging only those
+  verified paths, committing `Sync with ai-venture vX.Y.Z: Apply verified shared rules`, and
   pushing that commit. Return to the prior task after reporting the commit and push result.
 - If a customize-once file has drifted, do the merge now rather than asking first. Compare it
   against `_sub/ai-venture/template/<path>`, apply the generic improvement, keep the project's own

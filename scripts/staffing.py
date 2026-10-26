@@ -4,7 +4,7 @@
 Everything under this file existed for two days before anything could use it. Nine modules were
 distributed to every client and the only entry was forty lines of Python: a `Session`, a coordinator
 contract with a dozen parameters, an actor factory, a `Unit`. That boilerplate lived in exactly two
-places, both of them agent-base's own test harnesses, so a downstream agent could read the skill and
+places, both of them ai-venture's own test harnesses, so a downstream agent could read the skill and
 still not start. This is that boilerplate, written once.
 
     python3 scripts/staffing.py plan  --goal "..."                  # who would do it, and why

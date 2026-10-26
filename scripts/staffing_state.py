@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The shared task state for agent-base Venture Staffing (roadmap item 148).
+"""The shared task state for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module enforces, stated before any code reads it:
 
@@ -18,7 +18,7 @@ transcript is the thing this exists instead of.
 
 **Durability goes through the existing mechanism.** Live state is untracked operational memory with
 a defined end. When the work reaches a handoff it is distilled into an ordinary `.agents/sessions/`
-snapshot under `AB-SESSION-001`, which is already portable across machines and vendors, already
+snapshot under `AV-SESSION-001`, which is already portable across machines and vendors, already
 reviewed in Git, and already pruned safely. There is no second durable store. What the distillation
 deliberately drops is everything that could act: lease tokens, ownership tokens, and provider
 handles. A snapshot is intent, and intent that silently resurrects a lock or a live vendor session
@@ -317,7 +317,7 @@ def _strip_acting(text: str) -> str:
 
 def distil(run_id: str, *, title: str, active_topic: str, queued: list[str],
            unresolved: list[str], continues: str | None = None) -> str:
-    """The durable record, in the shape `AB-SESSION-001` already defines.
+    """The durable record, in the shape `AV-SESSION-001` already defines.
 
     Unresolved work is carried rather than hidden: a handoff whose reader cannot see what nobody
     observed is worse than no handoff, because it reads as completion.

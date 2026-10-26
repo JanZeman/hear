@@ -15,7 +15,7 @@ independent reason beyond raw token cost.
 
 Do not judge a rendered downstream `AGENTS.md` against a standalone 2,000-word limit. The release
 gate limits static `template/AGENTS.md` to 2,500 words, while the runtime gauge measures the
-complete 5,000-word session and its 2,500-word agent-base and project shares. Filling the
+complete 5,000-word session and its 2,500-word ai-venture and project shares. Filling the
 template's `<!-- TODO -->` placeholders spends from the composed project share like any other
 addition. When context grows too large, shrink it by **moving content out, never by deleting it**
 -- nothing gets shorter by losing context that mattered.
@@ -51,7 +51,7 @@ Some artifacts are hybrid. A skill's discovery metadata is Context-budgeted whil
 body and references are on demand. A Goals or Venture catalog may be Reference while a generated
 summary is Context-budgeted. Budget and measure only the fragment the agent actually receives.
 
-The high-frequency context surfaces in agent-base are:
+The high-frequency context surfaces in ai-venture are:
 
 | Surface | Budgeted part |
 | --- | --- |
@@ -64,7 +64,7 @@ The high-frequency context surfaces in agent-base are:
 The rendered result is authoritative for measurement. Source files can understate cost when blocks
 are injected or summaries are generated, and summing every adapter overstates it because one agent
 receives only its own adapter. For downstream sessions, `template/AGENTS.md` may use 2,500 words
-of static agent-base content. The complete agent-base-owned payload stays within 2,500 words of
+of static ai-venture content. The complete agent-base-owned payload stays within 2,500 words of
 the 5,000-word combined budget, leaving 2,500 for project-owned context, including generated
 Identity, Strategy, and Objective text. The renderer keeps those canonical entities whole; the
 composed gauge, not an independent field cap, surfaces an over-budget project.
@@ -87,7 +87,7 @@ Use the `context-budgeting` skill before adding, expanding, generating, or restr
 these automatically supplied surfaces. The skill owns the editing and verification procedure; this
 standard owns the classification and policy.
 
-## Agree the design before material implementation (AB-DESIGN-001)
+## Agree the design before material implementation (AV-DESIGN-001)
 
 Before an implementation that has a genuinely different design, performs an external write,
 or creates a lasting public artifact, first establish that the human agrees with its rough
@@ -116,29 +116,29 @@ Persistent names and shapes -- database tables or columns, API paths, public int
 similar artifacts -- always trigger the gate. Present at least two real options with tradeoffs
 and a recommendation for those decisions, because changing them after deployment is costly.
 
-## Overriding an agent-base default
+## Overriding an ai-venture default
 
-The `### Agent-base Rules` block in `AGENTS.md` states universal defaults, not fixed law. A
+The `### ai-venture Rules` block in `AGENTS.md` states universal defaults, not fixed law. A
 project may diverge from one -- explicitly, never silently. This only applies to rules in
 that block; a project's own rules are already project-owned and just get edited directly, no
 override ceremony needed.
 
 Overrides live in `AGENTS.md`'s `## Overrides` section, just below the block -- never inside
 the block itself, which the next sync replaces wholesale and would silently erase an override
-written there. Adding one is an `AB-DESIGN-001` decision (it creates policy that outlives this
+written there. Adding one is an `AV-DESIGN-001` decision (it creates policy that outlives this
 conversation): propose it, wait for confirmation, same as any other persistent artifact.
 
-Agent-base-owned defaults always use `AB-*` IDs. An unprefixed rule ID outside the managed
+Agent-base-owned defaults always use `AV-*` IDs. An unprefixed rule ID outside the managed
 block is project-owned and must never be renamed or deleted merely because its suffix matches
-an agent-base default. Releases through v0.0.96 used unprefixed IDs for the defaults; when
-reading an old reference, interpret it as the corresponding `AB-*` default only when its
+an ai-venture default. Releases through v0.0.96 used unprefixed IDs for the defaults; when
+reading an old reference, interpret it as the corresponding `AV-*` default only when its
 source clearly predates v0.0.97 and no project-owned rule claims that ID. New overrides always
-target the `AB-*` ID.
+target the `AV-*` ID.
 
 Format, one entry per override:
 
 ```markdown
-### Override: AB-GIT-001
+### Override: AV-GIT-001
 
 **Rationale**: this team allows agents to commit directly to feature branches; a human still
 reviews before merge to main.
@@ -148,10 +148,10 @@ reviews before merge to main.
 
 Two asymmetric cases:
 
-- **Strengthening** a default (a stricter rule than the agent-base baseline, e.g. "never touch
+- **Strengthening** a default (a stricter rule than the ai-venture baseline, e.g. "never touch
   `payments/` without two-person review") needs only a rationale -- it cannot make the project
   less safe than the default already is.
-- **Relaxing** a default (permitting something the default forbids, e.g. the `AB-GIT-001` example
+- **Relaxing** a default (permitting something the default forbids, e.g. the `AV-GIT-001` example
   above) additionally needs the `**Approved by**: human, <date>` line filled in with an actual
   human, not an agent, and a rationale that addresses the specific risk being accepted, not
   just convenience.
@@ -159,13 +159,13 @@ Two asymmetric cases:
 An agent applying a rule from the block checks `## Overrides` first for a matching entry; if
 one exists, the override governs, not the block's default. This does not need a validator to
 be worth doing -- a human reading `## Overrides` alongside the block sees every place this
-project's real policy differs from agent-base's, in one place, instead of it being scattered
+project's real policy differs from ai-venture's, in one place, instead of it being scattered
 or, worse, silently contradicted somewhere else in the file.
 
 ## Cross-references
 
 - Behavior rules and rule IDs: see `AGENTS.md`
 - Formatting: see `.agents/standards/formatting.md`
-- Goals mechanics (`AB-GOALS-001`): see `.agents/goals/_GOALS_CATALOG.md`
-- Roadmap mechanics (`AB-ROADMAP-002` through `AB-ROADMAP-004`): see
+- Goals mechanics (`AV-GOALS-001`): see `.agents/goals/_GOALS_CATALOG.md`
+- Roadmap mechanics (`AV-ROADMAP-002` through `AV-ROADMAP-004`): see
   `.agents/roadmap/_ROADMAP_CATALOG.md`

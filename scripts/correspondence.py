@@ -34,9 +34,9 @@ import sys
 
 DIRECTORY = Path(".agents/correspondence")
 ROSTER = "ROSTER.md"
-# Two places, because agent-base itself is the repository that produces the distributed copy and
+# Two places, because ai-venture itself is the repository that produces the distributed copy and
 # does not receive one. Looking only where a client keeps it meant this could not be used in the
-# repository that invented the practice, which is the shape of dogfooding failure `AB-DOGFOOD-001`
+# repository that invented the practice, which is the shape of dogfooding failure `AV-DOGFOOD-001`
 # exists to prevent.
 CATALOGUES = (Path(".agents/agent-base/departments/_DEPARTMENTS_CATALOG.md"),
               Path("template/.agents/agent-base/departments/_DEPARTMENTS_CATALOG.md"))

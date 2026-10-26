@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-safe-001-reminder.sh - cheap, safe UserPromptSubmit refresh of AB-SAFE-001.
+# check-safe-001-reminder.sh - cheap, safe UserPromptSubmit refresh of AV-SAFE-001.
 #
 # Roadmap item 123, Tier 1 (the universal half): fires on every message for both Claude Code
 # and Codex (vendor-hooks.md), which directly counters the measured decay of a requirement-type
@@ -32,7 +32,7 @@ print(data.get("prompt", ""))
 
 pattern='password|secret|api[_ -]?key|token|credential|\.env\b|private[_ -]?key|ssh[_ -]?key|access[_ -]?key'
 if printf '%s' "$prompt" | grep -qiE "$pattern"; then
-  echo "Reminder (AB-SAFE-001): before handling any credential here, load this repository's own .agents/agent-base/standards/secrets.md first, unconditionally -- and if the file involved belongs to a different repository than this session's own root, that repository's own copy, not only the one already loaded here."
+  echo "Reminder (AV-SAFE-001): before handling any credential here, load this repository's own .agents/agent-base/standards/secrets.md first, unconditionally -- and if the file involved belongs to a different repository than this session's own root, that repository's own copy, not only the one already loaded here."
 fi
 
 exit 0

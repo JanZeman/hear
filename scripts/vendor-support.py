@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and display the operator-local Agent Base vendor support profile."""
+"""Validate and display the operator-local ai-venture vendor support profile."""
 
 from __future__ import annotations
 

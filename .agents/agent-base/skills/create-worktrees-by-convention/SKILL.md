@@ -6,7 +6,7 @@ description: Create the worktree slots declared by a project's development-workf
 # Create worktrees by convention
 
 Use this skill only after a human explicitly asks to create the project's convention-defined
-worktree slots. It is the sole `AB-GIT-001` exception for this operation. Never use it to create a
+worktree slots. It is the sole `AV-GIT-001` exception for this operation. Never use it to create a
 partial set, an arbitrary worktree, a disposable investigation worktree, or to repair an earlier
 failure.
 
@@ -17,7 +17,7 @@ In a downstream repository, read these files first:
 1. `.agents/agent-base/standards/git.md`
 2. `.agents/standards/development-workflow.md` (for `repo_id` and the trunk name)
 
-In the standalone agent-base source, use
+In the standalone ai-venture source, use
 `template/.agents/agent-base/standards/git.md` and `.agents/standards/development-workflow.md`
 instead.
 
@@ -38,7 +38,7 @@ folder is not the uppercase `repo_id`, or if the standard does not explicitly pe
 
 Before the generic shape check, compare the block against the table's `repo_id` and
 `stable_branch`. The literal `_xx1`/`../XX1` scaffold means adoption is incomplete: report that
-specific cause and direct the human to rerun Agent Base after filling `repo_id`, or to replace the
+specific cause and direct the human to rerun ai-venture after filling `repo_id`, or to replace the
 project-owned declaration deliberately. For every other mismatch, say whether the branch name,
 sibling path, base reference, or slot numbering differs from the declaration. Do not derive a
 replacement during provisioning and do not run any Git command until the declaration is coherent.

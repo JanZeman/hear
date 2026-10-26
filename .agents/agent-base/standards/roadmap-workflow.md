@@ -5,7 +5,7 @@ before work starts, and the exact status vocabulary.
 
 **Audience**: human contributors and coding agents.
 
-## Goals alignment (AB-GOALS-001)
+## Goals alignment (AV-GOALS-001)
 
 Before each change, name the Objective it serves and check whether the approach contradicts a
 current Strategy choice. When the change plausibly moves that Objective, load its file and name
@@ -21,7 +21,7 @@ log. One exception is an accepted trade-off. Repeated exceptions are evidence fo
 If the project has no objectives defined yet, say so before substantial work starts -- don't
 let work proceed against an undefined target. Catalog: `.agents/goals/_GOALS_CATALOG.md`.
 
-## Before starting a task (AB-ROADMAP-001)
+## Before starting a task (AV-ROADMAP-001)
 
 This never gates a genuinely small task: minutes, one obvious correction, no design choice, and
 describing it would cost more than doing it -- the same bar used below for work discovered inside
@@ -63,11 +63,11 @@ never about whether the work gets recorded. Reserve the first option honestly: "
 to do, not small to describe, and a detour that turns out larger than claimed becomes an item at
 the moment that becomes clear.
 
-Record the suspended work in the handoff's detour stack per `AB-SESSION-001`, then announce the
-return when the detour ends. A detour whose real home is agent-base is a request; see
-`AB-REQUEST-001`.
+Record the suspended work in the handoff's detour stack per `AV-SESSION-001`, then announce the
+return when the detour ends. A detour whose real home is ai-venture is a request; see
+`AV-REQUEST-001`.
 
-### Corrections and lessons (AB-ROADMAP-005)
+### Corrections and lessons (AV-ROADMAP-005)
 
 A meaningful correction from the human, or an outcome the agent observes that could generalize
 beyond the current task, is proposed as a roadmap `Idea` (or `Open`, when its scope is already
@@ -87,7 +87,7 @@ This is the lightweight reflex, not the full mechanism. Item 059 builds deduplic
 reuse, and measured improvement on top of it; this rule only guarantees that nothing is silently
 dropped in the meantime.
 
-## Status vocabulary (AB-ROADMAP-004)
+## Status vocabulary (AV-ROADMAP-004)
 
 A roadmap item's `Status` is exactly one of: `Idea`, `Open`, `In Progress`, `Done`, `Blocked`,
 `Deferred`, `Archived` -- never `Closed` or an invented synonym. `agent-base-guard.sh` fails
@@ -97,7 +97,7 @@ Deciding between the two closing states: `Done` means the work succeeded as scop
 means it didn't happen as scoped (superseded, abandoned, no longer relevant) -- not a
 judgment on whether trying was worthwhile.
 
-## Proactive completion (AB-ROADMAP-002)
+## Proactive completion (AV-ROADMAP-002)
 
 When the definition of done is met, close the work in the same turn instead of asking for a
 separate approval round:
@@ -108,13 +108,13 @@ separate approval round:
    `_ROADMAP_HISTORY.md` at the same time, unchanged apart from its completion note.
 3. Report the evidence and any hesitation, compromise, omitted scope, or follow-up concern.
 4. Invite the human to object if the completion claim is wrong. Otherwise hand off the review,
-   commit, and push using `AB-GIT-002`.
+   commit, and push using `AV-GIT-002`.
 
 The uncommitted diff is the human acceptance gate. If the human disagrees, immediately correct
 the work or restore the appropriate non-terminal status before commit. Do not leave work open
 merely to obtain a second message containing closure approval.
 
-## Superseded work (AB-ROADMAP-002, AB-ROADMAP-003)
+## Superseded work (AV-ROADMAP-002, AV-ROADMAP-003)
 
 Checking history before adding an item answers "have we already done this?". It never answers the
 inverse: "does this make something we already did obsolete?". A closed item is not read again, so
@@ -139,9 +139,9 @@ replacement, because the replacement is named after the technology while the pre
 after the symptom. Re-evaluating a predecessor is itself real work: record what the sweep found and
 offer it per "Work discovered inside other work" instead of silently expanding the current task.
 
-## Two indexes, one row (AB-ROADMAP-002, AB-ROADMAP-003)
+## Two indexes, one row (AV-ROADMAP-002, AV-ROADMAP-003)
 
-`AB-ROADMAP-001` makes `_ROADMAP_CATALOG.md` mandatory reading before every task, so whatever
+`AV-ROADMAP-001` makes `_ROADMAP_CATALOG.md` mandatory reading before every task, so whatever
 stays in it is paid for on every task forever. Finished work is evidence rather than a pending
 decision, so it is kept but not carried:
 
@@ -155,14 +155,14 @@ split; only the row's location changes.
 Two consequences follow, and neither is optional:
 
 - Closing an item is a move between files, not a move between sections.
-- `AB-ROADMAP-003` deduplication must read `_ROADMAP_HISTORY.md` before proposing a new item.
+- `AV-ROADMAP-003` deduplication must read `_ROADMAP_HISTORY.md` before proposing a new item.
   Half of what it has to check, everything already finished or abandoned, is no longer in the
   catalog. Skipping it silently reintroduces work someone already rejected.
 
 Repositories created before this contract keep every row in the catalog until a human approves
 the migration; nothing moves their content automatically.
 
-## Full titles before shorthand (AB-REF-001)
+## Full titles before shorthand (AV-REF-001)
 
 When a numeric roadmap or migration reference has no full title stated anywhere in the current or
 immediately preceding response, resolve it first: look up `_ROADMAP_CATALOG.md` or the item file
@@ -181,5 +181,5 @@ preceding response is.
 ## Cross-references
 
 - Behavior rules and rule IDs: see `AGENTS.md`
-- Idea/step/archived dedup (`AB-ROADMAP-003`): see
+- Idea/step/archived dedup (`AV-ROADMAP-003`): see
   `.agents/roadmap/_ROADMAP_CATALOG.md` and `.agents/roadmap/_ROADMAP_HISTORY.md`

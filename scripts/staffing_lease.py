@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One writer at a time per working tree, for agent-base Venture Staffing (roadmap item 148).
+"""One writer at a time per working tree, for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module exists to enforce, stated before any code reads it:
 
@@ -22,7 +22,7 @@ Everything below is that sentence made executable. Three properties carry it:
    it. Clearing it requires recorded operator evidence; a confirmation with no evidence would be an
    override of the guarantee rather than an implementation of it.
 
-3. **The boundary is declared, not implied.** This coordinates participating agent-base executions
+3. **The boundary is declared, not implied.** This coordinates participating ai-venture executions
    on a POSIX filesystem with working `fcntl` locking. It does not coordinate a human's editor, an
    unrelated process, or a detached descendant of a model's own tool, and it never silently
    downgrades to a process-local lock when the platform cannot support the real one.
@@ -147,7 +147,7 @@ def _critical_section(worktree: Path):
     """Serialize one metadata transition. Short by construction: never hold this across a human."""
     if fcntl is None:
         raise UnsupportedPlatform(
-            "fcntl locking is unavailable on this platform; agent-base will not substitute a "
+            "fcntl locking is unavailable on this platform; ai-venture will not substitute a "
             "process-local lock, which would exclude nothing between processes"
         )
     lock_path, _, _ = _paths(worktree)
@@ -309,7 +309,7 @@ def clear_uncertain(worktree: Path, invocation_id: str, evidence: str) -> None:
     """Reopen a worktree after an operator actually stopped the writer and said how.
 
     Evidence is required and unchecked by anything but a human reading it later. That asymmetry is
-    deliberate: agent-base can demand that an intervention be recorded, and cannot verify it, so it
+    deliberate: ai-venture can demand that an intervention be recorded, and cannot verify it, so it
     refuses to pretend that a bare confirmation is the same thing.
     """
     if not evidence.strip():

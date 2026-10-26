@@ -5,18 +5,18 @@ what agents may and may not run, and how commit suggestions work.
 
 **Audience**: human contributors and coding agents.
 
-## Committed-content language (AB-DOC-005)
+## Committed-content language (AV-DOC-005)
 
 Conversational language may switch freely, following the user. Anything committed to git --
 commit messages, code, comments, docstrings, file/branch names -- must always be English,
 regardless of chat language. Translate non-English content before writing it; never commit it
 verbatim.
 
-## What agents may run (AB-GIT-001)
+## What agents may run (AV-GIT-001)
 
 Human controls Git mutations. Agents may run read-only Git and stash operations. They must not
 stage, commit, push, merge, rebase, reset, checkout, switch, tag, or perform another Git mutation
-except for `git pull` and the narrow submodule, worktree, and verified Agent Base update
+except for `git pull` and the narrow submodule, worktree, and verified ai-venture update
 provisions below.
 
 Agents must also not discard uncommitted work: `git restore`, `git checkout <path>`, and
@@ -46,9 +46,9 @@ worktree or a partial set. The skill owns its read-only preflight and postflight
 branch switch, integration, commit, push, worktree removal, Git permission change, or automatic
 repair after partial creation.
 
-**Verified Agent Base updates are also allowed**, narrowly: a direct human request to `Update AB`,
-`publish AB`, or update one named client or the fleet authorizes the loaded update procedure to
-stage, commit, and push the verified Agent Base release and audited Agent Base sync paths in that
+**Verified ai-venture updates are also allowed**, narrowly: a direct human request to `Update AV`,
+`publish AV`, or update one named client or the fleet authorizes the loaded update procedure to
+stage, commit, and push the verified ai-venture release and audited ai-venture sync paths in that
 named scope. It requires the procedure's clean-baseline, release, path-review, required-check, and
 fresh-remote gates to pass. A failed gate, unexplained path, unresolved drift, or migration needing
 judgment ends the exception for that repository; do not commit or push it. This exception never
@@ -56,7 +56,7 @@ authorizes merge, rebase, reset, force push, branch switching, product changes, 
 cleanup.
 
 **One-way worktree-slot propagation is also allowed**, narrowly: immediately after the above
-exception commits a verified Agent Base sync on a repository's integration branch, the agent may
+exception commits a verified ai-venture sync on a repository's integration branch, the agent may
 run that repository's worktree-consolidation wrapper with `--to-slots-only` (for example
 `worktrees.sh --to-slots-only`) to merge the updated integration branch into each already-clean,
 declared worktree slot. This authorizes only the `<integration> -> slot` direction; it never
@@ -79,7 +79,7 @@ invites exactly the back-and-forth the handoff exists to avoid.
 `.claude/settings.json` deny lists. Other vendors rely on this contract and their sandbox or
 reviewer boundaries.
 
-## Remote URLs: SSH by default (AB-GIT-001)
+## Remote URLs: SSH by default (AV-GIT-001)
 
 Every Git remote URL an agent writes or proposes uses the SSH form, `git@<host>:<owner>/<repo>.git`:
 `git submodule add`, `.gitmodules`, `git remote add` or `set-url`, a clone command handed to the
@@ -94,11 +94,11 @@ apply. A clone the environment itself created over HTTPS is the environment's, n
 URL; leave it as it is. A separate tool or registry whose own documented contract requires HTTPS
 keeps that contract.
 
-## Commit suggestions (AB-GIT-002)
+## Commit suggestions (AV-GIT-002)
 
 At every completed-work handoff, resolve the current worktree root with
 `git rev-parse --show-toplevel`, then show these commands for the human and never run their Git
-operations, unless a verified direct `Update AB`, `publish AB`, or named fleet update owns the
+operations, unless a verified direct `Update AV`, `publish AV`, or named fleet update owns the
 handoff. Replace the first line with the verified absolute path, retaining the quotes:
 
 ````markdown
@@ -132,28 +132,28 @@ principle of the change. The message is that subject alone; a body appears only 
 asks for one. **The message always starts with a capital letter.** A subject may open
 with a lowercase identifier prefix -- a project's own lowercase name, a command, a filename --
 and that prefix keeps the spelling the identifier actually has; the capital applies to the
-message that follows it, never to the prefix. So `agent-base v0.0.X: Publish verified fleet
+message that follows it, never to the prefix. So `ai-venture v0.0.X: Publish verified fleet
 candidates`, not `... publish verified fleet candidates`. A version number, filenames, "update",
 "sync", or other surface-only description is insufficient by itself. Do not use a Conventional
-Commits prefix unless the project requires it. For an agent-base release, use
-`agent-base v0.0.X: <Main behavioral principle>`. For a downstream sync, retain the version and
-the release principle, e.g. `Sync with agent-base v0.0.X: <Main behavioral principle>`.
+Commits prefix unless the project requires it. For an ai-venture release, use
+`ai-venture v0.0.X: <Main behavioral principle>`. For a downstream sync, retain the version and
+the release principle, e.g. `Sync with ai-venture v0.0.X: <Main behavioral principle>`.
 
 Leave `git push` out of the block only for a local-only checkpoint: the branch has no upstream, or
-the human asked for a local-only commit. A verified direct Agent Base update is the narrow
+the human asked for a local-only commit. A verified direct ai-venture update is the narrow
 exception that may execute those commands itself.
 
-**Running a shown block on the human's reply (`AB-GIT-002`).** Only a reply whose first word is
+**Running a shown block on the human's reply (`AV-GIT-002`).** Only a reply whose first word is
 `kk` authorizes running the block just shown. Anything after that word is a comment, such as
 `kk, commit only`; it may narrow what `kk` covers, never widen it. Case is ignored, and the word ends at the
 first character that is not a letter or digit. `ok`, a bare `k`, a reply that merely contains `kk`
-later, and every other reply keep their ordinary meaning (a bare `k` keeps `AB-INPUT-001`'s) and
+later, and every other reply keep their ordinary meaning (a bare `k` keeps `AV-INPUT-001`'s) and
 authorize nothing: `ok` is too easy to type by reflex as "understood".
 
 A `kk` reply confirms two things at once: the work just finished (run the block: commit and push)
 and the step the same response proposed under its next-step section. So on `kk`, run the block,
 report the resulting commit in one line, and then carry out that proposed step in the same turn,
-with the authority a bare `k` would give it under `AB-INPUT-001`: a step that itself needs the
+with the authority a bare `k` would give it under `AV-INPUT-001`: a step that itself needs the
 human's approval (irreversible, external, outside the approved scope) still stops and asks. When
 the response proposed no next step, or said none remains, `kk` means only commit and push. A
 comment such as `kk, commit only` or `kk, stop after the push` drops the next step. Answering a
@@ -162,45 +162,45 @@ comment such as `kk, commit only` or `kk, stop after the push` drops the next st
 On `kk`, the human wants the shown block run on their behalf: the commit
 still carries the human's own configured Git identity, the agent only executes it. Run
 `scripts/run-confirmed-commit.sh --reply "<the human's reply, verbatim>" --root "<the exact cd path
-just shown>" --message "<the exact message just shown>"` from that same root (agent-base's own
+just shown>" --message "<the exact message just shown>"` from that same root (ai-venture's own
 upstream root instead runs `template/scripts/run-confirmed-commit.sh`, since it has no synced
 top-level copy of its own scripts), adding `--push` only if the block itself included `git push`.
 The script refuses any reply whose first word is not `kk`. Never edit the root or the message before running
 them, and never run this for a block a different reply is answering -- it authorizes exactly the
 block just displayed, once, and lapses the moment another response is shown. This is a narrow,
-explicit exception to `AB-GIT-001`, not a general grant to run Git commands after any short reply.
+explicit exception to `AV-GIT-001`, not a general grant to run Git commands after any short reply.
 
-**Commit identity (`AB-GIT-002`).** These four clauses hold for every commit an agent creates or
+**Commit identity (`AV-GIT-002`).** These four clauses hold for every commit an agent creates or
 runs in a real repository, including through `scripts/run-confirmed-commit.sh` and a verified Agent
 Base update. Throwaway fixture repositories that tests and rehearsals create are not covered:
 
 1. **Identity source.** The commit uses the repository's configured `user.name` and `user.email`,
    exactly as `git config user.name` and `git config user.email` resolve them. The agent never
    passes `-c user.name=...`, `-c user.email=...`, `--author`, or `GIT_AUTHOR_*`/`GIT_COMMITTER_*`
-   values, and never writes a name or an email into a file or a rule. Agent Base itself contains
+   values, and never writes a name or an email into a file or a rule. ai-venture itself contains
    no identity.
 2. **Missing identity.** When either value is unset, the agent stops and asks the human to set it
    in that repository (`git config user.name "<your name>"`, `git config user.email "<your
    email>"`). It does not guess, borrow a value from somewhere else, or use a placeholder.
 3. **No attribution trailers.** The agent adds no `Co-Authored-By` trailer and no "Generated
    with" or other tool-attribution line to commit messages or PR descriptions, even when its host
-   tool would add one by default. The human owns the history (`AB-GIT-001`).
+   tool would add one by default. The human owns the history (`AV-GIT-001`).
 4. **Overrides.** A different identity for one client, such as another email, is set in that
    client's Git config (`.git/config` or a file it includes). It is not a rule override and not an
    `AGENTS.md` edit.
 
 Git config is never versioned, so a fresh clone starts without an identity; the session-start
-guard reports that as `AB-Q007` without printing either value, and
+guard reports that as `AV-Q007` without printing either value, and
 `scripts/run-confirmed-commit.sh` refuses to run until both are set. A submodule such as
 `_sub/ai-venture` keeps its own separate Git config. Reading it needs no identity, and agents
 never commit there; a human who commits inside it sets its identity there separately.
 
-**Syncing agent-base** remains routine maintenance, not a project roadmap step -- don't file
+**Syncing ai-venture** remains routine maintenance, not a project roadmap step -- don't file
 one merely because files synchronized.
 
 The user may ignore any of this at any time.
 
-## Fresh Git state before every claim (AB-GIT-003)
+## Fresh Git state before every claim (AV-GIT-003)
 
 Git state changes outside the agent's view: the human commits or pushes from their own terminal, a
 worktree sync merges branches, another session works in a sibling worktree. A sentence like "my
@@ -221,7 +221,7 @@ agent to re-check and correct itself. It fires at most once per stop (`stop_hook
 exits 0, and is a heuristic phrase match in English and Czech: it can miss a claim and can ask for
 a check that turns out unnecessary, which costs one `git status`.
 
-The same hook also checks every shown `AB-GIT-002` commit block against the repository its `cd`
+The same hook also checks every shown `AV-GIT-002` commit block against the repository its `cd`
 line names, because a fenced block is not a prose claim. Before showing a block, run `git status`
 in that root: when it has nothing to commit, do not show the block, and say in one line that the
 work is already committed (and pushed). When the hook finds such a stale block, with nothing to

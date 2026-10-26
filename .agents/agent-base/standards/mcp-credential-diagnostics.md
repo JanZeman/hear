@@ -136,4 +136,4 @@ Use the script's single `VERDICT` and `NEXT` result, with the stage table above 
 - Claude Code MCP management: [MCP servers](https://code.claude.com/docs/en/mcp)
 - Codex MCP configuration and status: [OpenAI developer docs MCP guide](https://developers.openai.com/learn/docs-mcp)
 - Protocol behavior: [MCP specification](https://modelcontextprotocol.io/specification)
-- Credential handling: `AB-MODEL-001` and `.agents/agent-base/standards/secrets.md`
+- Credential handling: `AV-MODEL-001` and `.agents/agent-base/standards/secrets.md`

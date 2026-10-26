@@ -78,7 +78,7 @@ Prefer sandbox configuration (`sandbox.filesystem.*` or `sandbox.network.allowed
 `permissions.allow`. User-wide exceptions belong in `~/.claude/settings.json`; project-specific
 exceptions belong in `.claude/settings.json`. Preserve unrelated configuration.
 
-If a genuine narrow command rule is still required, merge a user-wide rule with the agent-base
+If a genuine narrow command rule is still required, merge a user-wide rule with the ai-venture
 helper or edit the project file directly:
 
 ```bash

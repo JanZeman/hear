@@ -122,7 +122,7 @@ assert_not_contains() {
 }
 
 # AGENT-BASE-UPDATE-CONSENT:START
-# --- Agent-base update reminder (never fetches, syncs, or changes a checkout) ---
+# --- ai-venture update reminder (never fetches, syncs, or changes a checkout) ---
 # Cache: remind at most once per day. Delete .agents/.agent-base-last-run to show it again.
 AGENT_BASE_CACHE="$ROOT_DIR/.agents/.agent-base-last-run"
 AGENT_BASE_TTL=86400  # seconds (24 h)
@@ -135,10 +135,10 @@ if [[ -f "$AGENT_BASE_CACHE" ]]; then
 fi
 
 if [[ "$_stale" == true ]] && [[ -d "_sub/ai-venture" && -f "_sub/ai-venture/apply-agent-base.sh" ]]; then
-  warn "Agent-base update check is due. Automatic updates are disabled."
-  echo -e "${DIM}  Ask the current user before acting. Run only after explicit approval: Update AB.${NC}"
+  warn "ai-venture update check is due. Automatic updates are disabled."
+  echo -e "${DIM}  Ask the current user before acting. Run only after explicit approval: Update AV.${NC}"
 elif [[ "$_stale" == false ]]; then
-  echo -e "${DIM}Agent-base update reminder: cached (next after $(date -r $(( _last + AGENT_BASE_TTL )) '+%Y-%m-%d %H:%M' 2>/dev/null || echo '~24h'))${NC}"
+  echo -e "${DIM}ai-venture update reminder: cached (next after $(date -r $(( _last + AGENT_BASE_TTL )) '+%Y-%m-%d %H:%M' 2>/dev/null || echo '~24h'))${NC}"
 fi
 # AGENT-BASE-UPDATE-CONSENT:END
 
@@ -171,7 +171,7 @@ if [[ -d ".agents/sessions" ]]; then
   if [[ "$_missing_topic_queue" == true ]]; then
     warn "A session handoff lacks Active topic or Queued topics headings."
     echo -e "${DIM}  Keep one active topic (two only when dependent); queue the rest or promote${NC}"
-    echo -e "${DIM}  broad independent work to a roadmap item. See AB-SESSION-001.${NC}"
+    echo -e "${DIM}  broad independent work to a roadmap item. See AV-SESSION-001.${NC}"
   fi
 fi
 # AGENT-BASE-TOPIC-QUEUE-CHECK:END
@@ -196,7 +196,7 @@ if [[ -f "$_venture_helper" ]]; then
 fi
 # AGENT-BASE-VENTURE-PREPARE:END
 # AGENT-BASE-QUALITY:START
-# --- AB quality conditions (standards/ab-quality.md). Mechanical only; judged ones need the
+# --- AV quality conditions (standards/ab-quality.md). Mechanical only; judged ones need the
 # ab-quality-check skill and a present human. Every finding here is deferrable by design. ---
 # Defined inside the managed block on purpose. The guard is customize-once, so a helper added to
 # its messaging section would reach new repositories only; an existing one would receive this
@@ -218,9 +218,9 @@ if [[ -f ".agents/VENTURE.md" && -f "scripts/venture.py" ]]; then
   _q_identity="$(python3 scripts/venture.py --root "$ROOT_DIR" section Identity 2>/dev/null || true)"
   if [[ -z "$_q_identity" ]]; then
     if grep -Fqx '## Summary' ".agents/VENTURE.md"; then
-      _q_add "AB-Q001: .agents/VENTURE.md still has the retired ## Summary teaser. Rename it to ## Identity and keep only the clause saying what this Venture is; the rest was Strategy, which is now rendered from its own section."
+      _q_add "AV-Q001: .agents/VENTURE.md still has the retired ## Summary teaser. Rename it to ## Identity and keep only the clause saying what this Venture is; the rest was Strategy, which is now rendered from its own section."
     else
-      _q_add "AB-Q001: .agents/VENTURE.md has no ## Identity section; Purpose is standing in."
+      _q_add "AV-Q001: .agents/VENTURE.md has no ## Identity section; Purpose is standing in."
     fi
   else
     _q_words="$(printf '%s' "$_q_identity" | wc -w | tr -d ' ')"
@@ -228,11 +228,11 @@ if [[ -f ".agents/VENTURE.md" && -f "scripts/venture.py" ]]; then
     # This is authoring guidance only: the renderer always preserves the complete Identity.
     _q_recommended_max="$(python3 scripts/venture.py --root "$ROOT_DIR" identity-recommended-max 2>/dev/null || echo 0)"
     if (( _q_recommended_max > 0 && _q_words > _q_recommended_max )); then
-      _q_add "AB-Q002: ## Identity is $_q_words words; prefer no more than $_q_recommended_max, but the complete Identity remains in session context. Shorten the source when practical; this can wait."
+      _q_add "AV-Q002: ## Identity is $_q_words words; prefer no more than $_q_recommended_max, but the complete Identity remains in session context. Shorten the source when practical; this can wait."
     fi
     _q_purpose="$(python3 scripts/venture.py --root "$ROOT_DIR" section Purpose 2>/dev/null || true)"
     if [[ -n "$_q_purpose" && "$_q_identity" == "$_q_purpose" ]]; then
-      _q_add "AB-Q003: ## Identity only repeats ## Purpose. Identity says what this Venture is; Purpose says why it exists."
+      _q_add "AV-Q003: ## Identity only repeats ## Purpose. Identity says what this Venture is; Purpose says why it exists."
     fi
   fi
 fi
@@ -245,19 +245,19 @@ if [[ -d .agents/requests ]]; then
     [[ "$_q_name" == _* ]] && continue
     if grep -qE '^\*\*Status\*\*: (Released|Refused|Downstream-only)[[:space:]]*$' "$_q_f" &&
       ! grep -qE '^\*\*Blocks\*\*:[[:space:]]*\S' "$_q_f"; then
-      _q_add "AB-Q004: $_q_f is answered but has no Blocks value; nothing says what to resume."
+      _q_add "AV-Q004: $_q_f is answered but has no Blocks value; nothing says what to resume."
     fi
     # The catalog is the human-readable index. A request missing from it is invisible to anyone
     # who reads the index instead of listing the directory, which is what the index is for.
     # Only a table row counts. A bare grep also matched the name inside prose or a comment,
     # which would let the index look complete while listing nothing.
     if [[ -f "$_q_catalog" ]] && ! grep '^|' "$_q_catalog" | grep -Fq "$_q_name"; then
-      _q_add "AB-Q005: $_q_name has no row in _REQUESTS_CATALOG.md; the index and the files disagree."
+      _q_add "AV-Q005: $_q_name has no row in _REQUESTS_CATALOG.md; the index and the files disagree."
     fi
   done
 fi
 
-# AB-Q006: unconditional, per the human's explicit direction. Every Venture must have a wiki
+# AV-Q006: unconditional, per the human's explicit direction. Every Venture must have a wiki
 # mapping in its own .agents/wiki.json to be venture compatible. Structure only, never content:
 # this reads scripts/venture.py's own message, which names the missing piece (no file, a malformed
 # connector/root, or a mapping still only in the legacy operator-local registry) without this
@@ -265,11 +265,11 @@ fi
 if [[ -f "scripts/venture.py" ]]; then
   _q_wiki_error="$(python3 scripts/venture.py --root "$ROOT_DIR" wiki-config 2>&1 >/dev/null || true)"
   if [[ -n "$_q_wiki_error" ]]; then
-    _q_add "AB-Q006: ${_q_wiki_error#Venture: }. See venture-wiki-sync."
+    _q_add "AV-Q006: ${_q_wiki_error#Venture: }. See venture-wiki-sync."
   fi
 fi
 
-# AB-Q007: commits carry the identity in this clone's own Git config (AB-GIT-002), and Git
+# AV-Q007: commits carry the identity in this clone's own Git config (AV-GIT-002), and Git
 # config is never versioned, so a fresh clone starts without it. Name the missing key, never a
 # value: the guard output lands in agent context and logs.
 _q_missing_identity=""
@@ -280,21 +280,21 @@ for _q_key in user.name user.email; do
 done
 if [[ -n "$_q_missing_identity" ]]; then
   _q_verb="is"; [[ "$_q_missing_identity" == *" and "* ]] && _q_verb="are"
-  _q_add "AB-Q007: Git $_q_missing_identity $_q_verb not set in this repository, so no commit can carry your identity. Set it here: git config user.name \"<your name>\" and git config user.email \"<your email>\"."
+  _q_add "AV-Q007: Git $_q_missing_identity $_q_verb not set in this repository, so no commit can carry your identity. Set it here: git config user.name \"<your name>\" and git config user.email \"<your email>\"."
 fi
 
 if [[ -n "$_q_findings" ]]; then
-  strong "AB quality: $(printf '%s' "$_q_findings" | grep -c '^') condition(s) below standard."
+  strong "AV quality: $(printf '%s' "$_q_findings" | grep -c '^') condition(s) below standard."
   printf '%s' "$_q_findings"
   echo -e "${DIM}  Fix these when you can; you may defer them and continue this task now.${NC}"
   echo -e "${DIM}  Details and severities: .agents/agent-base/standards/ab-quality.md${NC}"
-  echo -e "${DIM}  For the judged conditions too, say \"AB check\" (AB-QUALITY-001).${NC}"
-  echo -e "${DIM}  During an agent-base update, only report these: they need a present human.${NC}"
+  echo -e "${DIM}  For the judged conditions too, say \"AV check\" (AV-QUALITY-001).${NC}"
+  echo -e "${DIM}  During an ai-venture update, only report these: they need a present human.${NC}"
 fi
 # AGENT-BASE-QUALITY:END
 
 # AGENT-BASE-REQUESTS:START
-# --- Requests to agent-base: state enum, plus the two reminders that keep the thread alive ---
+# --- Requests to ai-venture: state enum, plus the two reminders that keep the thread alive ---
 # A request usually interrupts something here, so two moments can go cold silently: the answer
 # never coming back, and the answer arriving while the interrupted work stays abandoned. Both get
 # one line. Accepted is deliberately silent: it is answered but not yet deliverable, and repeating
@@ -325,18 +325,18 @@ if [[ -d .agents/requests ]]; then
         ;;
       Accepted|Resumed) ;;
       *)
-        fail "$_req_f has Status: '$_req_status' -- must be one of New|Collected|Accepted|Refused|Downstream-only|Released|Resumed. This project sets New and Resumed; agent-base writes the rest."
+        fail "$_req_f has Status: '$_req_status' -- must be one of New|Collected|Accepted|Refused|Downstream-only|Released|Resumed. This project sets New and Resumed; ai-venture writes the rest."
         ;;
     esac
   done
   if [[ $_req_waiting -gt 0 ]]; then
     echo ""
-    info "$_req_waiting agent-base request(s) still waiting for an answer."
+    info "$_req_waiting ai-venture request(s) still waiting for an answer."
     echo -e "${DIM}  They travel upstream at the next sync or fleet update. Nothing to do here.${NC}"
   fi
   if [[ $_req_answered -gt 0 ]]; then
     echo ""
-    info "$_req_answered agent-base request(s) answered, with work here still suspended:"
+    info "$_req_answered ai-venture request(s) answered, with work here still suspended:"
     printf '%s' "$_req_resume_names"
     echo -e "${DIM}  Read each one's Blocks field, resume or deliberately drop what it names, then${NC}"
     echo -e "${DIM}  set Status: Resumed. See .agents/requests/_REQUESTS_CATALOG.md.${NC}"
@@ -379,7 +379,7 @@ if [[ -f "$_wf_file" ]]; then
     _wf_upper="$(printf '%s' "$_repo_id_value" | tr '[:lower:]' '[:upper:]')"
     if grep -Fqx 'git worktree add -b _xx1 ../XX1 main' "$_wf_file" \
       || grep -Fqx 'git worktree add -b _xx2 ../XX2 main' "$_wf_file"; then
-      _wf_problems="${_wf_problems}  - The literal worktree-slot scaffold remains in $_wf_file. Fill repo_id, rerun Agent Base to materialize the default two slots, or declare this project's slots manually.\n"
+      _wf_problems="${_wf_problems}  - The literal worktree-slot scaffold remains in $_wf_file. Fill repo_id, rerun ai-venture to materialize the default two slots, or declare this project's slots manually.\n"
     else
       _wf_slot_count=0
       _wf_slot_numbers=""
@@ -422,7 +422,7 @@ if [[ -n "$_wf_problems" ]]; then
   echo ""
   echo -e "${RED}${BOLD}=== DEVELOPMENT WORKFLOW: NOT COMPLIANT ===${NC}"
   printf "${RED}%b${NC}" "$_wf_problems"
-  echo -e "${DIM}  Standard: $_wf_file. Branch deletion is manual, human-only (AB-GIT-001).${NC}"
+  echo -e "${DIM}  Standard: $_wf_file. Branch deletion is manual, human-only (AV-GIT-001).${NC}"
 fi
 # AGENT-BASE-WORKFLOW-CHECK:END
 
@@ -442,7 +442,7 @@ assert_file_exists ".markdownlint.jsonc"
 if grep -Fqx '<!-- AGENT-BASE-RULES:START -->' "AGENTS.md"; then
   while IFS= read -r _managed_rule_id; do
     [[ -z "$_managed_rule_id" ]] && continue
-    if [[ "$_managed_rule_id" != AB-* ]]; then
+    if [[ "$_managed_rule_id" != AV-* && "$_managed_rule_id" != AB-* ]]; then
       fail "Managed agent-base rule '$_managed_rule_id' must use an AB-* ID."
     fi
   done < <(awk '
@@ -709,12 +709,12 @@ fi
 # Printed LAST so Purpose, Vision, Strategy, and Goals remain the agent's immediate task context.
 if [[ -f "${_venture_helper:-scripts/venture.py}" ]]; then
   if _venture_context="$(python3 "${_venture_helper:-scripts/venture.py}" --root "$ROOT_DIR" context 2>&1)"; then
-    step "Venture Context - use for every substantive decision (AB-VENTURE-001)"
+    step "Venture Context - use for every substantive decision (AV-VENTURE-001)"
     printf '%s\n' "$_venture_context"
   else
     echo ""
     warn "$_venture_context"
-    echo -e "${DIM}  AB-VENTURE-001 requires the agent to stop before substantive work.${NC}"
+    echo -e "${DIM}  AV-VENTURE-001 requires the agent to stop before substantive work.${NC}"
     echo -e "${DIM}  Load .agents/agent-base/skills/venture-discovery/SKILL.md first; the${NC}"
     echo -e "${DIM}  current human supplies motives and Goals -- never infer them from the repo.${NC}"
   fi

@@ -29,5 +29,5 @@ whether the shape it is correct in is the one to keep. Management decides what t
 do; Architecture does not become a second approval layer over ordinary technical work, and an
 outcome inside one part with no lasting boundary effect stays with Engineering. Where a choice
 would be expensive to reverse, replaces an existing boundary, or commits the Venture to a
-dependency it cannot easily leave, Architecture's own work is to reach `AB-DESIGN-001` and put the
+dependency it cannot easily leave, Architecture's own work is to reach `AV-DESIGN-001` and put the
 choice to the human, rather than to decide it alone.

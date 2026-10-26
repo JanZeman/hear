@@ -1,9 +1,9 @@
 ---
 name: ab-quality-check
-description: Review this repository against the Agent Base quality conditions, including the ones no script can decide, and report findings with their IDs. Use on "AB check", "check AB", "AB quality", or an equivalent request in any language. Never syncs, updates, or changes the agent-base submodule.
+description: Review this repository against the ai-venture quality conditions, including the ones no script can decide, and report findings with their IDs. Use on "AV check", "check AV", "AV quality", or an equivalent request in any language. Never syncs, updates, or changes the ai-venture submodule.
 ---
 
-# AB Quality Check
+# AV Quality Check
 
 Read `.agents/agent-base/standards/ab-quality.md` first; it owns the conditions, their IDs, and
 their severities. This procedure works through them and reports. It changes nothing on its own.
@@ -14,11 +14,11 @@ while `venture-discovery` owns any human-approved repair to Venture intent.
 
 ## This is not an update
 
-`AB check` and `Update AB` are neighbouring phrases with opposite effects, and only one of them
+`AV check` and `Update AV` are neighbouring phrases with opposite effects, and only one of them
 mutates the repository. This skill never fetches, never syncs, never moves the `_sub/ai-venture`
-pointer, and never runs `ab-update.sh`. If the request is genuinely about updating, `AB-SYNC-001` owns it
+pointer, and never runs `ab-update.sh`. If the request is genuinely about updating, `AV-SYNC-001` owns it
 and this skill is the wrong one. When the wording could plausibly mean either, ask which was meant
-rather than guessing: `AB-INPUT-001` requires that, because the two answers differ in whether
+rather than guessing: `AV-INPUT-001` requires that, because the two answers differ in whether
 anything is written at all.
 
 ## Run the mechanical layer first
@@ -73,5 +73,5 @@ why the Categories tree (Products, Feedback, Resources, ...) is deliberately not
 stop. Every fix is the human's to approve, including the ones you drafted, and
 a finding may be deferred without argument: say what it costs to leave it and move on.
 
-If a condition seems wrong, or a repeated finding is really a gap in agent-base rather than in this
-repository, do not work around it. Record a request under `.agents/requests/` per `AB-REQUEST-001`.
+If a condition seems wrong, or a repeated finding is really a gap in ai-venture rather than in this
+repository, do not work around it. Record a request under `.agents/requests/` per `AV-REQUEST-001`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The authoritative run state for agent-base Venture Staffing (roadmap item 148).
+"""The authoritative run state for ai-venture Venture Staffing (roadmap item 148).
 
 The predicate this module enforces, stated before any code reads it:
 
@@ -487,7 +487,7 @@ def record_provider_handle(run_id: str, token: str, invocation_id: str, handle: 
     """Record the vendor's conversation identifier, so a recoverable conversation is not orphaned.
 
     The narrower claim is the true one. This is called once the vendor process has returned and its
-    output can be read, not at the moment the identifier comes into existence: agent-base does not
+    output can be read, not at the moment the identifier comes into existence: ai-venture does not
     consume a vendor's event stream while it runs. An invocation that times out or is killed
     therefore has no handle here even though the vendor had one, which is why an uncertain
     invocation is reconciled by looking at the worktree rather than by resuming a conversation.
