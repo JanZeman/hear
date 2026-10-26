@@ -1,3 +1,3 @@
-[submodule "_sub/agent-base"]
+[submodule "_sub/ai-venture"]
 	path = _sub/ai-venture
 	url = git@github.com:JanZeman/ai-venture.git
