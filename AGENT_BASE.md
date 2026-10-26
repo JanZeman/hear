@@ -226,14 +226,16 @@ repository's own `.agents/wiki.json`:
 ```
 
 The wiki is for the human (see "What the wiki is for" in `venture-operating-model.md`). The
-repository publishes only the Venture page (`<root>/venture`: the Venture Definition and the Goals)
-there, one way; everything else on the wiki is the human's and is never synchronized.
+repository publishes only the Venture page (the Venture Definition and the Goals) there, one way;
+everything else on the wiki is the human's and is never synchronized. The page is
+`<root>/<name>-venture`, `<name>` being the root's last segment; an optional `venture_page` key
+names it differently, and `wiki-config` prints the resolved path.
 
 On a shared host, `root` is `ventures/<venture-name>`, with the name in full, where every Venture
-on that host lives; a host dedicated to one Venture may keep its documented root. A root never
-starts with a locale prefix such as `en/`. The
-connector selects the wiki connection, while `host` and `visibility` classify privacy by exact
-host and complete path segment. Run `python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
+on that host lives; a host dedicated to one Venture may keep its documented root. Roots and links
+carry no locale prefix such as `en/`. The connector selects the wiki connection, while `host` and
+`visibility` classify privacy by exact host and complete path segment. Run
+`python3 scripts/venture.py --root . wiki-visibility` before a mapped wiki write; see
 `.agents/agent-base/standards/wiki-visibility.md` for unknown or arbitrary targets. Never put
 credentials or absolute URLs in the file.
 

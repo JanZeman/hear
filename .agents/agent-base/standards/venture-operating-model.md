@@ -6,13 +6,73 @@ human-authority boundaries.
 ## Venture
 
 A **Venture** is one independently managed, value-producing unit represented by one repository. It
-may be a hobby, software product, service, physical operation, or company-like business. Software
-is the common case, but neutral terminology is used where it remains clear. `Project` is excluded
-from the formal vocabulary; a bounded coordinated effort inside a Venture is an Initiative and is
-normally represented by the Roadmap.
+may be a hobby, software product, service, physical operation, infrastructure, tooling, or
+company-like business. Software is the common case, but neutral terminology is used where it
+remains clear. `Project` is excluded from the formal vocabulary; a bounded coordinated effort inside
+a Venture is an Initiative and is normally represented by the Roadmap.
 
-The repository is the Venture. `.agents/` is its descriptive and operating layer, not a second
-`venture/` container.
+In plain words, a Venture is a project its owner works on steadily, run in one standard way. The
+same flows across every Venture build good habits, make work with AI agents efficient, and let the
+owner switch focus quickly: every Venture can answer where it is going and what the next step is.
+Its value may serve other Ventures, as a utility serves its customers. A Venture "plays" a company
+only so that roles can be handed to AI agents or people intuitively.
+
+### Owner and roles
+
+Every Venture has an owner with the final say; a Venture may later be co-owned or handed over.
+Management (direction, priorities, Goals, Roadmap) is always staffed, typically by an AI agent with
+the owner as the role's ultimate owner. Other Departments are staffed only where they make sense.
+A Venture lists its staffed roles in its own files.
+
+### Repositories
+
+The **Venture repo** is the Venture's one primary repository. Only it carries the Venture: its
+definition, Goals, Roadmap, and wiki mapping, and agents always start there. `.agents/` is its
+descriptive and operating layer, not a second `venture/` container. In its relationship to
+agent-base the same repository is an **AB client**. Agent-base itself is a Venture repo but not a
+client. Older text says "downstream" or "DS" for a client; those words are being phased out.
+
+Content belongs in the Venture repo by default. A **secondary repository** needs a reason it cannot
+live there, such as being public, having its own release cycle, or its own access. A secondary
+repository is neither a Venture repo nor an AB client: it lives inside the Venture repo as a Git
+submodule over SSH, `.gitmodules` is the formal list of them, and agents change it from the Venture
+repo on request. Everything about a Venture stays private unless there is a reason to publish it.
+Dependencies between Ventures may be recorded for information only, never as a duty to keep them
+current.
+
+### Names
+
+A Venture has one name in full words, lowercase kebab-case, used for its Venture repo, the clone
+folder, the wiki path `ventures/<name>`, and server processes (`<name>-<component>` when it runs
+several). Worktree slots are sibling folders `<name>-1`, `<name>-2` on branches `_<name>-1`,
+`_<name>-2`; the folder `<name>` is on the trunk. The recommended, unenforced clone location is
+`~/Dev/Ventures/<name>`. Renaming an existing Venture happens in one session, in verifiable steps.
+Until agent-base supports full-name ids for worktrees, existing short ids stay.
+
+### Lifecycle
+
+A repository attached to agent-base is a **Venture Candidate** until the Venture checklist below is
+complete; agents work there normally, but every session start says it is a candidate and names the
+unmet points. A Venture may later be **stalled** (only noted), **asleep** (paused), or **closed**:
+its repository archived, its wiki pages moved under `ventures/archive/<name>`, and its entry removed
+from agent-base's client list. Stalled and asleep Ventures keep receiving agent-base updates and
+reviews. The status is one line in `.agents/VENTURE.md`; agent-base's client list mirrors it.
+
+A new Venture starts with an empty repository named by these rules, then discovery with the owner
+(`create-venture`), then attaching agent-base.
+
+### Venture checklist
+
+1. Venture repo named by these rules; secondary repositories, if any, as listed submodules.
+2. Definition: Identity, Purpose, Vision, and Strategy filled.
+3. Goals as OKRs: Objectives with Key Results.
+4. Roadmap in the format agent-base expects.
+5. Venture page published on the wiki, verified on the wiki itself.
+6. Quarterly review on calendar quarters, its completion recorded in the repository.
+7. Management staffed.
+
+Tooling for points 1, 6, and 7 and for the candidate notice is still being built; until then they
+are checked by hand. Calendar quarters replace the staggered cycle anchor once that tooling ships.
 
 ## Objectives
 
@@ -189,14 +249,18 @@ the roadmap, agent-base framework content, or any other agent technicality) ever
 
 ### The Venture page
 
-Every Venture has one page that says what it is: the **Venture page** at `<root>/venture`, titled
-"<Venture name> Venture". It holds the Venture Definition (Identity, Purpose, Vision, Strategy)
-and the Goals, all on that one page and written for a person: each Goal with its objective, status,
-key results, and why they were chosen. Working history (dated notes, rejected formulations) stays
-in the repository. The repository owns exactly this page and nothing else on the wiki: it is
-rendered from `.agents/VENTURE.md` and `.agents/goals/` and published one way, repository to wiki.
-A change is made in the repository and published again; when the page was changed by hand, the
-agent shows that difference to the human before publishing over it.
+Every Venture has one page that says what it is: the **Venture page**, directly below the Venture
+root and named so its address reads on its own: `<root>/<name>-venture`, `<name>` being the
+root's last segment (for example `ventures/example/example-venture`), titled "<Venture name> Venture". When that default reads
+badly, `.agents/wiki.json` names the page with `venture_page`;
+`python3 scripts/venture.py --root . wiki-config` prints the resolved path. The page holds the
+Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals, all on that one page and
+written for a person: each Goal with its objective, status, key results, and why they were chosen.
+Working history (dated notes, rejected formulations) stays in the repository. The repository owns
+exactly this page and nothing else on the wiki: it is rendered from `.agents/VENTURE.md` and
+`.agents/goals/` and published one way, repository to wiki. A change is made in the repository and
+published again; when the page was changed by hand, the agent shows that difference to the human
+before publishing over it.
 
 Everything else on the wiki belongs to the human, the Venture root page included. A person writes
 it, and an agent writes it only when asked, for a person to read. The root page links to the
@@ -209,19 +273,27 @@ repository; an agent that needs it reads the wiki directly.
 Whatever is declared a Venture lives under the wiki's Venture area: on a shared wiki host its root
 is `ventures/<venture-name>`, the same place every other Venture on that host uses. The name is
 written out in full, never abbreviated, so a person recognizes it in a path. A host dedicated to
-one Venture may keep the root documented for it. A path never starts with a locale such as `en/`:
-the wiki serves its default language without one. Connector identity, the root, and the host's
+one Venture may keep the root documented for it. Connector identity, the root, and the host's
 visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory (`AB-Q006`),
 and the guard reports a missing one without naming any actual host or path.
+
+Paths and links carry no locale such as `en/`. A wiki serves its default language without one, so
+a locale-free link (`/ventures/<venture-name>/...`) works and survives a language change. Use that
+form inside wiki pages and in repository files; only an editor URL that requires the locale keeps
+it.
 
 ### Moving pages
 
 Every move on the wiki, whether converting existing content, retiring an old page, or renaming a
-root, happens in two steps, so nothing is lost:
+root, keeps the page's content, format, and history:
 
-1. Copy: create the page at its new path with its content unchanged, show the human the result,
-   and ask whether the original may be deleted.
-2. Delete: only after that approval, delete the original and verify the copy is still there.
+- Prefer the wiki's native move. It keeps the page's identity, editor format, content, and
+  history; it needs the human's approval like any other change.
+- Copy, ask, then delete only across wikis or when no native move exists: create the copy, show
+  it to the human, and delete the original only after their approval. Say beforehand what is lost
+  that way, such as the page history and possibly the editor format.
+- Moving includes fixing every link to the old address, and nothing is moved before a verified,
+  complete list of the affected pages exists. `venture-wiki-sync` holds the procedure.
 
 ### Converting an existing wiki
 
@@ -229,9 +301,10 @@ When a Venture adopts a wiki that already describes it somewhere else, its exist
 the Venture root; they are not left where they were. The move must not damage that information:
 
 - The existing pages move with their structure and content unchanged, their subtree reproduced
-  below the Venture root, each by the two steps of "Moving pages".
+  below the Venture root, each as "Moving pages" describes.
 - If the existing content already has a root page (an overview), it becomes the Venture root page
-  unchanged except for a link to the Venture page. Nothing below it is rewritten.
+  unchanged except for a link to the Venture page. Nothing below it is rewritten. A page named in
+  a plan is verified to exist before any change to it is proposed.
 
 The only later restructuring is the one the Venture definition itself calls for, such as the
 Venture's basic Departments. It is never part of the move: move first, then propose any

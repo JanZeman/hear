@@ -56,10 +56,13 @@ DEFINED_SECTIONS = ("Purpose", "Vision", "Strategy")
 CYCLE_SECTION = "Cycle anchor"
 CYCLE_MONTHS = 3
 # The wiki is for the human. The repository publishes exactly one page to it, one way: the Venture
-# page at `<root>/venture`, rendered from VENTURE.md and the Goals. The root page and everything
-# else on the wiki belong to the human and are never synchronized.
+# page, rendered from VENTURE.md and the Goals. The root page and everything else on the wiki
+# belong to the human and are never synchronized. The page sits directly below the root and is
+# named so its URL reads on its own: `<root>/<root-name>-venture`, unless `.agents/wiki.json`
+# names it with `venture_page`.
 PUBLISHED_CATEGORIES = {"goals"}
-VENTURE_PAGE = "venture"
+VENTURE_PAGE = "venture-page"
+VENTURE_PAGE_SUFFIX = "-venture"
 CATALOG_NAMES = {
     "_DEPARTMENTS_CATALOG.md",
     "_FEEDBACK_CATALOG.md",
@@ -365,7 +368,7 @@ def refresh_summary(root: Path) -> bool:
     return True
 
 
-def map_repository_path(relative: str) -> str | None:
+def map_repository_path(relative: str, page: str = VENTURE_PAGE) -> str | None:
     path = PurePosixPath(relative)
     parts = list(path.parts)
     if parts and parts[0] == ".agents":
@@ -373,12 +376,12 @@ def map_repository_path(relative: str) -> str | None:
     if not parts or any(part in {"", ".", ".."} for part in parts):
         raise VentureError("repository path must be a safe relative path")
     if parts == ["VENTURE.md"]:
-        return VENTURE_PAGE
+        return page
     if parts[0] not in PUBLISHED_CATEGORIES:
         return None
     if any("TEMPLATE" in part.upper() for part in parts):
         return None
-    return VENTURE_PAGE
+    return page
 
 
 def inventory(root: Path) -> dict[str, Any]:
@@ -386,10 +389,14 @@ def inventory(root: Path) -> dict[str, Any]:
     documents: list[dict[str, str]] = []
     if not agents.is_dir():
         raise VentureError(".agents directory is missing")
+    try:
+        page = wiki_config(root)["venture_page"]
+    except VentureError:
+        page = VENTURE_PAGE
     candidates: list[tuple[Path, str, str, str]] = []
     for path in sorted(agents.rglob("*.md")):
         relative = path.relative_to(agents).as_posix()
-        wiki_path = map_repository_path(relative)
+        wiki_path = map_repository_path(relative, page)
         if wiki_path is None:
             continue
         text = path.read_text(encoding="utf-8")
@@ -499,6 +506,11 @@ def _validated_mapping(mapping: Any) -> dict[str, str]:
     if not _safe_relative(wiki_root) or "://" in wiki_root:
         raise VentureError("wiki root must be a safe relative path below the connector host")
     result = {"connector": connector, "root": wiki_root.strip("/")}
+    page = mapping.get("venture_page")
+    if page is not None:
+        if not isinstance(page, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", page):
+            raise VentureError("wiki venture_page must be one lowercase path segment")
+        result["venture_page"] = page
     host = mapping.get("host")
     if host is not None:
         if not isinstance(host, str) or not re.fullmatch(r"[a-z0-9][a-z0-9.-]*", host):
@@ -569,7 +581,10 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
 
 
 def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
-    return _load_wiki(root, registry)[0]
+    result = dict(_load_wiki(root, registry)[0])
+    page = result.get("venture_page") or result["root"].rsplit("/", 1)[-1] + VENTURE_PAGE_SUFFIX
+    result["venture_page"] = f"{result['root']}/{page}"
+    return result
 
 
 def wiki_source(root: Path, registry: Path | None = None) -> str:
