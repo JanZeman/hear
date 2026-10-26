@@ -585,7 +585,7 @@ for f in FEATURE_*.md; do
   fi
 done
 
-# --- Roadmap item Status must be one of the defined enum values (AB-ROADMAP-004) ---
+# --- Roadmap item Status must be one of the defined enum values (AV-ROADMAP-004) ---
 # Catches an invented status (e.g. "Closed") silently drifting from the defined lifecycle --
 # this exact bug shipped undetected for weeks in a downstream repo before this check existed.
 if [[ -d .agents/roadmap ]]; then
@@ -664,7 +664,7 @@ fi
 # AI-VENTURE-AGENTS-MD-PRINT:END
 
 # --- Roadmap focus (informational, not a gate) ---
-# Mechanical count of open work vs. done, printed every session so the same figure AB-GOALS-001
+# Mechanical count of open work vs. done, printed every session so the same figure AV-GOALS-001
 # states inline when it flags an off-goal item is also visible passively, without an off-goal
 # task having to happen first. "Open" here means the In Progress and Open tables in
 # _ROADMAP_CATALOG.md; "Done" means the Done table. Idea and Archived items are excluded on

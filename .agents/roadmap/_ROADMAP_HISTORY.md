@@ -5,12 +5,12 @@ nothing is discarded when it leaves the live catalog. Current and planned work s
 [`_ROADMAP_CATALOG.md`](_ROADMAP_CATALOG.md); the decisions and completion evidence behind any
 single item stay in that item's own numbered file.
 
-This file exists so the catalog can stay small. `AB-ROADMAP-001` makes the catalog mandatory
+This file exists so the catalog can stay small. `AV-ROADMAP-001` makes the catalog mandatory
 reading before every task, so anything left in it is paid for on every task forever. Finished work
 is evidence, not a decision waiting to be made, so it is kept but not carried.
 
 Agents do not load this file at ordinary task start. Load it when researching how something was
-decided, and, per `AB-ROADMAP-003`, before adding a roadmap item, to check that it does not repeat
+decided, and, per `AV-ROADMAP-003`, before adding a roadmap item, to check that it does not repeat
 one already finished or abandoned.
 
 One line per item, newest first. The `Milestone` a finished item once had is history and stays in

@@ -5,7 +5,7 @@
 This file holds current and planned work only. Finished and abandoned items keep their permanent
 rows in [`_ROADMAP_HISTORY.md`](_ROADMAP_HISTORY.md), which is not loaded at ordinary task start.
 
-> **For agents (see rule `AB-ROADMAP-001` in `AGENTS.md`):** This file is the source of truth for
+> **For agents (see rule `AV-ROADMAP-001` in `AGENTS.md`):** This file is the source of truth for
 > the roadmap. Before starting any task, read this file and every other `*.md` file in
 > `.agents/roadmap/` relevant to the current milestone. State one sentence on how the task
 > contributes to the roadmap before planning or implementing. If the task looks off-roadmap or
@@ -67,7 +67,7 @@ Features not listed here are out of release scope unless explicitly promoted.
 
 One file and one row here for the item's entire life, from the moment it is first written
 down. `Status` is what tracks where in the lifecycle it currently is - exactly one of these
-seven values, nothing else (`AB-ROADMAP-004`; `ai-venture-guard.sh` fails the session on any
+seven values, nothing else (`AV-ROADMAP-004`; `ai-venture-guard.sh` fails the session on any
 other value):
 
 | Status | Meaning |
@@ -148,9 +148,9 @@ changes.
 - **Check for a matching entry before adding anything new.** Read
   [`_ROADMAP_HISTORY.md`](_ROADMAP_HISTORY.md) first and scan its `Done` and `Archived` rows
   together with the `Idea` section above, looking for a related item already tried, rejected, or
-  abandoned, and its recorded reason, before proposing the same thing again (`AB-ROADMAP-003`).
+  abandoned, and its recorded reason, before proposing the same thing again (`AV-ROADMAP-003`).
 - **Dropping or abandoning something is also a one-word edit.** Set `Status: Archived` in the
   file, write why in `Notes`, and move its row to the `Archived` section of `_ROADMAP_HISTORY.md`.
 - On completion set `Status: Done` in the file and move its row to the `Done` section of
-  `_ROADMAP_HISTORY.md` in the same turn. Follow `AB-ROADMAP-002` in `AGENTS.md` for proactive
+  `_ROADMAP_HISTORY.md` in the same turn. Follow `AV-ROADMAP-002` in `AGENTS.md` for proactive
   closure and human review through the git handoff.

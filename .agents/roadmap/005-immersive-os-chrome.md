@@ -49,5 +49,5 @@ called from `Awake()` and `OnApplicationFocus`):
 - 2026-09-25: Original framing of this item ("hide both bars") was wrong - corrected by the human
   after seeing screenshots; rewritten above. Investigation paused after several build/deploy
   cycles without resolving the status bar specifically, per the human's own instruction to log
-  what can't be resolved in-session rather than keep guessing blind (`AB-ROADMAP-005`). The nav-bar
+  what can't be resolved in-session rather than keep guessing blind (`AV-ROADMAP-005`). The nav-bar
   half of this item is done and verified; only the status-bar-visible half remains open.

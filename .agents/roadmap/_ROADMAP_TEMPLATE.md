@@ -5,12 +5,12 @@
 **Depends on**: -
 <!-- **Venture exception**: <entity> -- <why> -->
 
-<!-- Venture exception (AB-GOALS-001): add this only when the human approves work outside a Goal
+<!-- Venture exception (AV-GOALS-001): add this only when the human approves work outside a Goal
      or against another Venture entity. Omit it otherwise -- most items never need it. Name the
      most specific entity, such as Goal 003 or Strategy, so one grep finds repeated deviations.
      There is no separate drift log; this field on the item is the whole mechanism. -->
 
-<!-- Status values are exactly these seven, nothing else (AB-ROADMAP-004):
+<!-- Status values are exactly these seven, nothing else (AV-ROADMAP-004):
      Idea | Open | In Progress | Done | Blocked | Deferred | Archived
      There is no "Closed". Finishing something means deciding which of Done (it succeeded)
      or Archived (it did not happen as scoped) actually applies -- never invent a new word. -->

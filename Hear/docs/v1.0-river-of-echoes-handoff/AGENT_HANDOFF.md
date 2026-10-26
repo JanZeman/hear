@@ -136,7 +136,7 @@ This determination was NOT made before the session was paused — do it before a
 - User (Jan Zeman) iterates via real on-device testing on his physical iPhone, giving feedback in
   Czech in short rounds; expect the same build→deploy→feedback loop used for Tide Troubles.
 - Per `CLAUDE.md`/`AGENTS.md` in this repo: session-start banner and `ai-venture-guard.sh` are
-  mandatory at the start of a session; `AB-GIT-002` requires explicit user confirmation ("kk"/"ok")
+  mandatory at the start of a session; `AV-GIT-002` requires explicit user confirmation ("kk"/"ok")
   before running git mutation commands.
 - Uncommitted work exists in this worktree from earlier in the session (LongSession removal, fish/
   seagull/dog sprite re-cropping, points-cap-at-25, and the net-unfurl animation for Tide Troubles)

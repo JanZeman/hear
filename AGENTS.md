@@ -12,17 +12,17 @@ At the beginning of every agent session:
 bash "$(git rev-parse --show-toplevel)/ai-venture-guard.sh"
 ```
 
-Do not continue past a failure: **stop** and ask whether to repair agent-base or proceed with
+Do not continue past a failure: **stop** and ask whether to repair ai-venture or proceed with
 the original task.
 
-Known upgrade migrations become `Status: Open` roadmap items; handle per `AB-ROADMAP-001`.
+Known upgrade migrations become `Status: Open` roadmap items; handle per `AV-ROADMAP-001`.
 Surface any guard notice before the user's request and await confirmation; never act silently.
 Delivery: `AI_VENTURE.md`.
 
 ## Conventions
 
 - **Submodules** live only under `_sub/<name>/`, never elsewhere.
-- **AB** is agent-base; **DS** is a downstream client using `_sub/ai-venture/`.
+- **AV** is ai-venture; **DS** is a downstream client using `_sub/ai-venture/`.
 
 ## Source of Truth Map
 
@@ -65,11 +65,11 @@ a clear reason.
 `<!-- TODO -->` marks adoption work, not permanent guidance. Add short `RULE-ID [Pn]: statement`
 entries with linked detail. Example: `TEST-001 [P0]: When behavior changes, add an automated test.
 Details: .agents/standards/testing.md.` Delete the comment after reviewing its section; maintain
-the section later under `DOC-002` and `AB-RULE-SYNTAX-001`.
+the section later under `DOC-002` and `AV-RULE-SYNTAX-001`.
 
 ### Documentation
 
-- `AB-COMM-001` [`P1`]: In Czech conversation, use informal address by default. Follow an explicit
+- `AV-COMM-001` [`P1`]: In Czech conversation, use informal address by default. Follow an explicit
   human preference for another language or register.
 - `DOC-001` [`P1`]: Tool memory is for what dies with the working stretch: a path you are holding,
   a value you will want again in ten minutes. Anything that must outlive it goes in a file in this
@@ -248,7 +248,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 
 ## Overrides
 
-Propose entries per `AB-DESIGN-001`:
+Propose entries per `AV-DESIGN-001`:
 `.agents/ai-venture/standards/documentation.md`.
 
 ---

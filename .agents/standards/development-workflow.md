@@ -19,7 +19,7 @@ Replace every `TODO` once, when adopting agent-base.
   own pull request. When you use one, name it `<prefix><short-description>` with a prefix from
   `topic_prefixes`, and delete it after merge.
 
-Branch deletion is always a manual, human-only action (`AB-GIT-001`).
+Branch deletion is always a manual, human-only action (`AV-GIT-001`).
 
 ## Identity and layout
 
@@ -62,7 +62,7 @@ becomes the default two slots. It derives `<REPO_ID>` by uppercasing `repo_id`, 
 scaffold is project-owned: Agent Base leaves it unchanged, and the human declares any different
 slot count directly. Keep the commands direct, one per line, and use sibling paths. Any other
 creation, branch change, integration, commit, push, or removal remains human-controlled under
-`AB-GIT-001`.
+`AV-GIT-001`.
 
 One-time setup (default two slots for `repo_id = hr`):
 
@@ -85,7 +85,7 @@ exactly its own `_<repo_id><N>` branch, and on an orphaned `_<repo_id><N>` branc
 worktree. It reports and ignores unrelated worktrees.
 
 The wrapper is a human-operated convenience and does not expand agent Git authority, except the
-one narrow case in `.agents/ai-venture/standards/git.md`'s `AB-GIT-001`: a verified fleet or
+one narrow case in `.agents/ai-venture/standards/git.md`'s `AV-GIT-001`: a verified fleet or
 `Update AB`/`publish AB` run may pass `--to-slots-only` to propagate its own just-pushed sync
 into already-clean slots, one-way (`main` -> slot only, never slot -> `main`). Run the read-only
 preflight before the first consolidation or after changing the table:
@@ -154,7 +154,7 @@ git submodule update --init --recursive
 `worktrees.sh` does this automatically, before its clean check and after every merge, but only
 when nothing can be lost. It stops instead if a submodule has uncommitted changes, is in a merge
 conflict, or sits on a detached commit no ref contains -- resolve those inside the submodule
-yourself; per the `AB-GIT-001` override in `AGENTS.md`, checkout inside a submodule is
+yourself; per the `AV-GIT-001` override in `AGENTS.md`, checkout inside a submodule is
 human-controlled.
 
 **Pointer conflicts.** When the trunk and a slot both move the same submodule, the merge reports

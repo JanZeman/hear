@@ -23,5 +23,5 @@ Asset and wire it through `VisualTokens.Type` so every `Label` uses it instead o
 ## Notes
 
 - 2026-09-25: Logged per human instruction to track feedback that can't be implemented in the
-  current work session (`AB-ROADMAP-005`). Not started - needs sourcing the actual font files
+  current work session (`AV-ROADMAP-005`). Not started - needs sourcing the actual font files
   before any code change.

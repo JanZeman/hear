@@ -41,7 +41,7 @@
 ## Trade-offs with the other objectives
 
 <!-- TODO: which other objectives this one pulls against, and which way the trade was
-     decided. Naming this up front is what makes AB-GOALS-001 enforceable later: a change
+     decided. Naming this up front is what makes AV-GOALS-001 enforceable later: a change
      that spends one objective to buy another is fine, discovering it afterwards is not. -->
 
 ## Formulations considered and rejected

@@ -41,4 +41,4 @@ bitmap.
   identically but not separately screenshotted - on-device nav taps became unreliable partway
   through this check (see [002](002-shell-navigation-functional.md), unrelated to this item).
 - 2026-09-25: Logged per human instruction to track feedback that can't be implemented in the
-  work session it was raised in (`AB-ROADMAP-005`).
+  work session it was raised in (`AV-ROADMAP-005`).

@@ -81,10 +81,10 @@ the importance order differs, say so here explicitly.
 - Formulations that were considered and rejected stay recorded in the objective's file, so
   they are not re-litigated months later by someone who was not in the room.
 - Every change to the project is judged against these objectives before it is made - see
-  `AB-GOALS-001` in `AGENTS.md`. A change that advances one objective at another's expense is
+  `AV-GOALS-001` in `AGENTS.md`. A change that advances one objective at another's expense is
   allowed; an unnamed trade-off is not.
 
-## AB-GOALS-001 mechanics
+## AV-GOALS-001 mechanics
 
 `AGENTS.md` states the rule; this is how it plays out in practice.
 
