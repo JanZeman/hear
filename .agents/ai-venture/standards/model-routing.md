@@ -60,7 +60,7 @@ helper ran; it does not prove that Codex would select it for every suitable task
 ## The model ladder (AV-COST-001)
 
 Which model sits on which rung is an operator's fact with a date on it, kept in
-`~/.config/agent-base/model-ladder.json` beside `vendor-support.json` and `staffing.json`. Model
+`~/.config/ai-venture/model-ladder.json` beside `vendor-support.json` and `staffing.json`. Model
 names and prices change monthly and depend on a subscription, so a default shipped in ai-venture
 would teach every client an answer that is wrong by the next release.
 

@@ -65,10 +65,10 @@ MANUAL_STEPS = {
 
 
 def config_home() -> Path:
-    override = os.environ.get("AB_AGENT_AUTONOMY_CONFIG_HOME")
+    override = os.environ.get("AV_AGENT_AUTONOMY_CONFIG_HOME")
     if override:
         return Path(override)
-    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "agent-base" / "agent-autonomy"
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ai-venture" / "agent-autonomy"
 
 
 def state_path() -> Path:
@@ -76,28 +76,28 @@ def state_path() -> Path:
 
 
 def codex_config_path() -> Path:
-    override = os.environ.get("AB_AGENT_AUTONOMY_CODEX_CONFIG")
+    override = os.environ.get("AV_AGENT_AUTONOMY_CODEX_CONFIG")
     if override:
         return Path(override)
     return Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "config.toml"
 
 
 def claude_settings_path() -> Path:
-    override = os.environ.get("AB_AGENT_AUTONOMY_CLAUDE_SETTINGS")
+    override = os.environ.get("AV_AGENT_AUTONOMY_CLAUDE_SETTINGS")
     if override:
         return Path(override)
     return Path(os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude")) / "settings.json"
 
 
 def copilot_settings_path() -> Path:
-    override = os.environ.get("AB_AGENT_AUTONOMY_COPILOT_SETTINGS")
+    override = os.environ.get("AV_AGENT_AUTONOMY_COPILOT_SETTINGS")
     if override:
         return Path(override)
     return Path(os.environ.get("COPILOT_HOME", Path.home() / ".copilot")) / "settings.json"
 
 
 def vscode_settings_path() -> Path:
-    override = os.environ.get("AB_AGENT_AUTONOMY_VSCODE_SETTINGS")
+    override = os.environ.get("AV_AGENT_AUTONOMY_VSCODE_SETTINGS")
     if override:
         return Path(override)
     if sys.platform == "darwin":
@@ -108,7 +108,7 @@ def vscode_settings_path() -> Path:
 
 
 def vscode_copilot_installed() -> bool:
-    override = os.environ.get("AB_AGENT_AUTONOMY_VSCODE_COPILOT")
+    override = os.environ.get("AV_AGENT_AUTONOMY_VSCODE_COPILOT")
     if override is not None:
         return override == "1"
     extension_roots = (Path.home() / ".vscode/extensions", Path.home() / ".vscode-insiders/extensions")
@@ -408,7 +408,7 @@ def uninstall_codex(state: dict) -> None:
 
 
 def policy_path() -> Path | None:
-    override = os.environ.get("AB_AGENT_AUTONOMY_CLAUDE_POLICY")
+    override = os.environ.get("AV_AGENT_AUTONOMY_CLAUDE_POLICY")
     if override:
         return Path(override)
     script = Path(__file__).resolve()
@@ -628,7 +628,7 @@ def uninstall_warp(state: dict) -> None:
 
 
 def feature_check(vendor: str) -> None:
-    if os.environ.get("AB_AGENT_AUTONOMY_SKIP_FEATURE_CHECK") == "1":
+    if os.environ.get("AV_AGENT_AUTONOMY_SKIP_FEATURE_CHECK") == "1":
         return
     if vendor not in {"codex", "claude"}:
         return
@@ -739,7 +739,7 @@ def vscode_warnings(vendors: list[str]) -> list[str]:
 
 
 def vendor_available(vendor: str) -> bool:
-    if os.environ.get("AB_AGENT_AUTONOMY_SKIP_FEATURE_CHECK") == "1":
+    if os.environ.get("AV_AGENT_AUTONOMY_SKIP_FEATURE_CHECK") == "1":
         return True
     if vendor in {"codex", "claude", "copilot"}:
         return shutil.which(vendor) is not None

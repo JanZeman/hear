@@ -23,8 +23,8 @@ RUNTIME.
 
 ## Local profile
 
-The profile lives at `${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/vendor-support.json`, or at
-`AB_VENDOR_SUPPORT_CONFIG` when that variable is set. Keep it private and untracked. Its shape is:
+The profile lives at `${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/vendor-support.json`, or at
+`AV_VENDOR_SUPPORT_CONFIG` when that variable is set. Keep it private and untracked. Its shape is:
 
 ```json
 {

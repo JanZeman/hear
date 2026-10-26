@@ -64,8 +64,8 @@ give it back. Until then nothing else may write there, which is the whole point 
 "do it yourself" quietly skipped.
 
 Two things about the calling session have to be true for any of this. It needs an identity, so a
-ledger it opened can be told from a ledger somebody else's process is adopting: `AB_COORDINATOR_ID`,
-or the vendor's own session variable. And it needs to say which model it is, `AB_COORDINATOR_MODEL`,
+ledger it opened can be told from a ledger somebody else's process is adopting: `AV_COORDINATOR_ID`,
+or the vendor's own session variable. And it needs to say which model it is, `AV_COORDINATOR_MODEL`,
 or its capability is unknown, it is not offered as a candidate, and the delegation floor cannot fire.
 Neither is guessed at.
 

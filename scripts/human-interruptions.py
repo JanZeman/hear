@@ -100,11 +100,11 @@ def xdg_path(env_name: str, fallback: Path) -> Path:
 
 def preferred_state_dir() -> Path:
     root = xdg_path("XDG_STATE_HOME", Path.home() / ".local" / "state")
-    return root / "agent-base" / "human-interruptions"
+    return root / "ai-venture" / "human-interruptions"
 
 
 def state_dir() -> Path:
-    override = os.environ.get("AB_HUMAN_INTERRUPTION_HOME")
+    override = os.environ.get("AV_HUMAN_INTERRUPTION_HOME")
     if override:
         return Path(override).expanduser()
     path = config_path()
@@ -119,19 +119,19 @@ def state_dir() -> Path:
 
 
 def config_dir() -> Path:
-    override = os.environ.get("AB_HUMAN_INTERRUPTION_CONFIG_HOME")
+    override = os.environ.get("AV_HUMAN_INTERRUPTION_CONFIG_HOME")
     if override:
         return Path(override).expanduser()
     root = xdg_path("XDG_CONFIG_HOME", Path.home() / ".config")
-    return root / "agent-base" / "human-interruptions"
+    return root / "ai-venture" / "human-interruptions"
 
 
 def data_dir() -> Path:
-    override = os.environ.get("AB_HUMAN_INTERRUPTION_DATA_HOME")
+    override = os.environ.get("AV_HUMAN_INTERRUPTION_DATA_HOME")
     if override:
         return Path(override).expanduser()
     root = xdg_path("XDG_DATA_HOME", Path.home() / ".local" / "share")
-    return root / "agent-base"
+    return root / "ai-venture"
 
 
 def config_path() -> Path:
@@ -972,14 +972,14 @@ def vendor_settings_path(vendor: str) -> Path:
     if vendor == "codex":
         codex_root = Path(
             os.environ.get(
-                "AB_HUMAN_INTERRUPTION_CODEX_CONFIG_HOME",
+                "AV_HUMAN_INTERRUPTION_CODEX_CONFIG_HOME",
                 Path.home() / ".codex",
             )
         )
         return codex_root / "hooks.json"
     claude_root = Path(
         os.environ.get(
-            "AB_HUMAN_INTERRUPTION_CLAUDE_CONFIG_HOME",
+            "AV_HUMAN_INTERRUPTION_CLAUDE_CONFIG_HOME",
             os.environ.get("CLAUDE_CONFIG_DIR", Path.home() / ".claude"),
         )
     )

@@ -105,11 +105,11 @@ def coordinator_identity() -> str:
     run this command could take over a ledger, and two coordinating sessions could hold the same
     token without the explicit takeover the run API requires.
 
-    `AB_COORDINATOR_ID` if the operator sets one, otherwise the vendor's own session identifier,
+    `AV_COORDINATOR_ID` if the operator sets one, otherwise the vendor's own session identifier,
     otherwise `unidentified`. The last of those is honest rather than safe: it means adoption cannot
     be distinguished from takeover, so it is refused and the caller is sent to `take_ownership`.
     """
-    for name in ("AB_COORDINATOR_ID", "CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID"):
+    for name in ("AV_COORDINATOR_ID", "CLAUDE_CODE_SESSION_ID", "CODEX_SESSION_ID"):
         found = os.environ.get(name)
         if found:
             return f"{name.split('_')[0].lower()}:{found}"
@@ -322,17 +322,17 @@ def coordinator_tier() -> str | None:
     about anybody: a cheap coordinator was told it was sufficient for work it is not, and an expert
     one was understated. Neither error is visible in the answer.
 
-    `AB_COORDINATOR_MODEL` names the model this session runs on, and the operator's model ladder
+    `AV_COORDINATOR_MODEL` names the model this session runs on, and the operator's model ladder
     says which rung that model sits on. Both are recorded facts. With either missing the tier is
     unknown, the parent is not offered, and the delegation floor does not fire, which costs a
     cheaper route and invents nothing.
     """
-    model = os.environ.get("AB_COORDINATOR_MODEL")
+    model = os.environ.get("AV_COORDINATOR_MODEL")
     if not model:
         return None
     try:
         ladder = _sibling("model-ladder")
-        return ladder.rung(ladder.load(), os.environ.get("AB_COORDINATOR_VENDOR", "claude"), model)
+        return ladder.rung(ladder.load(), os.environ.get("AV_COORDINATOR_VENDOR", "claude"), model)
     except Exception:
         return None
 
@@ -373,7 +373,7 @@ def _plan(args) -> int:
         if not coordinator_tier():
             print("           this session's own capability is not declared either, so it could "
                   "not be offered as a candidate.")
-            print("           Set AB_COORDINATOR_MODEL to the model you are running on and record "
+            print("           Set AV_COORDINATOR_MODEL to the model you are running on and record "
                   "that model in the ladder,")
             print("           or map this tier in staffing.json.")
         return 1

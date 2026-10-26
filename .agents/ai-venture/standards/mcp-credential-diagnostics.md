@@ -106,7 +106,7 @@ echo full CLI output because it can include server-reported error detail. For th
 Codex runtime, inspect configuration with `codex mcp list` and verify the managed connection using
 a tool call in the active host. Configuration-list success alone does not prove `initialize`,
 `tools/list`, or a service request succeeded. The local support profile at
-`${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/vendor-support.json` is the source of Primary
+`${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/vendor-support.json` is the source of Primary
 runtimes and must be checked when this coverage is revised.
 
 ## Verdict and next action

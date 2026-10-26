@@ -64,11 +64,11 @@ class LadderError(ValueError):
 
 
 def ladder_path() -> Path:
-    override = os.environ.get("AB_MODEL_LADDER_CONFIG")
+    override = os.environ.get("AV_MODEL_LADDER_CONFIG")
     if override:
         return Path(override).expanduser()
     home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return home / "agent-base" / "model-ladder.json"
+    return home / "ai-venture" / "model-ladder.json"
 
 
 def load(path: Path | None = None) -> dict:

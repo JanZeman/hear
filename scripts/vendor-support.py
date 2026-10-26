@@ -17,11 +17,11 @@ TIER_RANK = {tier: index for index, tier in enumerate(TIERS)}
 
 
 def profile_path() -> Path:
-    override = os.environ.get("AB_VENDOR_SUPPORT_CONFIG")
+    override = os.environ.get("AV_VENDOR_SUPPORT_CONFIG")
     if override:
         return Path(override).expanduser()
     home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return home / "agent-base" / "vendor-support.json"
+    return home / "ai-venture" / "vendor-support.json"
 
 
 def load_profile(path: Path) -> dict:

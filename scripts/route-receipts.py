@@ -49,11 +49,11 @@ STAFFING_FIELDS = (
 
 
 def state_dir() -> Path:
-    override = os.environ.get("AB_ROUTE_RECEIPT_HOME")
+    override = os.environ.get("AV_ROUTE_RECEIPT_HOME")
     if override:
         return Path(override).expanduser()
     root = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
-    return root / "agent-base" / "route-receipts"
+    return root / "ai-venture" / "route-receipts"
 
 
 def digest(value: object) -> str:

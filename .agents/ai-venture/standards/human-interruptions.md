@@ -132,12 +132,12 @@ Official references researched for this implementation:
 
 The collector is machine-wide and repository-independent. Defaults:
 
-- configuration: `${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/human-interruptions/config.json`
-- events: `${XDG_STATE_HOME:-$HOME/.local/state}/agent-base/human-interruptions/events.jsonl`;
+- configuration: `${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/human-interruptions/config.json`
+- events: `${XDG_STATE_HOME:-$HOME/.local/state}/ai-venture/human-interruptions/events.jsonl`;
   installation records the resolved state directory and falls back to the private ai-venture data
   directory when the standard state root is not writable
 - bounded runtime watermarks: `<resolved-state-directory>/runtime.json`
-- installed collector: `${XDG_DATA_HOME:-$HOME/.local/share}/agent-base/human-interruptions.py`
+- installed collector: `${XDG_DATA_HOME:-$HOME/.local/share}/ai-venture/human-interruptions.py`
 - directory mode `0700`, file mode `0600`, rolling retention 30 days
 
 Repository, session, turn, item, workflow, and agent identifiers are salted hashes. The random salt

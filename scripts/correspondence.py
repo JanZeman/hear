@@ -85,9 +85,9 @@ def worker() -> str:
     """The WORKER this SESSION identifies, or an honest unknown.
 
     A WORKER is organizational identity, not a MODEL, SESSION, or RUNTIME. A caller may supply it
-    through `AB_WORKER_ID`; otherwise the roster says `unstated` rather than inventing a person.
+    through `AV_WORKER_ID`; otherwise the roster says `unstated` rather than inventing a person.
     """
-    return os.environ.get("AB_WORKER_ID", "unstated")
+    return os.environ.get("AV_WORKER_ID", "unstated")
 
 
 def roster_path(root: Path) -> Path:

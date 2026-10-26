@@ -85,17 +85,17 @@ class Lease(NamedTuple):
 
 
 def state_dir() -> Path:
-    """Where leases live. `AB_STAFFING_STATE_HOME` moves the whole tree, including run records.
+    """Where leases live. `AV_STAFFING_STATE_HOME` moves the whole tree, including run records.
 
     Worth knowing before it is needed: the default sits under `XDG_STATE_HOME`, and a machine whose
     `~/.local/state` is owned by root cannot create anything there. That is not a hypothetical; it
     stopped this feature's first real task on a real client before any model was reached.
     """
-    override = os.environ.get("AB_STAFFING_STATE_HOME")
+    override = os.environ.get("AV_STAFFING_STATE_HOME")
     if override:
         return Path(override).expanduser()
     root = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
-    return root / "agent-base" / "staffing" / "leases"
+    return root / "ai-venture" / "staffing" / "leases"
 
 
 def canonical_worktree(path: Path) -> Path:
@@ -131,7 +131,7 @@ def _ensure_private_dir(path: Path) -> None:
         # three frames inside pathlib.
         raise LeaseError(
             f"cannot prepare the staffing state directory {path}: {error}. Set "
-            "AB_STAFFING_STATE_HOME to a writable location, or grant access to this one."
+            "AV_STAFFING_STATE_HOME to a writable location, or grant access to this one."
         ) from error
 
 

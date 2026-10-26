@@ -157,7 +157,7 @@ def mcp_probe(args: argparse.Namespace) -> tuple[str, str, bool]:
     last, failure, auth_error = "launcher-execution", "none", False
     try:
         init = probe.request("initialize", {"protocolVersion": "2025-11-25", "capabilities": {},
-                                              "clientInfo": {"name": "agent-base-diagnostic", "version": "1"}}, 1)
+                                              "clientInfo": {"name": "ai-venture-diagnostic", "version": "1"}}, 1)
         if not init or not isinstance(init.get("result"), dict):
             return last, "initialize-failed", False
         last = "initialize"

@@ -32,19 +32,19 @@ step()    { echo -e "\n${BOLD}${BLUE}--- $1 ---${NC}"; }
 print_banner() {
   [[ -n "${AI_VENTURE_BANNER_SHOWN:-}" ]] && return
   export AI_VENTURE_BANNER_SHOWN=1
-  local agent_base_version="unknown"
+  local ai_venture_version="unknown"
   if [[ -f "$ROOT_DIR/AI_VENTURE_VERSION" ]]; then
-    agent_base_version="$(head -1 "$ROOT_DIR/AI_VENTURE_VERSION" | tr -d '[:space:]')"
+    ai_venture_version="$(head -1 "$ROOT_DIR/AI_VENTURE_VERSION" | tr -d '[:space:]')"
   fi
   local banner_file="$ROOT_DIR/.agents/ai-venture/banner.txt"
   local line
   printf "\n${BLUE}"
   if [[ -f "$banner_file" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
-      printf '%s\n' "${line//<version>/$agent_base_version}"
+      printf '%s\n' "${line//<version>/$ai_venture_version}"
     done < "$banner_file"
   else
-    printf 'AI-VENTURE v %s\n' "$agent_base_version"
+    printf 'AI-VENTURE v %s\n' "$ai_venture_version"
   fi
   printf "${NC}\n"
 }
@@ -76,7 +76,7 @@ if [[ "${AI_VENTURE_CONTEXT_CAPTURED:-}" != "1" \
   && ( "${AI_VENTURE_VENDOR:-}" == "claude" || "${AI_VENTURE_VENDOR:-}" == "codex" \
        || "${AI_VENTURE_VENDOR:-}" == "warp" || "${AI_VENTURE_VENDOR:-}" == "copilot" ) \
   && -f "$ROOT_DIR/scripts/context-budget.py" ]]; then
-  _context_output="$(mktemp "${TMPDIR:-/tmp}/agent-base-context.XXXXXX")"
+  _context_output="$(mktemp "${TMPDIR:-/tmp}/ai-venture-context.XXXXXX")"
   set +e
   AI_VENTURE_CONTEXT_CAPTURED=1 bash "$0" "$@" >"$_context_output" 2>&1
   _context_status=$?

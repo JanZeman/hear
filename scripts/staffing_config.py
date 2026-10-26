@@ -59,11 +59,11 @@ class Config(NamedTuple):
 
 
 def config_path() -> Path:
-    override = os.environ.get("AB_STAFFING_CONFIG")
+    override = os.environ.get("AV_STAFFING_CONFIG")
     if override:
         return Path(override).expanduser()
     root = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return root / "agent-base" / "staffing.json"
+    return root / "ai-venture" / "staffing.json"
 
 
 EMPTY = Config(present=False, vendors={}, roles={}, limits={}, preference=(), resume_verified={})

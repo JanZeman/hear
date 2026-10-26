@@ -246,7 +246,7 @@ morning. A launcher missing from that table is a launcher nothing holds.
 ## Configuration
 
 Which model answers a capability is operator-local, at
-`${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/staffing.json`, beside `vendor-support.json`. An
+`${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/staffing.json`, beside `vendor-support.json`. An
 unmapped tier is a refusal, never a substitution: borrowing a neighbouring tier spends a model the
 operator never chose. A missing file is not an error and degrades to the session already running
 plus the vendor's native helper, which is exactly what ai-venture did before this existed.

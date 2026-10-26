@@ -19,13 +19,13 @@
 #   2. Must always exit 0 - this event can block and erase the prompt on a non-zero exit, so a bug
 #      here must never turn into a silently eaten user message.
 #
-# It stays silent inside a dispatched invocation (AB_STAFFING_CONTEXT set): a child is not the
+# It stays silent inside a dispatched invocation (AV_STAFFING_CONTEXT set): a child is not the
 # coordinator, and reminding it to recover would invite exactly the recursive staffing that the
 # invocation contract exists to prevent.
 
 set -uo pipefail
 
-[[ -n "${AB_STAFFING_CONTEXT:-}" ]] && exit 0
+[[ -n "${AV_STAFFING_CONTEXT:-}" ]] && exit 0
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 

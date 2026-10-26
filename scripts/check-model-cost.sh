@@ -24,7 +24,7 @@ _ladder="${_here}/model-ladder.py"
 
 [[ -f "$_ladder" ]] || exit 0
 
-_config="${AB_MODEL_LADDER_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/model-ladder.json}"
+_config="${AV_MODEL_LADDER_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/model-ladder.json}"
 [[ -f "$_config" ]] || exit 0
 
 if ! _expensive="$(python3 "$_ladder" --expensive 2>&1)"; then
@@ -50,7 +50,7 @@ if _stale="$(python3 "$_ladder" --check 2>&1 | grep '^note:' || true)"; then
   [[ -n "$_stale" ]] && { echo ""; printf '%s\n' "$_stale" | sed 's/^note: /Note: /'; }
 fi
 
-_staffing="${AB_STAFFING_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/staffing.json}"
+_staffing="${AV_STAFFING_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/staffing.json}"
 if [[ -f "$_staffing" ]]; then
   _disagreements="$(python3 - "$_ladder" "$_config" "$_staffing" <<'PY' || true
 import importlib.util, json, sys

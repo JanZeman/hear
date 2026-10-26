@@ -33,7 +33,7 @@ import os
 from pathlib import Path
 from typing import Any, NamedTuple
 
-ENVIRONMENT_KEY = "AB_STAFFING_CONTEXT"
+ENVIRONMENT_KEY = "AV_STAFFING_CONTEXT"
 CONTRACT_VERSION = 1
 
 # What an invocation may do to the worktree. There is no "maybe": either the invocation holds the

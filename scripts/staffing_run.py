@@ -264,7 +264,7 @@ class _Document:
         except OSError as error:
             raise RunError(
                 f"cannot prepare the staffing run directory {lock_dir}: {error}. "
-                "Set AB_STAFFING_STATE_HOME to a directory you can write and staffing will keep "
+                "Set AV_STAFFING_STATE_HOME to a directory you can write and staffing will keep "
                 "all of its state beside it; the default lives under XDG_STATE_HOME, which some "
                 "machines own as root."
             )

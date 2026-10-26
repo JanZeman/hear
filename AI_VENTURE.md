@@ -16,7 +16,6 @@ as human contributors, without maintaining separate rulebooks per tool.
 ai-venture (AV), for people the "AI-venture Framework", supports every Venture. It was formerly
 called agent-base (AB). Understand the old names, rule ids starting with `AB-`, and requests like
 "Update AB" as the same thing, but never write them in new text.
-File names that still contain agent-base are being renamed step by step.
 
 Use this document to define:
 
@@ -245,7 +244,7 @@ carry no locale prefix such as `en/`. The connector selects the wiki connection,
 credentials or absolute URLs in the file.
 
 For transition, `venture.py` still reads a mapping from the operator-local
-`${XDG_CONFIG_HOME:-$HOME/.config}/agent-base/wikis.json` (or a legacy `downstreams.json`) when
+`${XDG_CONFIG_HOME:-$HOME/.config}/ai-venture/wikis.json` (or a legacy `downstreams.json`) when
 `.agents/wiki.json` is absent, and the guard reports it under `AV-Q006` until
 `python3 scripts/venture.py --root . migrate-wiki` writes the repository file.
 

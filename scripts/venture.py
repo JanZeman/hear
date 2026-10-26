@@ -418,9 +418,13 @@ WIKI_FILE = Path(".agents") / "wiki.json"
 def legacy_wiki_registry() -> Path:
     """Transition only: the operator-local registry that `.agents/wiki.json` replaces."""
     config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    registry = config_home / "agent-base" / "wikis.json"
+    # The folder was renamed to ai-venture; an operator who has not moved it yet still counts.
+    folder = config_home / "ai-venture"
+    if not folder.exists():
+        folder = config_home / "agent-base"
+    registry = folder / "wikis.json"
     if not registry.exists():
-        registry = config_home / "agent-base" / "downstreams.json"
+        registry = folder / "downstreams.json"
     return registry
 
 
