@@ -51,7 +51,7 @@ slot's work reviewable as a clean diff against `main`.
 
 When a human explicitly asks for `create-worktrees-by-convention`, an agent may create the
 `git worktree add -b _<repo_id><N> ../<REPO_ID><N> main` commands for the declared slot count,
-after loading `.agents/agent-base/skills/create-worktrees-by-convention/SKILL.md`. The skill
+after loading `.agents/ai-venture/skills/create-worktrees-by-convention/SKILL.md`. The skill
 verifies the main worktree, every target path, every slot branch, and the base reference before
 any mutation, and creates the complete declared set. If one creation succeeds and a later one
 fails, it reports the exact state and does not repair it.
@@ -85,7 +85,7 @@ exactly its own `_<repo_id><N>` branch, and on an orphaned `_<repo_id><N>` branc
 worktree. It reports and ignores unrelated worktrees.
 
 The wrapper is a human-operated convenience and does not expand agent Git authority, except the
-one narrow case in `.agents/agent-base/standards/git.md`'s `AB-GIT-001`: a verified fleet or
+one narrow case in `.agents/ai-venture/standards/git.md`'s `AB-GIT-001`: a verified fleet or
 `Update AB`/`publish AB` run may pass `--to-slots-only` to propagate its own just-pushed sync
 into already-clean slots, one-way (`main` -> slot only, never slot -> `main`). Run the read-only
 preflight before the first consolidation or after changing the table:
@@ -135,7 +135,7 @@ still commit A. Symptoms:
 - `ignore = dirty` in `.gitmodules` does **not** hide this -- it suppresses changes *inside* the
   submodule's working tree, not a pointer mismatch.
 - Anything reading the submodule reads the old content: a stale `_sub/ai-venture` means
-  `agent-base-guard.sh` runs an outdated agent-base without saying so.
+  `ai-venture-guard.sh` runs an outdated agent-base without saying so.
 
 **The trap.** Committing that modified submodule pointer in the slot records a *rollback*. The
 next consolidation merges the rollback into the trunk and silently downgrades the submodule
@@ -183,5 +183,5 @@ git worktree prune         # clear metadata for a manually deleted worktree
 ## Cross-references
 
 - Behaviour rules: see `AGENTS.md`
-- Git authority and staging: see `.agents/agent-base/standards/git.md`
+- Git authority and staging: see `.agents/ai-venture/standards/git.md`
 - Formatting: see `.agents/standards/formatting.md`

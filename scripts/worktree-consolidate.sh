@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Generic worktree consolidation engine. Projects configure it through a thin root wrapper.
-# This file is agent-base-owned and keep-in-sync; do not put project-specific values here.
+# This file is ai-venture-owned and keep-in-sync; do not put project-specific values here.
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

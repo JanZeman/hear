@@ -38,8 +38,8 @@ ROSTER = "ROSTER.md"
 # does not receive one. Looking only where a client keeps it meant this could not be used in the
 # repository that invented the practice, which is the shape of dogfooding failure `AV-DOGFOOD-001`
 # exists to prevent.
-CATALOGUES = (Path(".agents/agent-base/departments/_DEPARTMENTS_CATALOG.md"),
-              Path("template/.agents/agent-base/departments/_DEPARTMENTS_CATALOG.md"))
+CATALOGUES = (Path(".agents/ai-venture/departments/_DEPARTMENTS_CATALOG.md"),
+              Path("template/.agents/ai-venture/departments/_DEPARTMENTS_CATALOG.md"))
 ROW = re.compile(r"^\|\s*\[([A-Za-z][A-Za-z ]*)\]\(([a-z-]+)\.md\)\s*\|")
 
 
@@ -155,7 +155,7 @@ def invitation(root: Path, mine: str, theirs: list[str], topic: str, because: st
     """The text the human pastes into the second window. Complete, and needing no editing."""
     others = ", ".join(theirs)
     command = f"python3 {here(root, Path(__file__))}"
-    standard = root / ".agents/agent-base/standards/agent-correspondence.md"
+    standard = root / ".agents/ai-venture/standards/agent-correspondence.md"
     reading = (f"Then read `{here(root, standard)}` for how a message is named and what it must"
                if standard.exists() else
                "There is no copy of the Agent Correspondence standard in this repository, so what"

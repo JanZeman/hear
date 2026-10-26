@@ -67,7 +67,7 @@ Features not listed here are out of release scope unless explicitly promoted.
 
 One file and one row here for the item's entire life, from the moment it is first written
 down. `Status` is what tracks where in the lifecycle it currently is - exactly one of these
-seven values, nothing else (`AB-ROADMAP-004`; `agent-base-guard.sh` fails the session on any
+seven values, nothing else (`AB-ROADMAP-004`; `ai-venture-guard.sh` fails the session on any
 other value):
 
 | Status | Meaning |

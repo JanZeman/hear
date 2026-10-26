@@ -2,7 +2,7 @@
 
 **Status**: New
 **Opened**: <!-- TODO: YYYY-MM-DD -->
-**Agent Base version**: <!-- TODO: the value in AGENT_BASE_VERSION when this was observed -->
+**Agent Base version**: <!-- TODO: the value in AI_VENTURE_VERSION when this was observed -->
 **Blocks**: <!-- TODO: the work here that is waiting on this, or "-" if nothing is -->
 
 <!-- Status values are exactly these seven, nothing else:

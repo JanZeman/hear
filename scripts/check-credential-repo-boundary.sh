@@ -67,7 +67,7 @@ if [[ "$is_credential" -eq 1 || "$is_cross_repo" -eq 1 ]]; then
     [[ -n "$reason" ]] && reason="$reason and "
     reason="${reason}belongs to a different repository than this session's own root"
   fi
-  echo "Reminder (AV-SAFE-001): the target of this action $reason. Before proceeding, load that repository's own .agents/agent-base/standards/secrets.md, unconditionally -- its own copy, not only the one already loaded for this session's root."
+  echo "Reminder (AV-SAFE-001): the target of this action $reason. Before proceeding, load that repository's own .agents/ai-venture/standards/secrets.md, unconditionally -- its own copy, not only the one already loaded for this session's root."
 fi
 
 exit 0

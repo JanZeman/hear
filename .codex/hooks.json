@@ -6,14 +6,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/agent-base-guard.sh\" ]] && AGENT_BASE_VENDOR=codex bash \"$ROOT/agent-base-guard.sh\" || true'"
+            "command": "bash -c 'ROOT=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; [[ -n \"$ROOT\" && -f \"$ROOT/ai-venture-guard.sh\" ]] && AGENT_BASE_VENDOR=codex bash \"$ROOT/ai-venture-guard.sh\" || true'"
           }
         ]
       }
     ],
     "SubagentStart": [
       {
-        "matcher": "^ab-low-helper$",
+        "matcher": "^av-low-helper$",
         "hooks": [
           {
             "type": "command",
@@ -24,7 +24,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^ab-low-helper$",
+        "matcher": "^av-low-helper$",
         "hooks": [
           {
             "type": "command",

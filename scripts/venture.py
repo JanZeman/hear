@@ -21,7 +21,7 @@ SUMMARY_END = "<!-- AGENT-BASE-VENTURE-SUMMARY:END -->"
 # Bootstrap anchors, tried in order, used only until the managed markers exist. The template
 # heading comes first so a pristine AGENTS.md keeps its familiar placement, but AGENTS.md is a
 # customize-once file and a repository may legitimately rename or drop that heading. The rules
-# marker is the fallback because apply-agent-base.sh injects it into every downstream AGENTS.md.
+# marker is the fallback because apply-ai-venture.sh injects it into every downstream AGENTS.md.
 SUMMARY_ANCHORS = ("## Priority Model", "<!-- AGENT-BASE-RULES:START -->")
 SUMMARY_HEADING = "## Venture"
 IDENTITY_SECTION = "Identity"

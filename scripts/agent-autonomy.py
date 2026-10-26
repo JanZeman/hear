@@ -413,8 +413,8 @@ def policy_path() -> Path | None:
         return Path(override)
     script = Path(__file__).resolve()
     candidates = (
-        script.parents[1] / ".claude/settings.agent-base.universal.json",
-        script.parents[1] / "_sub/ai-venture/template/.claude/settings.agent-base.universal.json",
+        script.parents[1] / ".claude/settings.ai-venture.universal.json",
+        script.parents[1] / "_sub/ai-venture/template/.claude/settings.ai-venture.universal.json",
     )
     return next((candidate for candidate in candidates if candidate.exists()), None)
 

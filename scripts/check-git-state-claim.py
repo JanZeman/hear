@@ -68,8 +68,8 @@ GIT_MUTATE_RE = re.compile(
     r"\bgit\b(?:\s+-C\s+\S+)?(?:\s+--?[\w-]+(?:=\S+)?)*\s+"
     r"(?:add|commit|push|pull|fetch|merge|rebase|reset|checkout|switch|stash|restore|clean|rm|mv|"
     r"cherry-pick|revert|tag|am|apply|worktree\s+(?:add|remove|move|prune)|submodule\s+update)\b"
-    r"|\bworktrees\.sh\b|\bapply-agent-base\.sh\b|\bab\.sh\b|\bab-update(?:-apply)?\.sh\b"
-    r"|\brun-confirmed-commit\.sh\b|\bpublish-ab-release\.py\b"
+    r"|\bworktrees\.sh\b|\bapply-ai-venture\.sh\b|\bab\.sh\b|\bab-update(?:-apply)?\.sh\b"
+    r"|\brun-confirmed-commit\.sh\b|\bpublish-av-release\.py\b"
 )
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
 FENCE_RE = re.compile(r"(```|~~~).*?(?:\1|\Z)", re.DOTALL)

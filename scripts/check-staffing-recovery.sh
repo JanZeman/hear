@@ -45,10 +45,10 @@ report="$(python3 "$lease_script" status --root "$repo_root" 2>/dev/null)" || ex
 
 case "$report" in
   *uncertain*)
-    echo "Reminder (AV-MODEL-001): this worktree's staffing write lease is 'uncertain', so a previous writer may still be running and no route may write here until that is resolved. Load .agents/agent-base/skills/venture-staffing/SKILL.md and follow its recovery steps: stop the identified writer, observe that it stopped, and record that evidence. A confirmation without evidence overrides the guarantee instead of meeting it."
+    echo "Reminder (AV-MODEL-001): this worktree's staffing write lease is 'uncertain', so a previous writer may still be running and no route may write here until that is resolved. Load .agents/ai-venture/skills/venture-staffing/SKILL.md and follow its recovery steps: stop the identified writer, observe that it stopped, and record that evidence. A confirmation without evidence overrides the guarantee instead of meeting it."
     ;;
   *owned*)
-    echo "Reminder (AV-MODEL-001): this worktree's staffing write lease is held by an invocation from an earlier run. If that invocation is genuinely finished its lease was never released, which means its outcome was never recorded either. Load .agents/agent-base/skills/venture-staffing/SKILL.md before writing here."
+    echo "Reminder (AV-MODEL-001): this worktree's staffing write lease is held by an invocation from an earlier run. If that invocation is genuinely finished its lease was never released, which means its outcome was never recorded either. Load .agents/ai-venture/skills/venture-staffing/SKILL.md before writing here."
     ;;
 esac
 

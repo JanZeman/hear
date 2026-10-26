@@ -3,7 +3,7 @@
 **Status**: DEFINED
 
 <!-- TODO: Replace the Objectives table below with this project's actual objectives, and
-     change Status to DEFINED. Until you do, agent-base-guard.sh warns on every agent
+     change Status to DEFINED. Until you do, ai-venture-guard.sh warns on every agent
      session that this project has no goals. -->
 
 This file is the catalog of what this project is *for*. It **outranks the roadmap**: a
@@ -94,7 +94,7 @@ the importance order differs, say so here explicitly.
   never blocks the user's choice - if they want to proceed anyway, they proceed. But before
   starting that work:
   1. State how much of the roadmap is currently unfinished - the same open/done figure
-     `agent-base-guard.sh` prints at every session start, read from there rather than
+     `ai-venture-guard.sh` prints at every session start, read from there rather than
      recomputed differently, so the two never disagree. Informational, not a second gate.
   2. Make sure the task has a roadmap item (creating a minimal one if it doesn't have one
      yet) and add `**Goals drift**: yes -- <why>` to that item's header, next to `Status`.

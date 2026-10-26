@@ -25,7 +25,7 @@ for f in "$roadmap_dir"/*.md; do
   # roadmap items, and _ROADMAP_TEMPLATE.md documents the metadata syntax itself.
   [[ "$(basename "$f")" == _* ]] && continue
   if { grep -q "AGENT-BASE-MIGRATION:" "$f" 2>/dev/null ||
-       grep -Fq "<!-- Auto-created by apply-agent-base.sh. Introduced in:" "$f" 2>/dev/null; } &&
+       grep -Fq "<!-- Auto-created by apply-ai-venture.sh. Introduced in:" "$f" 2>/dev/null; } &&
      grep -qE '^\*\*Status\*\*: (Open|In Progress)' "$f" 2>/dev/null; then
     count=$((count + 1))
   fi

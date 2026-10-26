@@ -9,7 +9,7 @@ Before non-trivial changes, read this file and the Source of Truth Map.
 At the beginning of every agent session:
 
 ```bash
-bash "$(git rev-parse --show-toplevel)/agent-base-guard.sh"
+bash "$(git rev-parse --show-toplevel)/ai-venture-guard.sh"
 ```
 
 Do not continue past a failure: **stop** and ask whether to repair agent-base or proceed with
@@ -17,7 +17,7 @@ the original task.
 
 Known upgrade migrations become `Status: Open` roadmap items; handle per `AB-ROADMAP-001`.
 Surface any guard notice before the user's request and await confirmation; never act silently.
-Delivery: `AGENT_BASE.md`.
+Delivery: `AI_VENTURE.md`.
 
 ## Conventions
 
@@ -28,8 +28,8 @@ Delivery: `AGENT_BASE.md`.
 
 One owner file per topic; link, never copy.
 
-- Agent-base and sync → `_sub/ai-venture/` + `./ab-update.sh`
-- Documentation and adapter topology → `AGENT_BASE.md`
+- Agent-base and sync → `_sub/ai-venture/` + `./av-update.sh`
+- Documentation and adapter topology → `AI_VENTURE.md`
 - Standards → `.agents/standards/_STANDARDS_CATALOG.md`
 - Products and feature scope/specs → `.agents/products/`
 - Skill procedures → `.agents/skills/skill-name/SKILL.md`
@@ -78,7 +78,7 @@ the section later under `DOC-002` and `AB-RULE-SYNTAX-001`.
 - `DOC-002` [`P0`]: Add or change behavioral rules in `AGENTS.md` first, then impacted
   topic docs, then adapter links, then re-run the guard.
 - `DOC-003` [`P1`]: Link instead of duplicating rules; move detail out, never delete it.
-  Method: `.agents/agent-base/standards/documentation.md`.
+  Method: `.agents/ai-venture/standards/documentation.md`.
 - `DOC-004` [`P0`]: Run formatting/linting during the task, not deferred to git hooks or CI.
   Markdown: `.agents/standards/formatting.md`.
 
@@ -96,9 +96,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 ### ai-venture Rules
 
 - `AV-DOC-005` [`P0`]: Git content (messages, code, comments, and path names) is always English;
-  translate before writing. Load `.agents/agent-base/standards/git.md` before creating it.
+  translate before writing. Load `.agents/ai-venture/standards/git.md` before creating it.
 - `AV-DESIGN-001` [`P1`]: Before material implementation with a distinct design, external write,
-  or lasting public artifact, first load `.agents/agent-base/standards/documentation.md`, then
+  or lasting public artifact, first load `.agents/ai-venture/standards/documentation.md`, then
   present facts, principle, scope, and tradeoffs and await explicit approval; request sequence is
   not approval. Once approved, complete coherent work through ordinary investigation, edits,
   checks, and fixes. Do not return for progress narration; stop only for an unapproved irreversible
@@ -106,10 +106,10 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   choice, or a technical blocker after reasonable repair.
 - `AV-SAFE-001` [`P1`]: Never print, log, or send a secret value, and never override an
   explicit instruction to keep one out of git. Before handling a credential, load
-  `.agents/agent-base/standards/secrets.md` first, unconditionally; inconclusive privacy
+  `.agents/ai-venture/standards/secrets.md` first, unconditionally; inconclusive privacy
   defaults to not-private.
 - `AV-GIT-001` [`P0`]: Before Git operations, first load
-  `.agents/agent-base/standards/git.md`. Human controls history; only `git pull`, stash, submodule, the
+  `.agents/ai-venture/standards/git.md`. Human controls history; only `git pull`, stash, submodule, the
   explicit `create-worktrees-by-convention` slots, and a verified direct `Update AV`, `publish AV`,
   or named fleet update (including its one-way `integration -> slot` worktree propagation) permit
   mutations. Remote URLs use SSH; HTTPS only in emergencies.
@@ -119,36 +119,36 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   update procedure may stage, commit, and push only its audited release or sync paths. A reply
   starting with `kk` (not `ok` or `k`) to that exact block is the other exception: run it via
   `scripts/run-confirmed-commit.sh`, unedited, then do the proposed next step. Commits: configured Git identity, no attribution
-  trailer. Details: `.agents/agent-base/standards/git.md`.
+  trailer. Details: `.agents/ai-venture/standards/git.md`.
 - `AV-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
   clean, branch, ahead or behind), re-read it with read-only Git after your last action in this
-  turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/agent-base/standards/git.md`.
-- `AV-SYNC-001` [`P1`]: "Update AV", "sync AV", or `ab-update.sh` means load
-  `.agents/agent-base/skills/agent-base-sync/SKILL.md` before acting. Bare "AV" does not trigger
+  turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/ai-venture/standards/git.md`.
+- `AV-SYNC-001` [`P1`]: "Update AV", "sync AV", or `av-update.sh` means load
+  `.agents/ai-venture/skills/ai-venture-sync/SKILL.md` before acting. Bare "AV" does not trigger
   it. Old name AB: understand, never write.
 - `AV-QUALITY-001` [`P1`]: "AV check", "check AV", or an equivalent in any language means load
-  `.agents/agent-base/skills/ab-quality-check/SKILL.md` and report; it never syncs or updates.
+  `.agents/ai-venture/skills/av-quality-check/SKILL.md` and report; it never syncs or updates.
 - `AV-VENDOR-001` [`P1`]: Before adding or materially revising vendor-specific behavior, load
-  `.agents/agent-base/standards/vendor-support.md` first; verify every Primary vendor before
+  `.agents/ai-venture/standards/vendor-support.md` first; verify every Primary vendor before
   claiming the behavior complete.
 - `AV-MODEL-001` [`P1`]: Put a credential, a vulnerability, an authentication or authorization
   policy, personal data, or a new external access path to the human before touching it, whatever
   the method: a one-line edit, a script, or a tool call is still that decision, and "just do it"
   does not move the boundary. When a deterministic local tool cannot complete a task that needs
-  model work, load `.agents/agent-base/standards/model-routing.md` first; bounded LOW work uses its native
+  model work, load `.agents/ai-venture/standards/model-routing.md` first; bounded LOW work uses its native
   helper and verified receipt. When work spans more than one coherent WORKLOAD or WORKER, decide in this
   order: authority, then budgets (an exhausted cap goes to the human, never one tier up), then
   mutation ownership (no route writes without the worktree lease), then the cheapest tier this
   unit's own signals justify, never inherited from the last one.
-  Details: `.agents/agent-base/standards/venture-staffing.md`.
+  Details: `.agents/ai-venture/standards/venture-staffing.md`.
 - `AV-GOALS-001` [`P0`]: Before each change, name its Objective and check the approach against
   Strategy. When it plausibly moves that Objective, load its file and name the Key Result and
   direction; if it serves none, ask. First load
-  `.agents/agent-base/standards/roadmap-workflow.md`.
+  `.agents/ai-venture/standards/roadmap-workflow.md`.
 - `AV-ROADMAP-001` [`P0`]: Before a task past minutes of genuinely small, no-design-choice
   work, read `_ROADMAP_CATALOG.md`. If off-roadmap, low priority, or leaving work unfinished,
   warn and await explicit confirmation, offering do-now, roadmap, or both. First load
-  `.agents/agent-base/standards/roadmap-workflow.md`.
+  `.agents/ai-venture/standards/roadmap-workflow.md`.
 - `AV-ROADMAP-003` [`P1`]: Idea, step, and archive share one file and row; `Status` tracks their
   lifecycle. Before adding one, check `.agents/roadmap/_ROADMAP_HISTORY.md` and the catalog's
   `Idea` rows for a match.
@@ -157,29 +157,29 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AV-ROADMAP-002` [`P0`]: When done is met, mark in-scope items `Done` or `Archived` and move
   their rows from the catalog into `.agents/roadmap/_ROADMAP_HISTORY.md`. Report evidence and
   hesitation, invite correction, then hand off commit/push without a separate closure-approval
-  turn. Details: `.agents/agent-base/standards/roadmap-workflow.md`.
+  turn. Details: `.agents/ai-venture/standards/roadmap-workflow.md`.
 - `AV-ROADMAP-005` [`P1`]: Propose `Idea`/`Open` for corrections or lessons; record and implement.
   A correction held only in tool memory is one the next session never sees (`DOC-001`).
-  Details: `.agents/agent-base/standards/roadmap-workflow.md`.
+  Details: `.agents/ai-venture/standards/roadmap-workflow.md`.
 - `AV-FIX-001` [`P1`]: Fix bugs and log it in `.agents/fixes/`; search before coding. Roadmap is
   for broader lessons.
-  Details: `.agents/agent-base/standards/fix-log.md`.
+  Details: `.agents/ai-venture/standards/fix-log.md`.
 - `AV-REF-001` [`P2`]: Resolve a purely numeric roadmap or migration reference with its full title
-  before using shorthand for it. Details: `.agents/agent-base/standards/roadmap-workflow.md`.
+  before using shorthand for it. Details: `.agents/ai-venture/standards/roadmap-workflow.md`.
 - `AV-HUMAN-001` [`P1`]: Ask only what you cannot check: read the state yourself first (files,
   config, cron, services, Git), including work reported done. Keep every question
   findable and directly answerable; with two-plus open
-  decisions load `.agents/agent-base/skills/decision-refinement/SKILL.md` first.
+  decisions load `.agents/ai-venture/skills/decision-refinement/SKILL.md` first.
   Never auto-apply permissions or weaken scope, external/destructive-action, or safety boundaries.
   Human-run commands: one `# ~~~`-delimited code block, no `!`. Before autonomy, permission, or
-  human-command work, load `.agents/agent-base/standards/human-interruptions.md`.
+  human-command work, load `.agents/ai-venture/standards/human-interruptions.md`.
 - `AV-HUMAN-002` [`P1`]: Silent success. On ai-venture failure, repair or roadmap; downstream
   agents prepare an ai-venture repair prompt. After a successful guard, defer its notices to the
   end of the first completed response unless an owning rule makes one a stop or approval gate; no
   continuation prompt. A notice does not authorize its named action. Details:
-  `.agents/agent-base/standards/human-interruptions.md`.
+  `.agents/ai-venture/standards/human-interruptions.md`.
 - `AV-UPDATE-001` [`P0`]: Before sync work, first load
-  `.agents/agent-base/skills/agent-base-sync/SKILL.md`. During an ai-venture update/migration,
+  `.agents/ai-venture/skills/ai-venture-sync/SKILL.md`. During an ai-venture update/migration,
   never guess ambiguous target, state, or action. Stop that scope and state missing evidence or
   prepare a repair prompt.
 - `AV-UPDATE-002` [`P0`]: When the guard says a check is due, ask the user non-blockingly; only
@@ -198,17 +198,17 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AV-RESEARCH-001` [`P1`]: Before building a new mechanism, search for prior art -- upstream,
   published practice, or existing code here -- and adopt or adapt it; build new only when none fits.
 - `AV-RULE-SYNTAX-001` [`P1`]: Before writing or editing any rule, load
-  `.agents/agent-base/standards/rule-writing.md` first.
+  `.agents/ai-venture/standards/rule-writing.md` first.
 - `AV-REQUEST-001` [`P1`]: An ai-venture gap or defect is a request, not a workaround: record it
   under `.agents/requests/`, never in `_sub/ai-venture`. Details:
   `.agents/requests/_REQUESTS_CATALOG.md`.
 - `AV-SESSION-001` [`P1`]: Before saving substantive work on request, compaction, or handoff, load
-  `.agents/agent-base/standards/session-continuity.md`; create a linked snapshot and safely
+  `.agents/ai-venture/standards/session-continuity.md`; create a linked snapshot and safely
   prune its unambiguous lineage.
 - `AV-SESSION-002` [`P1`]: Before the first user-visible response of each session, read
-  `.agents/agent-base/banner.txt` and `AGENT_BASE_VERSION`; begin with its exact bytes in a fenced
+  `.agents/ai-venture/banner.txt` and `AI_VENTURE_VERSION`; begin with its exact bytes in a fenced
   `text` block, replacing only `<version>`.
-- `AV-RESPONSE-001` [`P1`]: In every response, return the ai-venture Board: an ASCII header with
+- `AV-RESPONSE-001` [`P1`]: In every response, return the AI-venture Board: an ASCII header with
   full `ROLE`, `LEAD DEPARTMENT`, `MODEL`, and `ELAPSED`, then `Summary:` and an ASCII `NEXT`
   block. In the first response, after the banner, introduce the SESSION's purpose, responsibilities,
   and authority. Unless an explicit staffing assignment says otherwise, it is a `COORDINATOR` in
@@ -218,9 +218,9 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   use `unknown` only when genuinely unknown, never guessed. Record start at first action and subtract
   before return; recheck complex seconds-only results. A tool result, partial check, or routine
   repair is not an answer boundary: return only at a terminal result or a real human boundary. Details:
-  `.agents/agent-base/standards/venture-staffing.md`.
+  `.agents/ai-venture/standards/venture-staffing.md`.
 - `AV-CONTEXT-001` [`P1`]: Before changing automatically supplied agent context, load
-  `.agents/agent-base/skills/context-budgeting/SKILL.md`; preserve behavior before reducing words.
+  `.agents/ai-venture/skills/context-budgeting/SKILL.md`; preserve behavior before reducing words.
 - `AV-STYLE-001` [`P1`]: Never emit Unicode U+2014 in any agent-authored text or file, including
   chat, correspondence, code, documents, and Git/PR text. Use ASCII `-` even when quoting;
   represent the code point by escape when code must detect it. Replace it
@@ -228,7 +228,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   broad cleanup, and fix generated copies at their source. Details: `.agents/standards/formatting.md`.
 - `AV-VENTURE-001` [`P0`]: Before substantive work, run `python3 scripts/venture.py --root .
   context`; stop on failure. If undefined, first load
-  `.agents/agent-base/skills/venture-discovery/SKILL.md`; human motives and Goals never come from
+  `.agents/ai-venture/skills/venture-discovery/SKILL.md`; human motives and Goals never come from
   repository inference.
 - `AV-DEPT-001` [`P1`]: Route each substantive phase by outcome to one Lead and material consulted
   Departments; load definitions, state why, ask if uncertain, and keep decisions human-approved.
@@ -239,17 +239,17 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AV-WIKI-002` [`P1`]: Before any wiki write, classify its exact host and path using the
   policy in `.agents/wiki.json`; use a known result without re-asking, and resolve
   `unknown` before exposing private content. Details:
-  `.agents/agent-base/standards/wiki-visibility.md`.
+  `.agents/ai-venture/standards/wiki-visibility.md`.
 - `AV-MCP-001` [`P1`]: When an MCP tool call fails with an authentication or authorization error,
   suspect stale process credentials and recommend restarting the host before
   concluding the credential is invalid or rotating it. Details:
-  `.agents/agent-base/standards/mcp-credential-diagnostics.md`.
+  `.agents/ai-venture/standards/mcp-credential-diagnostics.md`.
 <!-- AGENT-BASE-RULES:END -->
 
 ## Overrides
 
 Propose entries per `AB-DESIGN-001`:
-`.agents/agent-base/standards/documentation.md`.
+`.agents/ai-venture/standards/documentation.md`.
 
 ---
 
@@ -266,4 +266,4 @@ Propose one from `_SKILLS_TEMPLATE.md` when work repeats 3+ times.
 ## Tool Adapter Policy
 
 Keep tool adapters thin and subordinate to `AGENTS.md`. Hook topology, vendor support, and research:
-`AGENT_BASE.md`.
+`AI_VENTURE.md`.

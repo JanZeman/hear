@@ -2,7 +2,7 @@
 
 Canonical index of project standards. All standards docs live in this directory. Agent-base's
 own canonical reference docs (not project-specific) live separately in
-`.agents/agent-base/standards/` and are not listed here.
+`.agents/ai-venture/standards/` and are not listed here.
 
 ## Standards
 

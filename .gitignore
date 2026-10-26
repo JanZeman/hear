@@ -305,7 +305,7 @@ zsdoc/data
 nvz
 __pycache__/
 
-.agents/.agent-base-last-run
+.agents/.ai-venture-last-run
 
 .agents/.venture-wiki-last-check
 

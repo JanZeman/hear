@@ -32,7 +32,7 @@ print(data.get("prompt", ""))
 
 pattern='password|secret|api[_ -]?key|token|credential|\.env\b|private[_ -]?key|ssh[_ -]?key|access[_ -]?key'
 if printf '%s' "$prompt" | grep -qiE "$pattern"; then
-  echo "Reminder (AV-SAFE-001): before handling any credential here, load this repository's own .agents/agent-base/standards/secrets.md first, unconditionally -- and if the file involved belongs to a different repository than this session's own root, that repository's own copy, not only the one already loaded here."
+  echo "Reminder (AV-SAFE-001): before handling any credential here, load this repository's own .agents/ai-venture/standards/secrets.md first, unconditionally -- and if the file involved belongs to a different repository than this session's own root, that repository's own copy, not only the one already loaded here."
 fi
 
 exit 0

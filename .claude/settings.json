@@ -5,14 +5,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "AGENT_BASE_VENDOR=claude bash \"${CLAUDE_PROJECT_DIR}/agent-base-guard.sh\""
+            "command": "AGENT_BASE_VENDOR=claude bash \"${CLAUDE_PROJECT_DIR}/ai-venture-guard.sh\""
           }
         ]
       }
     ],
     "SubagentStart": [
       {
-        "matcher": "^ab-low-helper$",
+        "matcher": "^av-low-helper$",
         "hooks": [
           {
             "type": "command",
@@ -23,7 +23,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^ab-low-helper$",
+        "matcher": "^av-low-helper$",
         "hooks": [
           {
             "type": "command",
@@ -89,7 +89,7 @@
       "Bash(git -C _sub/ai-venture fetch:*)",
       "Bash(git -C _sub/ai-venture checkout:*)",
       "Bash(git -C _sub/ai-venture branch -f:*)",
-      "Bash(bash agent-base-guard.sh)",
+      "Bash(bash ai-venture-guard.sh)",
       "Bash(bash scripts/markdown-lint.sh:*)",
       "Bash(python3 scripts/human-interruptions.py status)",
       "Bash(python3 scripts/human-interruptions.py report:*)",

@@ -13,7 +13,7 @@ import sys
 
 
 SCHEMA_VERSION = 1
-LOW_HELPER = "ab-low-helper"
+LOW_HELPER = "av-low-helper"
 
 # Staffing lifecycle events (roadmap item 148). Actor lifetime and invocation lifetime are separate
 # kinds because they are separate facts: an Actor can outlive many invocations, and an invocation

@@ -11,7 +11,7 @@ Projects can add their own hooks directly in their adapter files, outside the
 Commands that must run at the beginning of every agent session:
 
 ```bash
-bash "$(git rev-parse --show-toplevel)/agent-base-guard.sh"
+bash "$(git rev-parse --show-toplevel)/ai-venture-guard.sh"
 ```
 
 ## on-every-change
@@ -23,7 +23,7 @@ Read and follow `AGENTS.md` in full; it is the canonical behavior contract.
 Begin the first user-visible response of each session with the banner specified by
 `AV-SESSION-002` in `AGENTS.md`; show it once.
 
-After that banner, render the ai-venture Board and first-response SESSION introduction required by
+After that banner, render the AI-venture Board and first-response SESSION introduction required by
 `AV-RESPONSE-001` in `AGENTS.md`.
 
 Before substantive work, make sure you understand the Venture Context, Goals, current Roadmap,
