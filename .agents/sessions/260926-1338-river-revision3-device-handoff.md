@@ -13,7 +13,7 @@ None. Disclosure work remains out of scope.
 
 ## Completed work
 
-- Confirmed the working repository is `/Users/jan/Dev/HR1` (`JanZeman/hear`). `/Users/jan/Dev/HR`
+- Confirmed the working repository is `/Users/jan/Dev/hear-1` (`JanZeman/hear`). `/Users/jan/Dev/hear`
   was only the source location provided for the handoff ZIP.
 - Rebuilt the current Unity iOS project, completed the Xcode Debug build and signing, installed the
   app on the connected iPhone, and launched it.

@@ -11,13 +11,13 @@ canoe movement, left/right paddle success feedback, progressive village reveal, 
 welcoming the player at the end.
 
 ## Source material (already read in full this session)
-Handoff zip: `/Users/jan/Dev/HR/sources/Worlds/RiverOfEchos/river_of_echoes_final_handoff_package.zip`
-(note: this path is in the **other worktree** `HR`, not `HR1` — read directly via absolute path,
+Handoff zip: `/Users/jan/Dev/hear/sources/Worlds/RiverOfEchos/river_of_echoes_final_handoff_package.zip`
+(note: this path is in the **other worktree** `hear`, not `hear-1` — read directly via absolute path,
 that's fine, worktrees share the same disk).
 
 Extracted copy for reference: `Hear/docs/v1.0-river-of-echoes-handoff/` (created this session,
 currently only has this handoff note — the actual docs/image are still sitting in the scratchpad
-at `/private/tmp/claude-501/-Users-jan-Dev-HR1/8cbc9c39-4218-4116-9e46-0d01c8cdf8a7/scratchpad/roe/`
+at `/private/tmp/claude-501/-Users-jan-Dev-hear-1/8cbc9c39-4218-4116-9e46-0d01c8cdf8a7/scratchpad/roe/`
 which will NOT survive past this session — re-extract from the zip path above if that scratchpad
 is gone).
 
@@ -77,8 +77,8 @@ UI Toolkit 2D.
 Found during exploration, **not yet resolved**: `Assets/HearApp/Core/Worlds/WorldRegistry.cs`
 already lists **three** worlds, including one called `"river-journey"` / "River Journey" with
 scene name `RiverJourneyWorld`, and there is already a folder `Assets/HearApp/Worlds/RiverJourney/`
-(plus `Assets/HearApp/Worlds/PaperGarden/`) in this HR1 worktree — presumably built by the other
-agent in the main `HR` worktree and merged into `_hr1` since this session's last summary (this
+(plus `Assets/HearApp/Worlds/PaperGarden/`) in this hear-1 worktree — presumably built by the other
+agent in the main `hear` worktree and merged into `_hear-1` since this session's last summary (this
 session hadn't seen either of those worlds before now).
 
 **Before writing any new code**, read `Assets/HearApp/Worlds/RiverJourney/*.cs` in full and
@@ -108,14 +108,14 @@ This determination was NOT made before the session was paused — do it before a
   same as 2D sprites were).
 
 ## Environment / workflow reminders (carried over from earlier in this session, still valid)
-- Working directory: `/Users/jan/Dev/HR1/Hear` (git worktree `_hr1`, branch `_hr1`). Do not `cd`
+- Working directory: `/Users/jan/Dev/hear-1/Hear` (git worktree `_hear-1`, branch `_hear-1`). Do not `cd`
   into other worktrees; read cross-worktree files via absolute path only when needed (as done here
   for the zip).
 - All Unity/Xcode/devicectl commands require `dangerouslyDisableSandbox: true` (sandboxed builds
   fail with licensing/readonly-database errors).
 - Build pipeline that works end-to-end (used successfully multiple times this session):
   ```
-  cd /Users/jan/Dev/HR1/Hear
+  cd /Users/jan/Dev/hear-1/Hear
   unity build --target iOS --execute-method Hear.Editor.HearDevelopmentBuild.BuildIos --output-path Builds/iOS
   cd Builds/iOS
   xcodebuild -project Unity-iPhone.xcodeproj -scheme Unity-iPhone -configuration Debug \

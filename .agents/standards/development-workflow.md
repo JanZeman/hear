@@ -2,7 +2,7 @@
 
 Canonical reference for how this project branches, releases, and runs parallel work. The
 branching model and the worktree layout are one system, so they are defined together here.
-Replace every `TODO` once, when adopting agent-base.
+Replace every `TODO` once, when adopting ai-venture.
 
 **Audience**: human contributors and coding agents.
 
@@ -25,16 +25,16 @@ Branch deletion is always a manual, human-only action (`AV-GIT-001`).
 
 | Field | Value | Meaning |
 | --- | --- | --- |
-| `repo_id` | `hr` | Exactly two lowercase letters (`^[a-z]{2}$`), unique to this repository. Chosen once at adoption. |
+| `repo_id` | `hear` | The repository's full name in lowercase (letters, digits, single hyphens), for example `bread`. Chosen once at adoption. |
 | `stable_branch` | `main` | The trunk. Defaults to `main`; change only if this project's trunk has a different name. |
 | `topic_prefixes` | `feature/ bugfix/ ci/` | Space-separated allowed prefixes for the optional short-lived topic branches. |
 
-- The **main worktree** folder may have any name. Naming it `<REPO_ID>` (the uppercase form of
-  `repo_id`, e.g. `AB`) is a recommendation, never enforced, so local paths and symlinks keep
-  working.
-- **Linked worktree slots** are sibling folders `<REPO_ID>1`, `<REPO_ID>2`, and so on. Each slot
-  has one dedicated branch `_<repo_id><N>` in lowercase (`_ab1` for `AB1`).
-- `_<repo_id><N>` carries that slot's work and is merged into `main` on consolidation. When the
+- The **main worktree** folder may have any name. Naming it `<repo_id>` is a recommendation,
+  never enforced, so local paths and symlinks keep working.
+- **Linked worktree slots** are sibling folders `<repo_id>-1`, `<repo_id>-2`, and so on. Each slot
+  has one dedicated branch `_<repo_id>-<N>` (`_bread-1` for `bread-1`). An older two-letter
+  `repo_id` keeps its uppercase folders `<REPO_ID><N>` on branches `_<repo_id><N>`.
+- The slot branch carries that slot's work and is merged into `main` on consolidation. When the
   slot is idle it rests on that same branch. It is never renamed to a `feature/*` branch; the
   whole slot is the unit of work.
 
@@ -50,43 +50,42 @@ slot's work reviewable as a clean diff against `main`.
 ## Provisioning the slots
 
 When a human explicitly asks for `create-worktrees-by-convention`, an agent may create the
-`git worktree add -b _<repo_id><N> ../<REPO_ID><N> main` commands for the declared slot count,
+`git worktree add -b _<repo_id>-<N> ../<repo_id>-<N> main` commands for the declared slot count,
 after loading `.agents/ai-venture/skills/create-worktrees-by-convention/SKILL.md`. The skill
 verifies the main worktree, every target path, every slot branch, and the base reference before
 any mutation, and creates the complete declared set. If one creation succeeds and a later one
 fails, it reports the exact state and does not repair it.
 
-After a human fills a valid `repo_id` and reruns Agent Base, the exact untouched scaffold below
-becomes the default two slots. It derives `<REPO_ID>` by uppercasing `repo_id`, so `bt` becomes
-`BT`, `BT1`, and `BT2`, with branches `_bt1` and `_bt2`. A block that differs from the untouched
-scaffold is project-owned: Agent Base leaves it unchanged, and the human declares any different
+After a human fills a valid `repo_id` and reruns ai-venture, the exact untouched scaffold below
+becomes the default two slots: `hear` gives `hear-1` and `hear-2` on branches `_hear-1` and
+`_hear-2`. A block that differs from the untouched
+scaffold is project-owned: ai-venture leaves it unchanged, and the human declares any different
 slot count directly. Keep the commands direct, one per line, and use sibling paths. Any other
 creation, branch change, integration, commit, push, or removal remains human-controlled under
 `AV-GIT-001`.
 
-One-time setup (default two slots for `repo_id = hr`):
+One-time setup (default two slots for `repo_id = hear`):
 
 ```bash
-git worktree add -b _hr1 ../HR1 main
-git worktree add -b _hr2 ../HR2 main
+git worktree add -b _hear-1 ../hear-1 main
+git worktree add -b _hear-2 ../hear-2 main
 ```
 
-Work in a slot: open `../HR1`, stay on `_hr1`, and commit there. A human integrates
-`_hr1` into `main` when it is ready.
+Work in a slot: open `../hear-1`, stay on `_hear-1`, and commit there. A human integrates
+`_hear-1` into `main` when it is ready.
 
 ## Consolidation helper
 
-Agent Base seeds a project-owned root `worktrees.sh` wrapper and keeps its generic
+ai-venture seeds a project-owned root `worktrees.sh` wrapper and keeps its generic
 `scripts/worktree-consolidate.sh` engine synchronized. The wrapper declares nothing: it reads
 `stable_branch` and `repo_id` from the table above and passes `--repo-id` to the engine, which
-discovers the `<REPO_ID><N>` slots and merges their `_<repo_id><N>` branches into the trunk and
-back. It hard-fails on a slot that is not on
-exactly its own `_<repo_id><N>` branch, and on an orphaned `_<repo_id><N>` branch with no
+discovers the slot folders and merges their slot branches into the trunk and back. It hard-fails
+on a slot that is not on exactly its own slot branch, and on an orphaned slot branch with no
 worktree. It reports and ignores unrelated worktrees.
 
 The wrapper is a human-operated convenience and does not expand agent Git authority, except the
 one narrow case in `.agents/ai-venture/standards/git.md`'s `AV-GIT-001`: a verified fleet or
-`Update AB`/`publish AB` run may pass `--to-slots-only` to propagate its own just-pushed sync
+`Update AV`/`publish AV` run may pass `--to-slots-only` to propagate its own just-pushed sync
 into already-clean slots, one-way (`main` -> slot only, never slot -> `main`). Run the read-only
 preflight before the first consolidation or after changing the table:
 
@@ -104,7 +103,7 @@ only the trunk and participating slot branches):
 
 Add `--to-slots-only` to merge `main` into slots without folding any slot's own commits back in --
 this is what the narrow fleet-update exception above runs; a human rarely needs it directly. To
-hold one slot back, add `--exclude-branch _<repo_id><N>`. Submodule synchronization allows
+hold one slot back, add `--exclude-branch _<repo_id>-<N>`. Submodule synchronization allows
 initializing and fetching from remote by default; add `--no-submodule-fetch` to require
 already-local objects instead. Either way, the engine stops rather than detach an attached
 submodule branch whose checkout differs from the recorded commit.
@@ -122,7 +121,7 @@ submodule branch whose checkout differs from the recorded commit.
 
 ## Submodules across worktrees
 
-Every project on agent-base has at least one submodule (`_sub/ai-venture`); some have more. Git
+Every project on ai-venture has at least one submodule (`_sub/ai-venture`); some have more. Git
 treats a submodule as a pointer to a commit, kept in the index separately from the submodule's own
 checkout. The two go out of step easily, and worktrees make it more likely.
 
@@ -135,7 +134,7 @@ still commit A. Symptoms:
 - `ignore = dirty` in `.gitmodules` does **not** hide this -- it suppresses changes *inside* the
   submodule's working tree, not a pointer mismatch.
 - Anything reading the submodule reads the old content: a stale `_sub/ai-venture` means
-  `ai-venture-guard.sh` runs an outdated agent-base without saying so.
+  `ai-venture-guard.sh` runs an outdated ai-venture without saying so.
 
 **The trap.** Committing that modified submodule pointer in the slot records a *rollback*. The
 next consolidation merges the rollback into the trunk and silently downgrades the submodule

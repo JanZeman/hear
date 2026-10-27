@@ -1,4 +1,4 @@
-# HR — Hear
+# Hear
 
 **Hear** is a short, genuinely fun mobile game that produces sounds of varying pitch and
 loudness; the player reacts whenever they notice one. Under the hood, this is a hearing

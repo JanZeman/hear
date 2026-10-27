@@ -9,7 +9,7 @@ own canonical reference docs (not project-specific) live separately in
 | Standard | Description |
 | --- | --- |
 | [architecture.md](./architecture.md) | Layers, dependency rules, folder structure |
-| [development-workflow.md](./development-workflow.md) | Trunk-based branching, two-letter repo_id, and the worktree slot convention |
+| [development-workflow.md](./development-workflow.md) | Trunk-based branching, the full-name repo_id, and the worktree slot convention |
 | [formatting.md](./formatting.md) | Code and Markdown formatting tools and rules |
 
 <!-- TODO: Add your project-specific standards here too, as you fill them in or add new ones. -->
