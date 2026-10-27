@@ -231,9 +231,9 @@ repository's own `.agents/wiki.json`:
 
 The wiki is for the human (see "What the wiki is for" in `venture-operating-model.md`). The
 repository publishes only the Venture page (the Venture Definition and the Goals) there, one way;
-everything else on the wiki is the human's and is never synchronized. The page is
-`<root>/<name>-venture`, `<name>` being the root's last segment; an optional `venture_page` key
-names it differently, and `wiki-config` prints the resolved path.
+everything else on the wiki is the human's and is never synchronized. The page is the Venture
+root page itself; an optional `venture_page` key names a page below the root instead, and
+`wiki-config` prints the resolved path.
 
 On a shared host, `root` is `ventures/<venture-name>`, with the name in full, where every Venture
 on that host lives; a host dedicated to one Venture may keep its documented root. Roots and links

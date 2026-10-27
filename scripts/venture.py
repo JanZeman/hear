@@ -50,13 +50,11 @@ IDENTITY_RECOMMENDED_MAX_WORDS = 25
 CONTEXT_MAX_WORDS = 250
 DEFINED_SECTIONS = ("Purpose", "Vision", "Strategy")
 # The wiki is for the human. The repository publishes exactly one page to it, one way: the Venture
-# page, rendered from VENTURE.md and the Goals. The root page and everything else on the wiki
-# belong to the human and are never synchronized. The page sits directly below the root and is
-# named so its URL reads on its own: `<root>/<root-name>-venture`, unless `.agents/wiki.json`
-# names it with `venture_page`.
+# page, rendered from VENTURE.md and the Goals. It is the Venture root page itself, unless
+# `.agents/wiki.json` names a page below the root with `venture_page`. Everything else on the wiki
+# belongs to the human and is never synchronized.
 PUBLISHED_CATEGORIES = {"goals"}
 VENTURE_PAGE = "venture-page"
-VENTURE_PAGE_SUFFIX = "-venture"
 CATALOG_NAMES = {
     "_DEPARTMENTS_CATALOG.md",
     "_FEEDBACK_CATALOG.md",
@@ -559,8 +557,8 @@ def _load_wiki(root: Path, registry: Path | None) -> tuple[dict[str, str], Any, 
 
 def wiki_config(root: Path, registry: Path | None = None) -> dict[str, str]:
     result = dict(_load_wiki(root, registry)[0])
-    page = result.get("venture_page") or result["root"].rsplit("/", 1)[-1] + VENTURE_PAGE_SUFFIX
-    result["venture_page"] = f"{result['root']}/{page}"
+    page = result.get("venture_page")
+    result["venture_page"] = f"{result['root']}/{page}" if page else result["root"]
     return result
 
 

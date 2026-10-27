@@ -10,10 +10,10 @@ description: Publish the Venture page (Venture Definition and Goals) to the Vent
 or agent, writes for a person. Nothing that exists for agents ever appears on it.
 
 The repository owns exactly one page on the wiki: the **Venture page**, titled "<Venture name>
-Venture", with the Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals. Its path
-is the `venture_page` that `python3 scripts/venture.py --root . wiki-config` prints, by default
-`<root>/<venture-name>-venture`. It is published one way, repository to wiki. Everything else on
-the wiki, the root page included, belongs to the human and is never synchronized. Paths and links
+Venture", with the Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals. It is
+the Venture root page itself: the `venture_page` that `python3 scripts/venture.py --root .
+wiki-config` prints. It is published one way, repository to wiki. Everything else on the wiki
+belongs to the human and is never synchronized. Paths and links
 carry no locale prefix such as `en/`.
 
 Resolve the connector and Venture root with `python3 scripts/venture.py --root . wiki-config`; its
@@ -46,10 +46,10 @@ the connector or mapping is unavailable, do not block work and do not pretend a 
 2. Read the current Venture page. If it was changed by hand, show the human the difference first;
    take what they want to keep into the repository before publishing over it. If the page does not
    exist yet, check that no other page already occupies its path.
-3. Check the root page links to the Venture page with the framework info box from the standard. If
-   there is no root page, propose one holding only a title and that box; if it exists without it,
-   propose adding just the box at the top. The
-   root page is the human's: never change anything else on it.
+3. The page starts with the framework info box from the standard. If the root page holds anything
+   besides the Venture page, or a separate old `<root>/<name>-venture` page exists, convert first:
+   propose item by item where everything else goes (usually a page below the root), move it as
+   "Move existing content" says, and only then publish onto the root and retire the old page.
 4. Show the exact pages and changes, get the human's approval, write, and verify the result.
 
 ## Move existing content
@@ -63,7 +63,7 @@ Follow "Where a Venture lives on the wiki", "Moving pages", and "Converting an e
    the list by a second independent source (another listing, or a read-only query of the wiki's
    own database when the human allows it) before relying on it. Keep the list as the baseline.
 2. Plan: old path to new path for every page, structure and content unchanged; the existing
-   overview, if there is one, becomes the root page with only a link to the Venture page added.
+   overview, if there is one, moves to a page below the root, because the root is the Venture page.
    Verify that every page the plan names exists before proposing a change to it. Pages that only
    duplicate the Venture page (such as old Goal pages) are proposed for deletion instead of moving.
 3. Plan the link fixes; they are most of the work. Look in:

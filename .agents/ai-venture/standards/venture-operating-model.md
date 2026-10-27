@@ -67,7 +67,7 @@ A new Venture starts with an empty repository named by these rules, then discove
 2. Definition: Identity, Purpose, Vision, and Strategy filled.
 3. Goals as OKRs: Objectives with Key Results.
 4. Roadmap in the format ai-venture expects.
-5. Venture page published on the wiki, verified on the wiki itself.
+5. Venture page published as the Venture root page on the wiki, verified on the wiki itself.
 6. Half-year OKR Review on January 1 and July 1, recorded in `.agents/OKR_REVIEWS.md`.
 7. Management staffed.
 
@@ -243,10 +243,10 @@ the roadmap, ai-venture framework content, or any other agent technicality) ever
 
 ### The Venture page
 
-Every Venture has one page that says what it is: the **Venture page**, directly below the Venture
-root and named so its address reads on its own: `<root>/<name>-venture`, `<name>` being the
-root's last segment (for example `ventures/example/example-venture`), titled "<Venture name> Venture". When that default reads
-badly, `.agents/wiki.json` names the page with `venture_page`;
+Every Venture has one page that says what it is: the **Venture page**. It is the Venture root page
+itself (for example `ventures/example`), titled "<Venture name> Venture", so the first page a
+person opens is the one that explains the Venture. Only a host that cannot use its root names a
+page below it with `venture_page` in `.agents/wiki.json`;
 `python3 scripts/venture.py --root . wiki-config` prints the resolved path. The page holds the
 Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals, all on that one page and
 written for a person: each Goal with its objective, status, key results, and why they were chosen.
@@ -256,19 +256,22 @@ exactly this page and nothing else on the wiki: it is rendered from `.agents/VEN
 published again; when the page was changed by hand, the agent shows that difference to the human
 before publishing over it.
 
-Everything else on the wiki belongs to the human, the Venture root page included. A person writes
-it, and an agent writes it only when asked, for a person to read. The root page links to the
-Venture page; when no root page exists yet, the agent proposes one holding only a title and that
-link, and from then on it is the human's. Nothing on the wiki is synchronized or mirrored into the
-repository; an agent that needs it reads the wiki directly.
+Everything else on the wiki belongs to the human, the pages below the root included. A person
+writes them, and an agent writes them only when asked, for a person to read. Nothing on the wiki
+is synchronized or mirrored into the repository; an agent that needs it reads the wiki directly.
 
-The link is this info box at the top of the root page, with the Venture's name and its page path
-(Wiki.js markdown):
+The Venture page starts with this info box (Wiki.js markdown):
 
 ```markdown
-> This project is supported by the "AI-venture Framework". Read more on the [<Name> Venture](/<root>/<name>-venture) page.
+> This page is published from the Venture repository by the "AI-venture Framework". Change it there, not here.
 {.is-info}
 ```
+
+A Venture that still has a separate `<root>/<name>-venture` page, or a root page holding anything
+besides the Venture page, is converted once as part of the Venture checklist. The agent proposes,
+item by item, where everything else on the root page goes (usually a page below the root), moves
+it as "Moving pages" says, then publishes the Venture page onto the root and retires the old
+`-venture` page. Nothing is moved or deleted without the human's approval.
 
 ### Where a Venture lives on the wiki
 
@@ -304,8 +307,8 @@ the Venture root; they are not left where they were. The move must not damage th
 
 - The existing pages move with their structure and content unchanged, their subtree reproduced
   below the Venture root, each as "Moving pages" describes.
-- If the existing content already has a root page (an overview), it becomes the Venture root page
-  unchanged except for a link to the Venture page. Nothing below it is rewritten. A page named in
+- If the existing content already has a root page (an overview), it moves to a page below the
+  Venture root unchanged, because the root is the Venture page. Nothing below it is rewritten. A page named in
   a plan is verified to exist before any change to it is proposed.
 
 The only later restructuring is the one the Venture definition itself calls for, such as the
