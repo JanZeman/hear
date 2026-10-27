@@ -28,8 +28,8 @@ stable_branch="$(read_field stable_branch)"
 repo_id="$(read_field repo_id)"
 [[ -n "$stable_branch" && "$stable_branch" != 'TODO' ]] || stable_branch='main'
 
-if [[ ! "$repo_id" =~ ^[a-z]{2}$ ]]; then
-  printf 'ERROR repo_id in %s must be two lowercase letters (got: %s).\n' \
+if [[ ! "$repo_id" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
+  printf 'ERROR repo_id in %s must be a lowercase name (got: %s).\n' \
     "$WORKFLOW" "${repo_id:-empty}" >&2
   exit 2
 fi

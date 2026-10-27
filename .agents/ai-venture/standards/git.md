@@ -40,7 +40,7 @@ staging the resulting pointer.
 explicitly requests it and the agent has loaded
 `.agents/ai-venture/skills/create-worktrees-by-convention/SKILL.md`, the agent may run exactly the
 declared N verified `git worktree add -b <slot-branch> <sibling-path> <base-ref>` commands from the
-project's `.agents/standards/development-workflow.md`, one per `<REPO_ID><N>` slot in that
+project's `.agents/standards/development-workflow.md`, one per slot in that
 standard's declared count. This exception creates the complete declared set, not an arbitrary
 worktree or a partial set. The skill owns its read-only preflight and postflight checks. It never authorizes a
 branch switch, integration, commit, push, worktree removal, Git permission change, or automatic

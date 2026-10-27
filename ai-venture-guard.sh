@@ -352,7 +352,8 @@ fi
 # AI-VENTURE-WORKFLOW-CHECK:START
 # --- Trunk-based + worktree workflow compliance (read-only, never blocks the guard) ---
 # .agents/standards/development-workflow.md defines a trunk-based model (only `main`, no
-# dev/develop), a two-letter `repo_id`, and the `<REPO_ID><N>` / `_<repo_id><N>` slot convention.
+# dev/develop), a `repo_id` name, and the `<repo_id>-<N>` / `_<repo_id>-<N>` slot convention
+# (legacy two-letter ids: `<REPO_ID><N>` / `_<repo_id><N>`).
 # The main worktree folder name is free. worktrees.sh hard-fails on the slot branch rules; this block only surfaces them once per session, loudly, in red. It must never
 # touch exit_code: a non-zero guard strips the session's rules and Venture Context, the wrong
 # outcome for a repo that has simply not finished migrating.
@@ -372,16 +373,22 @@ if [[ -f "$_wf_file" ]]; then
     | sed -E 's/^\|[[:space:]]*`repo_id`[[:space:]]*\|[[:space:]]*`?([^`|]*)`?[[:space:]]*\|.*/\1/' \
     | tr -d '[:space:]'; } 2>/dev/null || true)"
   if [[ -z "$_repo_id_value" || "$_repo_id_value" == "TODO" ]]; then
-    _wf_problems="${_wf_problems}  - repo_id is unset in $_wf_file. Worktree tooling will refuse to run until it is two lowercase letters.\n"
-  elif ! [[ "$_repo_id_value" =~ ^[a-z]{2}$ ]]; then
-    _wf_problems="${_wf_problems}  - repo_id '$_repo_id_value' in $_wf_file is not two lowercase letters (^[a-z]{2}\$).\n"
+    _wf_problems="${_wf_problems}  - repo_id is unset in $_wf_file. Worktree tooling will refuse to run until it names the repository.\n"
+  elif ! [[ "$_repo_id_value" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
+    _wf_problems="${_wf_problems}  - repo_id '$_repo_id_value' in $_wf_file is not a lowercase name (letters, digits, single hyphens).\n"
   else
     _wf_stable_branch="$({ grep -E '^\|[[:space:]]*`stable_branch`[[:space:]]*\|' "$_wf_file" \
       | head -1 \
       | sed -E 's/^\|[[:space:]]*`stable_branch`[[:space:]]*\|[[:space:]]*`?([^`|]*)`?[[:space:]]*\|.*/\1/' \
       | tr -d '[:space:]'; } 2>/dev/null || true)"
     [[ -n "$_wf_stable_branch" && "$_wf_stable_branch" != "TODO" ]] || _wf_stable_branch="main"
-    _wf_upper="$(printf '%s' "$_repo_id_value" | tr '[:lower:]' '[:upper:]')"
+    if [[ "$_repo_id_value" =~ ^[a-z]{2}$ ]]; then
+      _wf_folder="$(printf '%s' "$_repo_id_value" | tr '[:lower:]' '[:upper:]')"
+      _wf_branch="_${_repo_id_value}"
+    else
+      _wf_folder="${_repo_id_value}-"
+      _wf_branch="_${_repo_id_value}-"
+    fi
     if grep -Fqx 'git worktree add -b _xx1 ../XX1 main' "$_wf_file" \
       || grep -Fqx 'git worktree add -b _xx2 ../XX2 main' "$_wf_file"; then
       _wf_problems="${_wf_problems}  - The literal worktree-slot scaffold remains in $_wf_file. Fill repo_id, rerun ai-venture to materialize the default two slots, or declare this project's slots manually.\n"
@@ -398,15 +405,15 @@ if [[ -f "$_wf_file" ]]; then
         _wf_slot_branch="${BASH_REMATCH[1]}"
         _wf_slot_path="${BASH_REMATCH[2]}"
         _wf_slot_base="${BASH_REMATCH[3]}"
-        if [[ "$_wf_slot_branch" =~ ^_${_repo_id_value}([1-9][0-9]*)$ ]]; then
+        if [[ "$_wf_slot_branch" =~ ^${_wf_branch}([1-9][0-9]*)$ ]]; then
           _wf_slot_number="${BASH_REMATCH[1]}"
           _wf_slot_numbers="$_wf_slot_numbers $_wf_slot_number"
-          _wf_slot_want_path="../${_wf_upper}${_wf_slot_number}"
+          _wf_slot_want_path="../${_wf_folder}${_wf_slot_number}"
           if [[ "$_wf_slot_path" != "$_wf_slot_want_path" ]]; then
             _wf_problems="${_wf_problems}  - Slot $_wf_slot_number has sibling path '$_wf_slot_path', expected '$_wf_slot_want_path'.\n"
           fi
         else
-          _wf_problems="${_wf_problems}  - Worktree branch '$_wf_slot_branch' does not match '_${_repo_id_value}<N>'.\n"
+          _wf_problems="${_wf_problems}  - Worktree branch '$_wf_slot_branch' does not match '${_wf_branch}<N>'.\n"
         fi
         if [[ "$_wf_slot_base" != "$_wf_stable_branch" ]]; then
           _wf_problems="${_wf_problems}  - Worktree base '$_wf_slot_base' does not match stable_branch '$_wf_stable_branch'.\n"

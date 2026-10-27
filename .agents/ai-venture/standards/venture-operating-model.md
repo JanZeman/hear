@@ -47,7 +47,7 @@ folder, the wiki path `ventures/<name>`, and server processes (`<name>-<componen
 several). Worktree slots are sibling folders `<name>-1`, `<name>-2` on branches `_<name>-1`,
 `_<name>-2`; the folder `<name>` is on the trunk. The recommended, unenforced clone location is
 `~/Dev/Ventures/<name>`. Renaming an existing Venture happens in one session, in verifiable steps.
-Until ai-venture supports full-name ids for worktrees, existing short ids stay.
+The `repo_id` is this name; an older two-letter id keeps working until the human switches it.
 
 ### Lifecycle
 

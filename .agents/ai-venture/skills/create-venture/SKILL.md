@@ -18,7 +18,7 @@ of Goals. Do not persist them until the human approves the complete interpretati
 
 ## 2. Seed the repository
 
-Confirm the two-letter `repo_id`, primary worktree, and intended ai-venture source. Follow the
+Confirm the `repo_id` (the full repository name), primary worktree, and intended ai-venture source. Follow the
 Setup guide's submodule procedure. Under the current Git policy, `git submodule add` remains the
 human's command because it changes the host Git index; the agent may run the subsequent
 `apply-ai-venture.sh --no-fetch` synchronization and inspect its effects.

@@ -26,11 +26,12 @@ Usage:
 Required (one of):
   --slot PATH                  Declared slot path, relative to the primary worktree or absolute
                                (repeatable). Explicit, closed set of slots.
-  --repo-id CODE               Two lowercase letters. Discover every sibling worktree whose folder
-                               name is <CODE><N> (N a positive integer) and treat it as a declared
-                               slot whose long-lived branch is _<code><N>. That branch carries the
-                               slot's work and is merged on consolidation. Open-ended: new slots
-                               are picked up automatically. Cannot be combined with --slot.
+  --repo-id CODE               The repository's lowercase name. Discover every sibling worktree
+                               whose folder is <code>-<N> (N a positive integer) and treat it as a
+                               declared slot whose long-lived branch is _<code>-<N>. A legacy
+                               two-letter code uses <CODE><N> on _<code><N> instead. That branch
+                               carries the slot's work and is merged on consolidation. Open-ended:
+                               new slots are picked up automatically. Cannot be combined with --slot.
 
 Always required:
   --integration-branch BRANCH  Branch checked out in the primary worktree
@@ -58,8 +59,8 @@ a fresh integration-branch commit (an ai-venture sync, for example) out to alrea
 carries no such judgment call, so it is the one direction a verified update procedure may run
 unattended.
 
-With --repo-id the engine hard-fails on a <CODE><N> worktree that is not on exactly its own
-_<code><N> branch, and on an orphaned _<code><N> branch that has no matching worktree.
+With --repo-id the engine hard-fails on a slot worktree that is not on exactly its own slot
+branch, and on an orphaned slot branch that has no matching worktree.
 USAGE
 }
 
@@ -150,8 +151,8 @@ if [[ -z "$repo_id" && ${#configured_slots[@]} -eq 0 ]]; then
   error 'Declare slots with either --slot PATH (repeatable) or --repo-id CODE.'
   exit 2
 fi
-if [[ -n "$repo_id" && ! "$repo_id" =~ ^[a-z]{2}$ ]]; then
-  error "--repo-id must be exactly two lowercase letters (got: '$repo_id')."
+if [[ -n "$repo_id" && ! "$repo_id" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*$ ]]; then
+  error "--repo-id must be a lowercase name: letters, digits, single hyphens (got: '$repo_id')."
   exit 2
 fi
 if [[ "$check_only" == true && "$do_push" == true ]]; then
@@ -225,18 +226,25 @@ fi
 
 if [[ -n "$repo_id" ]]; then
   step "Discovering '$repo_id' worktree slots"
-  # Slot folders use the uppercase form (<REPO_ID><N>); slot branches use lowercase (_<repo_id><N>).
-  repo_id_upper="$(printf '%s' "$repo_id" | tr '[:lower:]' '[:upper:]')"
-  # The main worktree folder name is free; only the sibling slot folders follow <REPO_ID><N>.
+  # A full-name repo_id gives slot folders <repo_id>-<N> on branches _<repo_id>-<N>. A legacy
+  # two-letter one keeps the uppercase folders <REPO_ID><N> on branches _<repo_id><N>.
+  if [[ "$repo_id" =~ ^[a-z]{2}$ ]]; then
+    slot_folder="$(printf '%s' "$repo_id" | tr '[:lower:]' '[:upper:]')"
+    slot_branch_prefix="_${repo_id}"
+  else
+    slot_folder="${repo_id}-"
+    slot_branch_prefix="_${repo_id}-"
+  fi
+  # The main worktree folder name is free; only the sibling slot folders follow the slot names.
   declare -a discovered_numbers=()
   for i in "${!wt_paths[@]}"; do
     [[ "${wt_paths[$i]}" == "$primary_path" ]] && continue
     base="${wt_paths[$i]##*/}"
-    [[ "$base" =~ ^${repo_id_upper}([1-9][0-9]*)$ ]] || continue
+    [[ "$base" =~ ^${slot_folder}([1-9][0-9]*)$ ]] || continue
     n="${BASH_REMATCH[1]}"
     branch="${wt_branches[$i]}"
-    expected="_${repo_id}${n}"
-    # One slot is one long-lived branch: <REPO_ID><N> must be on exactly its own _<repo_id><N>.
+    expected="${slot_branch_prefix}${n}"
+    # One slot is one long-lived branch: each slot folder must be on exactly its own slot branch.
     # Anything else -- detached, another slot's branch, the integration branch, an ad-hoc name --
     # is a convention break the engine will not guess its way through.
     if [[ "$branch" != "$expected" ]]; then
@@ -248,21 +256,21 @@ if [[ -n "$repo_id" ]]; then
   done
 
   if [[ ${#configured_slots[@]} -eq 0 ]]; then
-    error "No '${repo_id_upper}<N>' worktrees are registered as siblings of $primary_path."
+    error "No '${slot_folder}<N>' worktrees are registered as siblings of $primary_path."
     exit 1
   fi
 
-  # Every local _<repo_id><N> branch must belong to a discovered worktree. A leftover slot branch
+  # Every local slot branch must belong to a discovered worktree. A leftover slot branch
   # whose worktree was removed would otherwise sit unmergeable and invisible.
   while IFS= read -r slot_branch; do
-    [[ "$slot_branch" =~ ^_${repo_id}([1-9][0-9]*)$ ]] || continue
+    [[ "$slot_branch" =~ ^${slot_branch_prefix}([1-9][0-9]*)$ ]] || continue
     orphan_n="${BASH_REMATCH[1]}"
     match=false
     for ((k = 0; k < ${#discovered_numbers[@]}; k++)); do
       [[ "${discovered_numbers[$k]}" == "$orphan_n" ]] && match=true
     done
     if [[ "$match" != true ]]; then
-      error "Orphaned slot branch '$slot_branch' has no '${repo_id_upper}${orphan_n}' worktree."
+      error "Orphaned slot branch '$slot_branch' has no '${slot_folder}${orphan_n}' worktree."
       exit 1
     fi
   done < <(git -C "$repo_dir" for-each-ref --format='%(refname:short)' refs/heads)

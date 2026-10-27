@@ -28,13 +28,13 @@ this exact shape:
 git worktree add -b <slot-branch> <sibling-path> <base-ref>
 ```
 
-where `<slot-branch>` is `_<repo_id><N>`, `<sibling-path>` is `../<REPO_ID><N>`, and `<base-ref>`
+where `<slot-branch>` is `_<repo_id>-<N>`, `<sibling-path>` is `../<repo_id>-<N>` (a legacy
+two-letter `repo_id`: `_<repo_id><N>` and `../<REPO_ID><N>`), and `<base-ref>`
 is the trunk (`stable_branch`, default `main`). `N` runs `1..count` with no gaps.
 
 Treat the commands as immutable data, not a template to improvise. Stop without mutation and
 report the missing or ambiguous declaration if any command differs from that shape, if the set is
-empty, if the numbering has a gap, if `repo_id` is not two lowercase letters, if the main worktree
-folder is not the uppercase `repo_id`, or if the standard does not explicitly permit this skill.
+empty, if the numbering has a gap, if `repo_id` is not a lowercase name, or if the standard does not explicitly permit this skill.
 
 Before the generic shape check, compare the block against the table's `repo_id` and
 `stable_branch`. The literal `_xx1`/`../XX1` scaffold means adoption is incomplete: report that
