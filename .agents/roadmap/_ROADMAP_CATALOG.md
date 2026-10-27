@@ -99,7 +99,6 @@ actually applies, and writing that word - never an invented synonym.
 
 | # | Item | Milestone | Notes |
 | --- | --- | --- | --- |
-| 011 | [Check the Venture wiki against the human-first rules](011-check-the-venture-wiki-against-the-human-first-rules.md) | - | Auto-created; introduced v1.0.338, pending since sync to ai-venture v1.0.351 |
 | 002 | [Shell navigation functional end-to-end](002-shell-navigation-functional.md) | Vertical slice | Depends on: - |
 | 004 | [Secondary screens visual polish](004-secondary-screens-visual-polish.md) | Vertical slice | Depends on: -; lower priority than 001-003 |
 | 005 | [Show status bar, hide only nav bar](005-immersive-os-chrome.md) | Vertical slice | Depends on: -; nav-hide done+verified, status-bar-visible unresolved, iOS unverified |

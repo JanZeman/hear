@@ -244,9 +244,10 @@ the roadmap, ai-venture framework content, or any other agent technicality) ever
 ### The Venture page
 
 Every Venture has one page that says what it is: the **Venture page**. It is the Venture root page
-itself (for example `ventures/example`), titled with the Venture's name alone (for example "Betty", never "Betty Venture": it already
-sits under Ventures), so the first page a
-person opens is the one that explains the Venture. Only a host that cannot use its root names a
+itself (for example `ventures/example`), titled with the Venture's name alone ("Example"; the
+path already says Ventures). Its top heading reads "<Name> Venture" ("Example Venture") unless the
+name already ends with "venture". So the first page a person opens is the one that explains the
+Venture. Only a host that cannot use its root names a
 page below it with `venture_page` in `.agents/wiki.json`;
 `python3 scripts/venture.py --root . wiki-config` prints the resolved path. The page holds the
 Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals, all on that one page and

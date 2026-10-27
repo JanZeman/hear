@@ -1,6 +1,6 @@
 # Check the Venture wiki against the human-first rules
 
-**Status**: Open
+**Status**: Done
 **Milestone**: -
 **Depends on**: -
 
@@ -48,8 +48,8 @@ valid result.
 
 ## Definition of done
 
-- [ ] Migration completed as described above.
-- [ ] Verified with: `bash ai-venture-guard.sh`
+- [x] Migration completed as described above.
+- [x] Verified with: `bash ai-venture-guard.sh`
 
 ## Notes
 
@@ -57,3 +57,4 @@ valid result.
   v1.0.338; this repo was syncing to ai-venture v1.0.351 when it was found still pending.
   Registering that the work exists is automatic. If the migration requires deciding what
   old content becomes, that decision still needs a human.
+- 2026-10-27: Done together with the owner. The wiki root `ventures/hear` holds the Venture page (titled "Hear", markdown), the separate `hear-venture` page was deleted, and there were no Goal, Department, or other agent pages to remove. `wiki.json` has no mirror key and there is no `WIKI_SYNC.json`.

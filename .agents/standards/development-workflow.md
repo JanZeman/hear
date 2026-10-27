@@ -25,14 +25,14 @@ Branch deletion is always a manual, human-only action (`AV-GIT-001`).
 
 | Field | Value | Meaning |
 | --- | --- | --- |
-| `repo_id` | `hear` | The repository's full name in lowercase (letters, digits, single hyphens), for example `bread`. Chosen once at adoption. |
+| `repo_id` | `hear` | The repository's full name in lowercase (letters, digits, single hyphens), for example `example`. Chosen once at adoption. |
 | `stable_branch` | `main` | The trunk. Defaults to `main`; change only if this project's trunk has a different name. |
 | `topic_prefixes` | `feature/ bugfix/ ci/` | Space-separated allowed prefixes for the optional short-lived topic branches. |
 
 - The **main worktree** folder may have any name. Naming it `<repo_id>` is a recommendation,
   never enforced, so local paths and symlinks keep working.
 - **Linked worktree slots** are sibling folders `<repo_id>-1`, `<repo_id>-2`, and so on. Each slot
-  has one dedicated branch `_<repo_id>-<N>` (`_bread-1` for `bread-1`). An older two-letter
+  has one dedicated branch `_<repo_id>-<N>` (`_example-1` for `example-1`). An older two-letter
   `repo_id` keeps its uppercase folders `<REPO_ID><N>` on branches `_<repo_id><N>`.
 - The slot branch carries that slot's work and is merged into `main` on consolidation. When the
   slot is idle it rests on that same branch. It is never renamed to a `feature/*` branch; the

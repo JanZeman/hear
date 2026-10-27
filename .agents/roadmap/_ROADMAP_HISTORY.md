@@ -18,6 +18,7 @@ its numbered file.
 
 ## Done
 
+- 011 [Check the Venture wiki against the human-first rules](011-check-the-venture-wiki-against-the-human-first-rules.md): Done 2026-10-27 - wiki root `ventures/hear` holds the Venture page; the separate `hear-venture` page was deleted.
 - 007 [Reduce brand art visual weight](007-brand-art-visual-weight.md): Done 2026-09-25 after
   integrating the canonical `hear-logo-handoff-v3.1` package.
 
