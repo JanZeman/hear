@@ -47,7 +47,16 @@ folder, the wiki path `ventures/<name>`, and server processes (`<name>-<componen
 several). Worktree slots are sibling folders `<name>-1`, `<name>-2` on branches `_<name>-1`,
 `_<name>-2`; the folder `<name>` is on the trunk. The recommended, unenforced clone location is
 `~/Dev/Ventures/<name>`. Renaming an existing Venture happens in one session, in verifiable steps.
-The `repo_id` is this name; an older two-letter id keeps working until the human switches it.
+In text a person reads, the name is written in words ("Example Name" for `example-name`).
+
+The `repo_id` is the one technical identifier and is normally this name. The owner may approve a
+shorter `repo_id` for a Venture with a long name, recorded with its reason as a `repo_id_exception`
+row in `.agents/standards/development-workflow.md`. The short id then appears only in technical
+identifiers derived from it: the clone folder and the worktree slots with their branches (a
+two-letter id keeps `<ID>1` on `_<id>1`). The wiki path, the Venture page, the definition, the
+Goals, and all prose use the full name; the short id is never explained or used as a nickname.
+Without that row, the guard notes a `repo_id` that differs from the full name, and never fails
+over it.
 
 ### Lifecycle
 
@@ -63,7 +72,8 @@ A new Venture starts with an empty repository named by these rules, then discove
 
 ### Venture checklist
 
-1. Venture repo named by these rules; secondary repositories, if any, as listed submodules.
+1. Venture repo named by these rules, `repo_id` equal to the name or a recorded exception;
+   secondary repositories, if any, as listed submodules.
 2. Definition: Identity, Purpose, Vision, and Strategy filled.
 3. Goals as OKRs: Objectives with Key Results.
 4. Roadmap in the format ai-venture expects.

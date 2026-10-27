@@ -436,6 +436,17 @@ if [[ -n "$_wf_problems" ]]; then
   printf "${RED}%b${NC}" "$_wf_problems"
   echo -e "${DIM}  Standard: $_wf_file. Branch deletion is manual, human-only (AV-GIT-001).${NC}"
 fi
+# A repo_id other than the repository's full name is fine only as a recorded exception. The full
+# name is the origin repository's name in kebab case (BetterName -> better-name). Inform only.
+if [[ -z "$_wf_problems" && -n "${_repo_id_value:-}" && "$_repo_id_value" != "TODO" ]]; then
+  _wf_full_name="$(git remote get-url origin 2>/dev/null | sed -E 's#\.git$##; s#.*[/:]##; s/([a-z0-9])([A-Z])/\1-\2/g' | tr '[:upper:]' '[:lower:]' || true)"
+  if [[ -n "$_wf_full_name" && "$_repo_id_value" != "$_wf_full_name" ]] &&
+     ! awk '/^```/ { fenced = !fenced; next } !fenced' "$_wf_file" 2>/dev/null |
+       grep -Eq '^\|[[:space:]]*`repo_id_exception`[[:space:]]*\|[[:space:]]*[^|[:space:]]'; then
+    echo -e "${DIM}  Notice: repo_id '$_repo_id_value' is not the full name '$_wf_full_name'. Switch it with the human, or record${NC}"
+    echo -e "${DIM}  the approved reason in a \`repo_id_exception\` row of $_wf_file.${NC}"
+  fi
+fi
 # AI-VENTURE-WORKFLOW-CHECK:END
 
 # --- Required files ---
