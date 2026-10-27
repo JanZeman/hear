@@ -1,0 +1,8 @@
+{
+  "connector": "wiki-jz",
+  "root": "ventures/hear",
+  "host": "wiki.janzeman.com",
+  "visibility": {
+    "default": "private"
+  }
+}
