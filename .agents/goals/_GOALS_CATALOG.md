@@ -62,7 +62,7 @@ catalog holds only the objective lines and their status.
 
 | # | Objective | Status |
 | --- | --- | --- |
-| 001 | [Hear demonstrably interests people outside the project](001-hear-demonstrably-interests-outsiders.md) | Draft |
+| 001 | [Hear demonstrably interests people outside the project](001-hear-demonstrably-interests-outsiders.md) | Settled |
 
 <!-- One objective is deliberately all this Venture has right now: it is a single-person, early
      prototype whose only current question is whether a demo generates real outside interest.

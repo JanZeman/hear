@@ -1,6 +1,6 @@
 # 001: Hear demonstrably interests people outside the project
 
-**Status**: Draft
+**Status**: Settled
 **Set**: 2026-09-25
 **Last reviewed**: 2026-09-25
 
