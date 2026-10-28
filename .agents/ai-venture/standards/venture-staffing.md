@@ -70,12 +70,36 @@ consults only materially affected Departments, and may propose WORKERS. The huma
 launch of every new WORKER. A dispatched SESSION states its assigned ROLE, DEPARTMENT, and optional
 POSITION instead; it does not become a Department owner or coordinate further staffing.
 
+`ELAPSED` is measured from the first action of the turn: record the start then and subtract it
+before returning; recheck a complex result that shows only seconds.
+
 The answer ends with the matching next-step block:
 
 ```text
 +-- NEXT -----------------------------------------+
 | <one roadmap-aware next step>                   |
 +-------------------------------------------------+
+```
+
+## Often and short (`AV-RESPONSE-002`)
+
+Often and short beats once and long. Many short turns let the human follow and steer; one long
+answer with many points buries them.
+
+- **One point at a time.** Each response handles the point now in focus, briefly. A few trivial
+  points that belong together may go in one response. Finish a point before starting the next.
+- **Nothing is dropped.** When the agent finds several points, it keeps all of them, orders them,
+  and works through them. Details of points not in focus stay out of the answer.
+- **Topics form a stack, each with its own queue.** A detour to another topic goes on top. A small
+  detour is done at once; a larger one is only written to the relevant roadmap, which ends it.
+  When a topic is finished it comes off the stack, and the agent says which topic it returns to
+  and how many points remain there. More than two or three levels deep, the agent proposes moving
+  the lowest topic to the roadmap.
+- **The `QUEUE:` line** stands just before `NEXT` whenever points remain. It names topics and
+  counts only, current topic first, then the topics below it:
+
+```text
+QUEUE: slot naming (2 left) < wiki migration (6 left)
 ```
 
 ## Order of decision

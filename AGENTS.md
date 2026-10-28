@@ -137,9 +137,8 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   does not move the boundary. When a deterministic local tool cannot complete a task that needs
   model work, load `.agents/ai-venture/standards/model-routing.md` first; bounded LOW work uses its native
   helper and verified receipt. When work spans more than one coherent WORKLOAD or WORKER, decide in this
-  order: authority, then budgets (an exhausted cap goes to the human, never one tier up), then
-  mutation ownership (no route writes without the worktree lease), then the cheapest tier this
-  unit's own signals justify, never inherited from the last one.
+  order: authority, budgets (an exhausted cap goes to the human), mutation ownership (no write
+  without the worktree lease), then the cheapest tier this unit's own signals justify.
   Details: `.agents/ai-venture/standards/venture-staffing.md`.
 - `AV-GOALS-001` [`P0`]: Before each change, name its Objective and check the approach against
   Strategy. When it plausibly moves that Objective, load its file and name the Key Result and
@@ -191,7 +190,7 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `python3 scripts/correspondence-turn.py --as <the DEPARTMENT you hold>` and reacts to the message it names,
   or reports plainly that there is none. Ignore case and a trailing full stop: dictation adds them.
 - `AV-COST-001` [`P1`]: When the session-start cost check lists the model you are running on as
-  expensive, say so in one line of your first response, before the work: name the model, the ratio
+  expensive, say so in one first-response line, before the work: name the model, the ratio
   the check prints, and whether you judge a cheaper one sufficient for this task. The ratio is a
   price, never a claim about capability. Never refuse, never ask permission: the human decides. No
   ladder configured means no check and no line.
@@ -211,18 +210,20 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 - `AV-RESPONSE-001` [`P1`]: In every response, return the AI-venture Board: an ASCII header with
   full `ROLE`, `LEAD DEPARTMENT`, `MODEL`, and `ELAPSED`, then `Summary:` and an ASCII `NEXT`
   block. In the first response, after the banner, introduce the SESSION's purpose, responsibilities,
-  and authority. Unless an explicit staffing assignment says otherwise, it is a `COORDINATOR` in
+  and authority. By default it is a `COORDINATOR` in
   `MANAGEMENT`: it stewards the Roadmap, selects each phase's Lead and Consulted Departments, and
   proposes WORKER staffing. Launch a WORKER only after explicit human approval. An assigned WORKER
   states its assigned ROLE, DEPARTMENT, and optional POSITION. Name the MODEL and effort you know;
-  use `unknown` only when genuinely unknown, never guessed. Record start at first action and subtract
-  before return; recheck complex seconds-only results. A tool result, partial check, or routine
+  `unknown` only when genuinely unknown, never guessed. A tool result, partial check, or routine
   repair is not an answer boundary: return only at a terminal result or a real human boundary. Details:
   `.agents/ai-venture/standards/venture-staffing.md`.
+- `AV-RESPONSE-002` [`P1`]: Often and short beats once and long: one point per response (or a few
+  trivial related ones), finished before the next; open points and detour return topics go in a
+  `QUEUE:` line before `NEXT`.
 - `AV-CONTEXT-001` [`P1`]: Before changing automatically supplied agent context, load
   `.agents/ai-venture/skills/context-budgeting/SKILL.md`; preserve behavior before reducing words.
-- `AV-STYLE-001` [`P1`]: Never emit Unicode U+2014 in any agent-authored text or file, including
-  chat, correspondence, code, documents, and Git/PR text. Use ASCII `-` even when quoting;
+- `AV-STYLE-001` [`P1`]: Never emit Unicode U+2014 in any agent-authored text or file
+  (chat, correspondence, code, documents, Git/PR text). Use ASCII `-` even when quoting;
   represent the code point by escape when code must detect it. Replace it
   only in changed agent-authored canonical text; keep borrowed excerpts and fixtures, start no
   broad cleanup, and fix generated copies at their source. Details: `.agents/standards/formatting.md`.
