@@ -393,21 +393,19 @@ if [[ -f "$_wf_file" ]]; then
       || grep -Fqx 'git worktree add -b _xx2 ../XX2 main' "$_wf_file"; then
       _wf_problems="${_wf_problems}  - The literal worktree-slot scaffold remains in $_wf_file. Fill repo_id, rerun ai-venture to materialize the default two slots, or declare this project's slots manually.\n"
     else
-      _wf_slot_count=0
-      _wf_slot_numbers=""
+      # Only a command on a slot branch (`-b _...`) declares a slot; other `git worktree add`
+      # lines in the standard are examples. The number of slots is the project's own choice.
       while IFS= read -r _wf_slot_line; do
         [[ -n "$_wf_slot_line" ]] || continue
         if ! [[ "$_wf_slot_line" =~ ^git[[:space:]]+worktree[[:space:]]+add[[:space:]]+-b[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)[[:space:]]+([^[:space:]]+)$ ]]; then
           _wf_problems="${_wf_problems}  - Worktree setup command has an unsupported shape: $_wf_slot_line\n"
           continue
         fi
-        _wf_slot_count=$((_wf_slot_count + 1))
         _wf_slot_branch="${BASH_REMATCH[1]}"
         _wf_slot_path="${BASH_REMATCH[2]}"
         _wf_slot_base="${BASH_REMATCH[3]}"
         if [[ "$_wf_slot_branch" =~ ^${_wf_branch}([1-9][0-9]*)$ ]]; then
           _wf_slot_number="${BASH_REMATCH[1]}"
-          _wf_slot_numbers="$_wf_slot_numbers $_wf_slot_number"
           _wf_slot_want_path="../${_wf_folder}${_wf_slot_number}"
           if [[ "$_wf_slot_path" != "$_wf_slot_want_path" ]]; then
             _wf_problems="${_wf_problems}  - Slot $_wf_slot_number has sibling path '$_wf_slot_path', expected '$_wf_slot_want_path'.\n"
@@ -418,15 +416,7 @@ if [[ -f "$_wf_file" ]]; then
         if [[ "$_wf_slot_base" != "$_wf_stable_branch" ]]; then
           _wf_problems="${_wf_problems}  - Worktree base '$_wf_slot_base' does not match stable_branch '$_wf_stable_branch'.\n"
         fi
-      done < <(grep -E '^git[[:space:]]+worktree[[:space:]]+add[[:space:]]+' "$_wf_file" 2>/dev/null || true)
-      if [[ "$_wf_slot_count" -eq 0 ]]; then
-        _wf_problems="${_wf_problems}  - No direct worktree slot commands are declared in $_wf_file.\n"
-      else
-        for ((_wf_expected_slot = 1; _wf_expected_slot <= _wf_slot_count; _wf_expected_slot++)); do
-          [[ " $_wf_slot_numbers " == *" $_wf_expected_slot "* ]] ||
-            _wf_problems="${_wf_problems}  - Worktree slot numbering is missing $_wf_expected_slot for repo_id '$_repo_id_value'.\n"
-        done
-      fi
+      done < <(grep -E '^git[[:space:]]+worktree[[:space:]]+add[[:space:]]+-b[[:space:]]+_' "$_wf_file" 2>/dev/null || true)
     fi
   fi
 fi

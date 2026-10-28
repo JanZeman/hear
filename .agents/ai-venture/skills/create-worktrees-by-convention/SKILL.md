@@ -30,17 +30,19 @@ git worktree add -b <slot-branch> <sibling-path> <base-ref>
 
 where `<slot-branch>` is `_<repo_id>-<N>`, `<sibling-path>` is `../<repo_id>-<N>` (a legacy
 two-letter `repo_id`: `_<repo_id><N>` and `../<REPO_ID><N>`), and `<base-ref>`
-is the trunk (`stable_branch`, default `main`). `N` runs `1..count` with no gaps.
+is the trunk (`stable_branch`, default `main`). `N` is any positive number; how many slots a
+project has, and which numbers, is its own choice. Only a command on a slot branch (`-b _...`)
+declares a slot; other `git worktree add` lines in the standard are examples.
 
 Treat the commands as immutable data, not a template to improvise. Stop without mutation and
-report the missing or ambiguous declaration if any command differs from that shape, if the set is
-empty, if the numbering has a gap, if `repo_id` is not a lowercase name, or if the standard does not explicitly permit this skill.
+report the missing or ambiguous declaration if any command differs from that shape, if no slot
+is declared, if `repo_id` is not a lowercase name, or if the standard does not explicitly permit this skill.
 
 Before the generic shape check, compare the block against the table's `repo_id` and
 `stable_branch`. The literal `_xx1`/`../XX1` scaffold means adoption is incomplete: report that
 specific cause and direct the human to rerun ai-venture after filling `repo_id`, or to replace the
 project-owned declaration deliberately. For every other mismatch, say whether the branch name,
-sibling path, base reference, or slot numbering differs from the declaration. Do not derive a
+sibling path, or base reference differs from the declaration. Do not derive a
 replacement during provisioning and do not run any Git command until the declaration is coherent.
 
 ## Preflight
