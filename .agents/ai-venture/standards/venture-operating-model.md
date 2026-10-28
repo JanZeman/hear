@@ -254,10 +254,13 @@ the roadmap, ai-venture framework content, or any other agent technicality) ever
 ### The Venture page
 
 Every Venture has one page that says what it is: the **Venture page**. It is the Venture root page
-itself (for example `ventures/example`), titled with the Venture's name alone ("Example"; the
-path already says Ventures). Its top heading reads "<Name> Venture" ("Example Venture") unless the
-name already ends with "venture". So the first page a person opens is the one that explains the
-Venture. Only a host that cannot use its root names a
+itself (for example `ventures/example`). On a shared wiki, its title is the Venture's name alone
+("Example"), because the path already says Ventures. On a wiki dedicated to one Venture, its title
+is "<Name> Venture" ("Example Venture"): every page already concerns that Venture, so the added
+word distinguishes its direction, Strategy, and Goals from the Product's other documentation.
+Its top heading is "<Name> Venture" in both cases. When the name already ends with "venture",
+keep that name without adding the word again. So the first page a person opens is the one that
+explains the Venture. Only a host that cannot use its root names a
 page below it with `venture_page` in `.agents/wiki.json`;
 `python3 scripts/venture.py --root . wiki-config` prints the resolved path. The page holds the
 Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals, all on that one page and
@@ -290,7 +293,7 @@ it as "Moving pages" says, then publishes the Venture page onto the root and ret
 Whatever is declared a Venture lives under the wiki's Venture area: on a shared wiki host its root
 is `ventures/<venture-name>`, the same place every other Venture on that host uses. The name is
 written out in full, never abbreviated, so a person recognizes it in a path. A host dedicated to
-one Venture may keep the root documented for it. Connector identity, the root, and the host's
+one Venture may keep the root documented for it; it needs no separate Ventures container. Connector identity, the root, and the host's
 visibility live in the repository's own `.agents/wiki.json`; a mapping is mandatory (`AV-Q006`),
 and the guard reports a missing one without naming any actual host or path.
 

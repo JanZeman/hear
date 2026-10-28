@@ -9,8 +9,9 @@ description: Publish the Venture page (Venture Definition and Goals) to the Vent
 `.agents/ai-venture/standards/venture-operating-model.md` first. Whoever writes on the wiki, human
 or agent, writes for a person. Nothing that exists for agents ever appears on it.
 
-The repository owns exactly one page on the wiki: the **Venture page**, titled with the
-Venture's name alone (for example "Example"), with the Venture Definition (Identity, Purpose, Vision, Strategy) and the Goals. It is
+The repository owns exactly one page on the wiki: the **Venture page**, with the Venture Definition
+(Identity, Purpose, Vision, Strategy) and the Goals. Its title follows the shared-versus-dedicated
+wiki distinction in the standard's "The Venture page" section. It is
 the Venture root page itself: the `venture_page` that `python3 scripts/venture.py --root .
 wiki-config` prints. It is published one way, repository to wiki. Everything else on the wiki
 belongs to the human and is never synchronized. Paths and links
@@ -40,8 +41,9 @@ the connector or mapping is unavailable, do not block work and do not pretend a 
 ## Publish
 
 1. Render the Venture page for a person from `.agents/VENTURE.md` and `.agents/goals/`. The page
-   title is the Venture's name alone ("Example"); the top heading in the body adds "Venture"
-   ("Example Venture") so a reader knows what it is, unless the name already ends with "venture".
+   title and top heading follow "The Venture page" in `venture-operating-model.md`: shared
+   wikis use the name alone as the title, dedicated wikis include "Venture". Keep the standard's
+   exception for a name that already ends with "venture".
    Then Identity,
    Purpose, Vision, and Strategy, then each current Goal with its objective, status, key results,
    and why they were chosen. Leave out dated notes and rejected formulations; they stay in the
