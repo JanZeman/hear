@@ -6,7 +6,8 @@ set -euo pipefail
 # the exact block being run here, pass that reply verbatim as --reply, and pass the identical root, message,
 # and push flag that block showed. Only `kk` authorizes: `ok`, a bare `k`, and every other short
 # reply keep their ordinary meaning (AV-INPUT-001), so this script refuses them and AV-GIT-001
-# still governs. The commit carries the repository's configured Git identity and nothing else.
+# still governs. The commit carries the repository's configured Git identity and nothing else, and
+# that identity must be the human's, never a tool's.
 
 usage() {
   cat <<'USAGE'
@@ -89,14 +90,21 @@ cd "$root"
 # The identity is the repository's own Git config. Environment overrides would replace it
 # silently, so drop them; an unset value stops the run instead of falling back to a default.
 unset GIT_AUTHOR_NAME GIT_AUTHOR_EMAIL GIT_COMMITTER_NAME GIT_COMMITTER_EMAIL
-if [[ -z "$(git config user.name || true)" || -z "$(git config user.email || true)" ]]; then
-  echo "ERROR Git identity is not configured for $root; nothing was run." >&2
+# A tool's identity (a hosted container's preconfigured `noreply@` address or a `[bot]` account)
+# is not the human's, so it counts as unset (AV-GIT-002 case 2). Keep in sync with the guard's AV-Q007.
+_name="$(git config user.name || true)"
+_email="$(git config user.email || true)"
+if printf '%s\n%s\n' "$_name" "$_email" | grep -Eiq '\[bot\]|^no-?reply@'; then
+  _name=''
+fi
+if [[ -z "$_name" || -z "$_email" ]]; then
+  echo "ERROR Git identity is not configured for $root, or it is a tool's, not yours; nothing was run." >&2
   echo "      Ask the human to set it in this repository, then show the block again:" >&2
   echo "        git config user.name \"<your name>\"" >&2
   echo "        git config user.email \"<your email>\"" >&2
   exit 4
 fi
-if printf '%s\n' "$message" | grep -Eiq '^co-authored-by:|^[^[:alnum:]]*generated with '; then
+if printf '%s\n' "$message" | grep -Eiq '^co-authored-by:|^[[:alnum:]-]+-session:|^[^[:alnum:]]*generated (with|by) '; then
   echo "ERROR the message carries an attribution trailer; AV-GIT-002 forbids it. Nothing was run." >&2
   exit 2
 fi

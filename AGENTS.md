@@ -113,13 +113,14 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   explicit `create-worktrees-by-convention` slots, and a verified direct `Update AV`, `publish AV`,
   or named fleet update (including its one-way `integration -> slot` worktree propagation) permit
   mutations. Remote URLs use SSH; HTTPS only in emergencies.
-- `AV-GIT-002` [`P1`]: Outside a verified direct `Update AV`, `publish AV`, or named fleet update,
-  show a block starting with `cd "<absolute current-worktree root>"`, then `git add .` and
-  `git commit -m "<principle-centered English message>"`; never run its Git commands. The verified
-  update procedure may stage, commit, and push only its audited release or sync paths. A reply
-  starting with `kk` (not `ok` or `k`) to that exact block is the other exception: run it via
-  `scripts/run-confirmed-commit.sh`, unedited, then do the proposed next step. Commits: configured Git identity, no attribution
-  trailer. Details: `.agents/ai-venture/standards/git.md`.
+- `AV-GIT-002` [`P1`]: All Git and Git-host activity, in any repository, looks hand-done by the
+  human (their identity, never a tool's; their conventions; no attribution) unless they allowed
+  otherwise when asked. Outside a verified direct `Update AV`, `publish AV`, or named fleet
+  update, show a block starting with `cd "<absolute current-worktree root>"`, then `git add .` and
+  `git commit -m "<principle-centered English message>"`; never run its Git commands; the update
+  procedure may commit and push only its audited paths. A `kk`-first reply (not `ok` or `k`) to
+  that exact block is the other exception: run it via `scripts/run-confirmed-commit.sh`, unedited,
+  then do the proposed next step. Details: `.agents/ai-venture/standards/git.md`.
 - `AV-GIT-003` [`P1`]: Before stating any repository's or worktree's Git state (committed, pushed,
   clean, branch, ahead or behind), re-read it with read-only Git after your last action this
   turn. Verify: Stop hook `check-git-state-claim.py`. Details: `.agents/ai-venture/standards/git.md`.
@@ -132,9 +133,8 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `.agents/ai-venture/standards/vendor-support.md`; verify every Primary vendor before
   claiming the behavior complete.
 - `AV-MODEL-001` [`P1`]: Put a credential, a vulnerability, an authentication or authorization
-  policy, personal data, or a new external access path to the human before touching it, whatever
-  the method: a one-line edit, a script, or a tool call is still that decision, and "just do it"
-  does not move the boundary. When a deterministic local tool cannot complete a task that needs
+  policy, personal data, or a new external access path to the human before touching it by any
+  method; "just do it" does not move that boundary. When a deterministic local tool cannot complete a task that needs
   model work, load `.agents/ai-venture/standards/model-routing.md` first; bounded LOW work uses its native
   helper and verified receipt. When work spans more than one coherent WORKLOAD or WORKER, decide in this
   order: authority, budgets (an exhausted cap goes to the human), mutation ownership (no write

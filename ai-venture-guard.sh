@@ -287,6 +287,13 @@ if [[ -n "$_q_missing_identity" ]]; then
   _q_verb="is"; [[ "$_q_missing_identity" == *" and "* ]] && _q_verb="are"
   _q_add "AV-Q007: Git $_q_missing_identity $_q_verb not set in this repository, so no commit can carry your identity. Set it here: git config user.name \"<your name>\" and git config user.email \"<your email>\"."
 fi
+# A tool's identity (a hosted container's preconfigured `noreply@` address or a `[bot]` account)
+# counts as unset (AV-GIT-002 case 2). Keep in sync with run-confirmed-commit.sh; never print it.
+if [[ -z "$_q_missing_identity" ]] &&
+  printf '%s\n%s\n' "$(git -C "$ROOT_DIR" config user.name 2>/dev/null || true)" \
+    "$(git -C "$ROOT_DIR" config user.email 2>/dev/null || true)" | grep -Eiq '\[bot\]|^no-?reply@'; then
+  _q_add "AV-Q007: Git identity in this repository is a tool's, not yours, so a commit would not look like your own. Set yours here: git config user.name \"<your name>\" and git config user.email \"<your email>\"."
+fi
 
 if [[ -n "$_q_findings" ]]; then
   strong "AV quality: $(printf '%s' "$_q_findings" | grep -c '^') condition(s) below standard."
