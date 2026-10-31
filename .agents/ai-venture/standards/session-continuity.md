@@ -24,7 +24,7 @@ open risks, and concrete next steps. Keep it a concise handoff, never a raw tran
 for secrets.
 
 After creating a continuing snapshot, run
-`python3 template/scripts/session-snapshots.py .agents/sessions/<new-snapshot>.md`. The helper automatically
+`python3 scripts/session-snapshots.py .agents/sessions/<new-snapshot>.md`. The helper automatically
 prunes a provably linear lineage to its newest two files. Briefly tell the human what it removed;
 do not ask permission. Git review exposes the deletion and history keeps it recoverable. The helper
 must refuse branches, cycles, unsafe paths, or invalid metadata. If it refuses, keep every file and
@@ -61,8 +61,9 @@ handled later and name the active topic now being addressed. For example: “We 
 later. Now we are focusing on this: …”
 
 On completing an active topic, choose the next queued item deliberately, promote it to a roadmap
-item when warranted, or remove it only after resolving it. The guard warns when an existing
-handoff lacks either required heading; it cannot decide whether topics are semantically related.
+item when warranted, or remove it only after resolving it. The guard warns when the newest
+handoff lacks either required heading (earlier snapshots are immutable, so it skips them); it
+cannot decide whether topics are semantically related.
 
 ### Detour stack
 

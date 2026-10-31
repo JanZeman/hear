@@ -127,15 +127,24 @@ assert_not_contains() {
 AI_VENTURE_CACHE="$ROOT_DIR/.agents/.ai-venture-last-run"
 AI_VENTURE_TTL=86400  # seconds (24 h)
 
+# An update that landed (for example a fleet update pulled from the remote) counts as a check:
+# the clock restarts at the commit that last changed AI_VENTURE_VERSION.
 _stale=true
+_last=0
 if [[ -f "$AI_VENTURE_CACHE" ]]; then
-  _last=$(cat "$AI_VENTURE_CACHE" 2>/dev/null || echo 0)
-  _now=$(date +%s)
-  (( _now - _last < AI_VENTURE_TTL )) && _stale=false
+  _last=$(head -n 1 "$AI_VENTURE_CACHE" 2>/dev/null || echo 0)
+  [[ "$_last" =~ ^[0-9]+$ ]] || _last=0
 fi
+_av_version_file="AI_VENTURE_VERSION"
+_av_updated=$(git log -1 --format=%ct -- "$_av_version_file" 2>/dev/null || true)
+[[ "$_av_updated" =~ ^[0-9]+$ ]] && (( _av_updated > _last )) && _last=$_av_updated
+_now=$(date +%s)
+(( _last > 0 && _now - _last < AI_VENTURE_TTL )) && _stale=false
 
 if [[ "$_stale" == true ]] && [[ -d "_sub/ai-venture" && -f "_sub/ai-venture/apply-ai-venture.sh" ]]; then
-  warn "ai-venture update check is due. Automatic updates are disabled."
+  _av_current=$(cat "$_av_version_file" 2>/dev/null || echo unknown)
+  warn "ai-venture update check is due: this repo is on v${_av_current}; no newer version is known yet."
+  echo -e "${DIM}  This is a daily reminder to look, not a pending update. Automatic updates are disabled.${NC}"
   echo -e "${DIM}  Ask the current user before acting. Run only after explicit approval: Update AV.${NC}"
 elif [[ "$_stale" == false ]]; then
   echo -e "${DIM}ai-venture update reminder: cached (next after $(date -r $(( _last + AI_VENTURE_TTL )) '+%Y-%m-%d %H:%M' 2>/dev/null || echo '~24h'))${NC}"
@@ -155,23 +164,21 @@ fi
 # AI-VENTURE-TOPIC-QUEUE-CHECK:START
 # --- Session topic queue advisory (read-only, never blocks the guard) ---
 # Agents decide whether topics are truly related; this only keeps the durable queue structure
-# visible when a handoff exists. Missing headings are a problem worth surfacing, not a reason to
-# reject a project or print normal-success noise.
+# visible in the handoff a next session resumes from: the newest one (names start YYMMDD-HHMM).
+# Earlier snapshots are immutable under AV-SESSION-001, so a gap there cannot be repaired and
+# must not warn forever.
 if [[ -d ".agents/sessions" ]]; then
-  _missing_topic_queue=false
+  _session_handoff=""
   shopt -s nullglob
-  for _session_handoff in .agents/sessions/*.md; do
-    if ! grep -Fqx '## Active topic' "$_session_handoff" \
-      || ! grep -Fqx '## Queued topics' "$_session_handoff"; then
-      _missing_topic_queue=true
-      break
-    fi
+  for _candidate in .agents/sessions/[0-9]*.md; do
+    _session_handoff="$_candidate"
   done
   shopt -u nullglob
-  if [[ "$_missing_topic_queue" == true ]]; then
-    warn "A session handoff lacks Active topic or Queued topics headings."
-    echo -e "${DIM}  Keep one active topic (two only when dependent); queue the rest or promote${NC}"
-    echo -e "${DIM}  broad independent work to a roadmap item. See AV-SESSION-001.${NC}"
+  if [[ -n "$_session_handoff" ]] && { ! grep -Fqx '## Active topic' "$_session_handoff" \
+      || ! grep -Fqx '## Queued topics' "$_session_handoff"; }; then
+    warn "The newest session handoff lacks Active topic or Queued topics headings: $_session_handoff"
+    echo -e "${DIM}  Add both to the next snapshot. Keep one active topic (two only when dependent);${NC}"
+    echo -e "${DIM}  queue the rest or promote broad independent work to a roadmap item. See AV-SESSION-001.${NC}"
   fi
 fi
 # AI-VENTURE-TOPIC-QUEUE-CHECK:END

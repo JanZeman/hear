@@ -187,17 +187,18 @@ Copilot settings support JSONC. ai-venture safely creates or updates strict JSON
 rewrite an existing commented/trailing-comma file because doing so would erase its comments. In
 that case, apply the four documented values manually and rerun `status`.
 
-For VS Code, the checker recommends:
+For VS Code, the checker recommends one user setting (Command Palette: **Preferences: Open User
+Settings (JSON)**):
 
 ```json
 {
-  "chat.assistedPermissions.enabled": true,
   "chat.agent.sandbox.enabled": "on"
 }
 ```
 
-Then choose **Assisted permissions** for the Agent Host session. It cannot be expressed through
-`chat.permissions.default`, whose automatic modes are broader. Never enable
+Assisted permissions have no settings key: choose **Assisted permissions** in the permissions
+picker of the chat input, per session (it needs **Folder** isolation). `chat.permissions.default`
+only offers broader automatic modes. Never enable
 `chat.tools.global.autoApprove` as a substitute: it bypasses the reviewer boundary.
 
 Official references:
@@ -211,12 +212,18 @@ Official references:
 
 Warp exposes autonomy controls in its UI but no documented stable local configuration API that
 ai-venture can safely modify or audit. The installer therefore presents a versioned checklist and
-records only that it was presented. Set **Read files**, **Execute commands**, and **Apply code
-diffs** to **Agent Decides**, allow the current repository directory, and retain narrow denies for
-destructive or credential-bearing commands. Avoid **Always Allow** as a global default.
+records only that it was presented. In **Settings > Agents > Profiles**, open each profile you use
+and, under **Permissions**, set **Read files** and **Execute commands** to **Agent Decides**, and
+add the folder holding your repositories to the **Directory allowlist** under **Read files**. Warp
+documents that **Agent Decides** for **Apply code diffs** currently behaves like **Always ask**;
+keep it there rather than **Always allow**. Keep the profile's **Command denylist** (defaults
+include `rm`, `curl`, `wget`, `eval`) and add destructive or credential-bearing commands. Avoid
+**Always allow** as a global default. Then record the step once per machine:
+`bash vendor.sh acknowledge-manual-step --vendor warp --step agent-decides`.
 
 Official references:
 
+- [Warp profiles and permissions](https://docs.warp.dev/agents/capabilities/agent-profiles-permissions/)
 - [Warp admin settings and autonomy](https://docs.warp.dev/knowledge-and-collaboration/admin-panel)
 - [Warp CLI](https://docs.warp.dev/reference/cli)
 

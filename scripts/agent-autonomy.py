@@ -613,12 +613,15 @@ def uninstall_copilot(state: dict) -> None:
 
 
 def install_warp(state: dict) -> None:
-    state["vendors"]["warp"] = {
-        "recommendation_presented": AUTONOMY_PROFILE_VERSION,
-    }
+    # Keep recorded manual-step acknowledgements: re-presenting the recommendation must not
+    # undo a step the human already confirmed, or the guard reports it again forever.
+    vendor_state = state["vendors"].setdefault("warp", {})
+    vendor_state["recommendation_presented"] = AUTONOMY_PROFILE_VERSION
     print("Warp settings cannot be verified safely through a documented local API.")
-    print("Warp UI: set Read files, Execute commands, and Apply code diffs to Agent Decides;")
-    print("allow the current repository directory and keep dangerous/destructive commands denied.")
+    print("Warp: Settings > Agents > Profiles > <profile> > Permissions: set Read files and")
+    print("Execute commands to Agent Decides; add your repositories folder to Read files >")
+    print("Directory allowlist; leave Apply code diffs on Agent Decides or Always ask;")
+    print("keep the profile's Command denylist for destructive and credential-bearing commands.")
     print("This records that the recommendation was presented, not that Warp UI state was verified.")
 
 
@@ -712,18 +715,13 @@ def vscode_warnings(vendors: list[str]) -> list[str]:
     copilot_keys_present = any(
         f'"{key}"' in text
         for key in (
-            "chat.assistedPermissions.enabled",
             "chat.agent.sandbox.enabled",
             "chat.tools.global.autoApprove",
         )
     )
     if "copilot" in vendors and (vscode_copilot_installed() or copilot_keys_present):
-        assisted = jsonc_scalar(text, "chat.assistedPermissions.enabled")
-        if assisted is not True:
-            warnings.append(
-                f"{path}: set chat.assistedPermissions.enabled=true so Copilot Agent Host can "
-                "offer Assisted permissions"
-            )
+        # Assisted permissions are GA (2026-10-26) and chosen per session in the Chat permissions
+        # picker; VS Code has no settings key for them, so there is nothing here to audit.
         sandbox = jsonc_scalar(text, "chat.agent.sandbox.enabled")
         if sandbox != "on":
             warnings.append(
@@ -768,9 +766,12 @@ def managed_findings(vendors: list[str]) -> list[str]:
         if vendor == "warp":
             if not manual_step_acknowledged(state, vendor, "agent-decides"):
                 findings.append(
-                    "Warp: manual step agent-decides pending - review the current Agent "
-                    "Decides sandbox recommendations; Warp has no documented local settings "
-                    "API that ai-venture can verify"
+                    "Warp: manual step agent-decides pending - in Settings > Agents > "
+                    "Profiles > <profile> > Permissions set Read files and Execute commands to "
+                    "Agent Decides and keep the Command denylist (details: agent-autonomy "
+                    "standard, Warp). Warp has no local settings API ai-venture can verify, so "
+                    "record it once per machine: bash vendor.sh acknowledge-manual-step "
+                    "--vendor warp --step agent-decides"
                 )
             continue
 
