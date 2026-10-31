@@ -181,8 +181,8 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
   `.agents/ai-venture/skills/ai-venture-sync/SKILL.md`. During an ai-venture update/migration,
   never guess ambiguous target, state, or action. Stop that scope and state missing evidence or
   prepare a repair prompt.
-- `AV-UPDATE-002` [`P0`]: When the guard says a check is due, ask the user non-blockingly; only
-  proceed after they explicitly approve `Update AV`. Nothing happens automatically.
+- `AV-UPDATE-002` [`P0`]: Update ai-venture only on an explicit human `Update AV` or fleet
+  update; nothing happens automatically.
 - `AV-INPUT-001` [`P1`]: Treat user input as potentially speech-dictated, mistyped, or in the
   wrong language. Resolve an obvious error silently; ask only if plausible meanings materially
   change scope, authority, safety, or outcome; state the interpretation. A bare `k` runs the

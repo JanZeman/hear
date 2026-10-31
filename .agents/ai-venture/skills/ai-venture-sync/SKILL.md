@@ -1,8 +1,8 @@
 ---
 name: ai-venture-sync
 description: |
-  Force an immediate ai-venture sync during an active session, bypassing the guard's 24-hour
-  cache, then report synced files, drift, migrations, and any human decision required.
+  Run an ai-venture sync in this repository when the human explicitly asks, then report synced
+  files, drift, migrations, and any human decision required.
 ---
 
 # Sync ai-venture now
@@ -12,16 +12,15 @@ description: |
 - The user asks to update, sync, or refresh ai-venture now.
 - Recognized shorthand: "Update AV", "av-update.sh", or "sync AV". Bare "AB" is ambiguous with A/B
   testing and does not trigger this skill.
-- The cached session-start guard reported pending migrations or drift and the user wants a
-  fresh check during the same session.
+- The session-start guard reported pending migrations or drift and the user wants a fresh check
+  during the same session.
 
-Do not use this for the automatic session-start check. Use it only when a fresh mid-session
-sync is requested or needed.
+Never start it on your own: the guard never syncs and never reminds about updates.
 
 ## Why this exists
 
-`ai-venture-guard.sh` checks automatically at session start, but caches that check for 24
-hours. This procedure calls the sync script directly, bypassing that cache.
+Updates normally arrive as a fleet update pushed from the ai-venture root. This procedure is the
+explicit local route when the human wants this repository synced now.
 
 Invoking the sync is routine ai-venture maintenance, not a downstream product roadmap item.
 Do not create one merely because files synchronized. A migration emitted by the sync is

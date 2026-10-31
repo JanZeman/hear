@@ -122,33 +122,12 @@ assert_not_contains() {
 }
 
 # AI-VENTURE-UPDATE-CONSENT:START
-# --- ai-venture update reminder (never fetches, syncs, or changes a checkout) ---
-# Cache: remind at most once per day. Delete .agents/.ai-venture-last-run to show it again.
+# --- ai-venture updates: no startup reminder (never fetches, syncs, or changes a checkout) ---
+# Updates reach this repository only through a fleet update from the ai-venture root or an
+# explicit `Update AV`. A daily "check is due" notice asked for no action, so it is gone.
+# Both variables stay defined: older project-owned guard code below still reads them.
 AI_VENTURE_CACHE="$ROOT_DIR/.agents/.ai-venture-last-run"
-AI_VENTURE_TTL=86400  # seconds (24 h)
-
-# An update that landed (for example a fleet update pulled from the remote) counts as a check:
-# the clock restarts at the commit that last changed AI_VENTURE_VERSION.
-_stale=true
-_last=0
-if [[ -f "$AI_VENTURE_CACHE" ]]; then
-  _last=$(head -n 1 "$AI_VENTURE_CACHE" 2>/dev/null || echo 0)
-  [[ "$_last" =~ ^[0-9]+$ ]] || _last=0
-fi
-_av_version_file="AI_VENTURE_VERSION"
-_av_updated=$(git log -1 --format=%ct -- "$_av_version_file" 2>/dev/null || true)
-[[ "$_av_updated" =~ ^[0-9]+$ ]] && (( _av_updated > _last )) && _last=$_av_updated
-_now=$(date +%s)
-(( _last > 0 && _now - _last < AI_VENTURE_TTL )) && _stale=false
-
-if [[ "$_stale" == true ]] && [[ -d "_sub/ai-venture" && -f "_sub/ai-venture/apply-ai-venture.sh" ]]; then
-  _av_current=$(cat "$_av_version_file" 2>/dev/null || echo unknown)
-  warn "ai-venture update check is due: this repo is on v${_av_current}; no newer version is known yet."
-  echo -e "${DIM}  This is a daily reminder to look, not a pending update. Automatic updates are disabled.${NC}"
-  echo -e "${DIM}  Ask the current user before acting. Run only after explicit approval: Update AV.${NC}"
-elif [[ "$_stale" == false ]]; then
-  echo -e "${DIM}ai-venture update reminder: cached (next after $(date -r $(( _last + AI_VENTURE_TTL )) '+%Y-%m-%d %H:%M' 2>/dev/null || echo '~24h'))${NC}"
-fi
+_stale=false
 # AI-VENTURE-UPDATE-CONSENT:END
 
 # AI-VENTURE-AUTONOMY-CHECK:START
@@ -647,12 +626,6 @@ if [[ $exit_code -ne 0 ]]; then
   echo ""
   error "Integrity guard FAILED. See errors above."
   exit "$exit_code"
-fi
-
-# Stamp the agent-base cache only on success so a failing guard retries next session.
-# Write is best-effort - sandboxed agents (e.g. Codex) may not have write permission.
-if [[ "$_stale" == true ]]; then
-  { mkdir -p "$(dirname "$AI_VENTURE_CACHE")" && date +%s > "$AI_VENTURE_CACHE"; } 2>/dev/null || true
 fi
 
 success "Integrity guard passed."
