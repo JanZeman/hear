@@ -95,6 +95,8 @@ Full detail: [`.agents/standards/architecture.md`](.agents/standards/architectur
 <!-- AI-VENTURE-RULES:START -->
 ### ai-venture Rules
 
+- `AV-COMM-001` [`P1`]: In Czech conversation, use informal address by default. Follow an explicit
+  human preference for another language or register.
 - `AV-DOC-005` [`P0`]: Git content (messages, code, comments, and path names) is always English;
   translate before writing. Load `.agents/ai-venture/standards/git.md` before creating it.
 - `AV-DESIGN-001` [`P1`]: Before material implementation with a distinct design, external write,
