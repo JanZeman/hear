@@ -38,20 +38,21 @@ Always required:
 
 Options:
   --exclude-branch BRANCH      Do not merge a slot while it is on this idle branch (repeatable)
-  --remote REMOTE              Push remote (default: origin)
-  --check                      Validate and print the plan without changing anything
+  --remote REMOTE              Integration pull and optional push remote (default: origin)
+  --check                      Validate and print the plan offline without changing anything
   --push                       Push the integration and merged slot branches after consolidation
   --to-slots-only              One-way propagation only: merge the integration branch into each
-                               clean slot; never merge a slot's own commits into the integration
-                               branch. With --push, only slot branches are pushed.
+                               clean slot from the local integration commit. With --push,
+                               only slot branches are pushed.
   --no-submodule-fetch         Forbid submodule initialization or fetching; require
                                synchronization to complete from already-local objects
   -h, --help                   Show this help
 
 Only declared slot paths participate. Other registered worktrees are reported and ignored.
-Without --push the script performs local merges but does not push. Submodule synchronization
-allows initializing and fetching from remote by default; pass --no-submodule-fetch to require
-already-local objects instead.
+Normal consolidation contacts the configured remote even without --push. After preflight it
+pulls the integration branch with --ff-only and stops if the pull fails, before merging any slot.
+Only --push publishes branches. Submodule synchronization allows initializing and fetching from
+remote by default; pass --no-submodule-fetch to require already-local submodule objects.
 
 --to-slots-only exists because full consolidation folds a slot's own committed work into the
 integration branch, which needs a human's judgment about whether that work is ready. Propagating
@@ -158,6 +159,9 @@ fi
 if [[ "$check_only" == true && "$do_push" == true ]]; then
   error '--check and --push cannot be combined.'
   exit 2
+fi
+if [[ "$check_only" == true ]]; then
+  export GIT_OPTIONAL_LOCKS=0
 fi
 git check-ref-format --branch "$integration_branch" >/dev/null
 for ((i = 0; i < ${#excluded_branches[@]}; i++)); do
@@ -515,6 +519,14 @@ fi
 if [[ "$to_slots_only" == true ]]; then
   info "Skipping slot -> $integration_branch merges (--to-slots-only)"
 else
+  step "Fast-forwarding $integration_branch from $remote"
+  if ! git -C "$primary_path" pull --no-rebase --ff-only --no-recurse-submodules \
+    -- "$remote" "$integration_branch"; then
+    error "Could not fast-forward '$integration_branch' from '$remote'; no slot merges were attempted."
+    exit 1
+  fi
+  sync_submodules "$primary_path" "$integration_branch"
+
   step "Merging declared slots into $integration_branch"
   for i in "${!active_branches[@]}"; do
     branch="${active_branches[$i]}"

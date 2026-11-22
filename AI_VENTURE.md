@@ -330,10 +330,14 @@ Recommended agent-specific folders:
 - `scripts/session-snapshots.py`
   - Validates explicit `Continues` lineages and retains their newest two handoff snapshots
   - Refuses ambiguous or unsafe deletion; see `.agents/ai-venture/standards/session-continuity.md`
-- `scripts/worktree-consolidate.sh` and root `worktrees.sh`
+- `scripts/worktree-consolidate.sh` and root `worktrees.sh` / `worktrees.ps1`
   - The keep-in-sync engine validates and consolidates only project-declared worktree slots; with
     `--repo-id CODE` it discovers `<CODE><N>` slots and merges their `_<code><N>` branches
-  - The customize-once wrapper declares nothing itself: it reads `stable_branch` and `repo_id`
+  - Normal consolidation pulls the integration branch with `--ff-only` before merging any
+    slot, even without `--push`. `--check` is offline and `--to-slots-only` uses the local commit.
+  - On Windows, run `./worktrees.ps1 --check` or `./worktrees.ps1 --push` from PowerShell with
+    Git for Windows installed. The customize-once wrapper uses Git Bash to run `worktrees.sh`.
+  - The customize-once shell wrapper reads `stable_branch` and `repo_id`
     from `development-workflow.md`; using it does not expand agent Git authority beyond the one
     narrow, one-way `--to-slots-only` case a verified fleet update runs (`AV-GIT-001`, git.md)
 - `.claude/`, `WARP.md`, `.github/copilot-instructions.md`, or similar
