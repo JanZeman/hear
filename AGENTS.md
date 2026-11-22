@@ -69,8 +69,6 @@ the section later under `DOC-002` and `AV-RULE-SYNTAX-001`.
 
 ### Documentation
 
-- `AV-COMM-001` [`P1`]: In Czech conversation, use informal address by default. Follow an explicit
-  human preference for another language or register.
 - `DOC-001` [`P1`]: Tool memory is for what dies with the working stretch: a path you are holding,
   a value you will want again in ten minutes. Anything that must outlive it goes in a file in this
   repository, whatever tool offered to remember it instead. The test is the knowledge's lifetime,
