@@ -93,16 +93,26 @@ preflight before the first consolidation or after changing the table:
 ./worktrees.sh --check
 ```
 
-After every slot is ready and clean, consolidate locally, or publish with `--push` (which pushes
-only the trunk and participating slot branches):
+After every slot is ready and clean, consolidate and optionally publish with `--push`:
 
 ```bash
 ./worktrees.sh
 ./worktrees.sh --push
 ```
 
-Add `--to-slots-only` to merge `main` into slots without folding any slot's own commits back in --
-this is what the narrow fleet-update exception above runs; a human rarely needs it directly. To
+Normal consolidation pulls the trunk from the configured remote with `--ff-only` before
+merging any slot, even without `--push`. A failed pull stops consolidation before any slot
+merge. `--check` stays offline, and `--push` publishes only the trunk and participating slots.
+
+On Windows, install Git for Windows and make `git.exe` available on PATH. From PowerShell, use
+`./worktrees.ps1 --check`, `./worktrees.ps1` or `./worktrees.ps1 --push`. The wrapper finds
+Git Bash and delegates to the project's `worktrees.sh` with the same arguments and exit code.
+Windows PowerShell's default `Restricted` execution policy refuses every `.ps1`. Allow local
+scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, or run
+`powershell -ExecutionPolicy Bypass -File .\worktrees.ps1`.
+
+Add `--to-slots-only` to merge the local trunk commit into slots. This mode skips the pull and
+merges only from trunk into slots. It is the mode the narrow fleet-update exception uses. To
 hold one slot back, add `--exclude-branch _<repo_id>-<N>`. Submodule synchronization allows
 initializing and fetching from remote by default; add `--no-submodule-fetch` to require
 already-local objects instead. Either way, the engine stops rather than detach an attached
@@ -150,8 +160,8 @@ git diff --submodule=short -- _sub/
 git submodule update --init --recursive
 ```
 
-`worktrees.sh` does this automatically, before its clean check and after every merge, but only
-when nothing can be lost. It stops instead if a submodule has uncommitted changes, is in a merge
+`worktrees.sh` does this automatically before its clean check, after pulling the trunk, and after
+every merge. It stops if a submodule has uncommitted changes, is in a merge
 conflict, or sits on a detached commit no ref contains -- resolve those inside the submodule
 yourself; per the `AV-GIT-001` override in `AGENTS.md`, checkout inside a submodule is
 human-controlled.
